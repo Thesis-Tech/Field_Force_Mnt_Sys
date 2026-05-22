@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Task Assignment - Operations Hub</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts (Hanken Grotesk, Inter, JetBrains Mono) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#b7c4ff",
+                        "tertiary-container": "#bf3003",
+                        "on-surface": "#131b2e",
+                        "primary": "#003ec7",
+                        "surface-container-highest": "#dae2fd",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#0052ff",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#dde1ff",
+                        "surface-container-low": "#f2f3ff",
+                        "surface-bright": "#faf8ff",
+                        "inverse-on-surface": "#eef0ff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-secondary-container": "#54647a",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#d2d9f4",
+                        "inverse-surface": "#283044",
+                        "secondary": "#505f76",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "on-tertiary-fixed": "#3c0800",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-variant": "#dae2fd",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eaedff",
+                        "background": "#faf8ff",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#d0e1fb",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb4a1",
+                        "on-tertiary-fixed-variant": "#891e00",
+                        "on-tertiary-container": "#ffddd5",
+                        "surface-tint": "#004ced",
+                        "outline-variant": "#c3c5d9",
+                        "on-surface-variant": "#434656",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-background": "#131b2e",
+                        "tertiary": "#952200",
+                        "on-primary-fixed": "#001452",
+                        "surface": "#faf8ff",
+                        "on-primary-container": "#dfe3ff",
+                        "surface-container-high": "#e2e7ff",
+                        "outline": "#737688",
+                        "inverse-primary": "#b7c4ff",
+                        "tertiary-fixed": "#ffdbd2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max": "1440px",
+                        "margin-desktop": "32px",
+                        "unit": "4px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for high-density tables/lists */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c3c5d9; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #737688; }
+        
+        /* Input overrides for tactical sharp edges */
+        input[type="text"], input[type="email"], select, textarea {
+            border-radius: 0;
+            border: 1px solid #c3c5d9;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #003ec7;
+            border-width: 2px;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen w-screen overflow-hidden flex">
+<!-- SideNavBar Component -->
+<aside class="docked fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest flex flex-col py-gutter z-50">
+<!-- Brand Header -->
+<div class="px-4 mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-on-background">ForceAdmin</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Precision Operations</p>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 flex flex-col gap-1">
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-caps text-label-caps">Staff</span>
+</a>
+<!-- Active Tab -->
+<a class="text-primary border-r-2 border-primary bg-primary-container/10 px-4 py-3 flex items-center gap-3 scale-95 duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-label-caps text-label-caps">Tasks</span>
+</a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">location_on</span>
+<span class="font-label-caps text-label-caps">Live Tracking</span>
+</a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-caps text-label-caps">Analytics</span>
+</a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-label-caps text-label-caps">Notifications</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-64 flex flex-col h-full bg-surface">
+<!-- TopAppBar Component -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center h-16 px-margin-desktop">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-on-background tracking-tight">Operations Hub</span>
+</div>
+<div class="flex items-center gap-6">
+<!-- Search -->
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+<input class="pl-9 pr-4 py-1.5 w-64 bg-surface-container-low border-outline-variant text-body-sm text-on-surface focus:ring-2 focus:ring-primary focus:ring-inset duration-200" placeholder="Search operations..." type="text"/>
+</div>
+<div class="flex items-center gap-2 border-l border-outline-variant pl-6">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-none">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-none">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="ml-2 h-8 w-8 rounded bg-surface-variant overflow-hidden border border-outline-variant">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a corporate administrator in a bright, modern office setting. The lighting is crisp and even, highlighting a serious but approachable expression. The color palette is composed of cool grays, deep blues, and stark whites, perfectly aligning with a tactical precision enterprise UI. The subject wears a sharp dark suit against a minimalist light background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqvMyPiFE_GcBMLeHu8qfSPNqu_ElWEfcJZYYKg1eN3pM6vt0nYvxjqanYNbHi16yu46hOHuS9A_8INL-hNtKzfTWDrAW5sY5AF34TTp4_mNAXsRYqyoM3WZ5gulgAPFwjg3VckTnQWZR9h2nltQXYfGhZNSdUmvcrhFcC9XA0gRqPaiCQaexzn5dOaQ0Py6ZYa38azb_SNf2WNj4OnDoR-wUDD9y-OgLDx07KJpAuIhLoCPyPe4psfM7v07RE86yrZuV5LpFYmcxK"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto mt-16 p-margin-desktop">
+<div class="max-w-container-max mx-auto">
+<!-- Page Header -->
+<div class="mb-6 flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Assign Objective</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Configure parameters and deploy personnel to designated coordinates.</p>
+</div>
+</div>
+<!-- Split View Layout -->
+<div class="grid grid-cols-12 gap-gutter mb-margin-desktop">
+<!-- Left Column: Form -->
+<div class="col-span-12 lg:col-span-5 bg-surface-container-lowest border border-outline-variant flex flex-col">
+<div class="px-6 py-4 border-b border-outline-variant bg-surface-container-low/50">
+<h3 class="font-label-caps text-label-caps text-on-surface">Task Parameters</h3>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<!-- Title -->
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-secondary-container uppercase tracking-wider">Operation Designation</label>
+<input class="w-full bg-surface-container-lowest p-2.5 text-body-md text-on-surface placeholder:text-outline" placeholder="e.g. Perimeter Sweep Sector 4" type="text"/>
+</div>
+<!-- Description -->
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-secondary-container uppercase tracking-wider">Tactical Brief</label>
+<textarea class="w-full bg-surface-container-lowest p-2.5 text-body-md text-on-surface placeholder:text-outline resize-none" placeholder="Detail objective requirements..." rows="4"></textarea>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Assignee -->
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-secondary-container uppercase tracking-wider">Primary Operative</label>
+<select class="w-full bg-surface-container-lowest p-2.5 text-body-md text-on-surface">
+<option>Select Operative...</option>
+<option>Agent Vance, L.</option>
+<option>Specialist Chen, M.</option>
+<option>Unit Alpha-7</option>
+</select>
+</div>
+<!-- Priority -->
+<div class="flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-secondary-container uppercase tracking-wider">Threat Level</label>
+<select class="w-full bg-surface-container-lowest p-2.5 text-body-md text-on-surface">
+<option>Standard (Code Green)</option>
+<option>Elevated (Code Yellow)</option>
+<option class="text-tertiary">Critical (Code Red)</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="mt-auto px-6 py-4 border-t border-outline-variant flex justify-end gap-3 bg-surface-container-low/50">
+<button class="px-4 py-2 border border-outline-variant text-on-surface font-label-caps text-label-caps hover:bg-surface-variant transition-colors rounded-none">Abort</button>
+<button class="px-6 py-2 bg-primary text-on-primary font-label-caps text-label-caps hover:bg-primary-fixed-dim hover:text-on-primary-fixed transition-colors rounded-none flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">send</span>
+                                Deploy
+                            </button>
+</div>
+</div>
+<!-- Right Column: Map -->
+<div class="col-span-12 lg:col-span-7 bg-surface-container-lowest border border-outline-variant flex flex-col min-h-[500px] relative">
+<div class="absolute top-4 left-4 z-10 bg-surface-container-lowest border border-outline-variant px-4 py-2 shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">my_location</span>
+<span class="font-label-caps text-label-caps text-on-surface">Target Coordinate Selection</span>
+</div>
+<!-- Map Placeholder -->
+<div class="flex-1 bg-surface-variant overflow-hidden relative">
+<img alt="Interactive Map" class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="A highly detailed, stark topographical satellite map of an urban grid area, specifically designed for a tactical interface. The map is rendered in high-contrast light mode, predominantly utilizing crisp whites, pale grays, and subtle blue grid lines. Buildings and terrain features are sharply defined with low-opacity tonal layers, devoid of clutter. The overall aesthetic is clean, analytical, and strictly professional, resembling advanced military or enterprise logistics software." data-location="Seattle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7l_MIDA4a7gjIFX1rtXLKwuLAuqOYI9YqMKMIwbAZS5p0fSVd38VHuvObaMoUzmK9upbXLlxakHOv_9tk6dvx8Chj0QVaSTOcoPzejzcmByIeuNTgqvkdCCT_ww-QXGAijeh-Wtd8yLZpzfWbuj_7iXVAq0YJzMcl9GThyamq5UD0DmgusWz5vOc8IsqFhCe8EAUIVFH89WHMAXihB9R09a3mKOoSu5B41R5wp4CNLTlDfWnHXYvP3KUWSbh2JS7JIMAp-ggb2H5X"/>
+<!-- Tactical Overlay Elements -->
+<div class="absolute inset-0 border-[0.5px] border-primary/20 pointer-events-none" style="background-image: linear-gradient(to right, rgba(0, 82, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 82, 255, 0.05) 1px, transparent 1px); background-size: 40px 40px;"></div>
+<!-- Target Reticle -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 border-2 border-primary rounded-full flex items-center justify-center bg-primary/10">
+<div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+<div class="absolute w-full h-[1px] bg-primary/50"></div>
+<div class="absolute h-full w-[1px] bg-primary/50"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Table -->
+<div class="bg-surface-container-lowest border border-outline-variant flex flex-col">
+<div class="px-4 py-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+<h3 class="font-label-caps text-label-caps text-on-surface">Active Deployments</h3>
+<button class="text-primary hover:text-on-primary-fixed-variant flex items-center gap-1 font-label-sm text-label-sm uppercase tracking-widest">
+                            View Log <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-lowest border-b-2 border-on-surface">
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant font-medium">ID</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant font-medium">Designation</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant font-medium">Assigned</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant font-medium">Vector</th>
+<th class="py-2 px-4 font-label-caps text-label-caps text-on-surface-variant font-medium text-right">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<tr class="border-b border-outline-variant/50 even:bg-surface-container-low hover:bg-surface-variant/30 transition-colors">
+<td class="py-2 px-4 font-label-caps text-label-caps text-outline">OP-892</td>
+<td class="py-2 px-4 font-medium text-on-background">Secure Logistics Hub</td>
+<td class="py-2 px-4">Unit Alpha-7</td>
+<td class="py-2 px-4 text-on-surface-variant">47°36'N 122°20'W</td>
+<td class="py-2 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 bg-primary/10 border-l-2 border-primary text-primary font-label-caps text-[10px] uppercase tracking-wider rounded-none">En Route</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-surface-container-low hover:bg-surface-variant/30 transition-colors">
+<td class="py-2 px-4 font-label-caps text-label-caps text-outline">OP-891</td>
+<td class="py-2 px-4 font-medium text-on-background">Asset Extraction</td>
+<td class="py-2 px-4">Specialist Chen, M.</td>
+<td class="py-2 px-4 text-on-surface-variant">47°35'N 122°19'W</td>
+<td class="py-2 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 bg-secondary/10 border-l-2 border-secondary text-secondary font-label-caps text-[10px] uppercase tracking-wider rounded-none">Staging</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-surface-container-low hover:bg-surface-variant/30 transition-colors">
+<td class="py-2 px-4 font-label-caps text-label-caps text-outline">OP-889</td>
+<td class="py-2 px-4 font-medium text-on-background">Perimeter Sweep</td>
+<td class="py-2 px-4">Agent Vance, L.</td>
+<td class="py-2 px-4 text-on-surface-variant">47°38'N 122°21'W</td>
+<td class="py-2 px-4 text-right">
+<span class="inline-flex items-center px-2 py-0.5 bg-tertiary/10 border-l-2 border-tertiary text-tertiary font-label-caps text-[10px] uppercase tracking-wider rounded-none">Critical</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
