@@ -9,6 +9,9 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "/tasks": { title: "Task Management", subtitle: "Assign and track field tasks" },
   "/attendance": { title: "Attendance", subtitle: "Daily check-in & check-out records" },
   "/reports": { title: "Reports", subtitle: "Analytics and performance insights" },
+  "/geofencing": { title: "Geofencing Monitor", subtitle: "Live boundary tracking and containment audits" },
+  "/playback": { title: "Routes Playback", subtitle: "Replay historic GPS travel timelines" },
+  "/notifications": { title: "Notifications Hub", subtitle: "Central terminal for real-time operations event logs" },
 };
 
 export default function Topbar() {
