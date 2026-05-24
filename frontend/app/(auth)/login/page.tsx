@@ -56,8 +56,9 @@ export default function LoginPage() {
 
         {/* Card */}
         <div style={{
-          background: "var(--bg-card)", border: "1px solid var(--border)",
-          borderRadius: "0", padding: "32px",
+          background: "var(--bg-card)", border: "1.5px solid var(--border)",
+          borderRadius: "10px", padding: "32px",
+          boxShadow: "0 0 30px rgba(5, 5, 5, 0.2), 0 0 8px rgba(0, 0, 0, 0.1)",
         }}>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {/* Email */}
