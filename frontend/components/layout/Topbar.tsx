@@ -1,9 +1,10 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Bell, Search, User, ArrowRight } from "lucide-react";
+import { Bell, Search, User, ArrowRight, Lock, Edit3, Camera, Check, X, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
+import { updateProfile, changePassword, logout } from "@/store/slices/authSlice";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "/dashboard": { title: "Dashboard", subtitle: "Welcome back, Admin 👋" },
@@ -43,12 +44,74 @@ export default function Topbar() {
   const info = pageTitles[pathname] || { title: "Field Force", subtitle: "" };
 
   const employees = useSelector((s: RootState) => s.employees.list);
+  const dispatch = useDispatch();
+  const currentUser = useSelector((s: RootState) => s.auth.user);
+  const passwordHash = useSelector((s: RootState) => s.auth.passwordHash);
+  const notifications = useSelector((s: RootState) => s.notifications.list);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const defaultUser = {
+    firstName: "Admin",
+    lastName: "",
+    designation: "Global Ops",
+    photoUrl: null as string | null,
+    email: "admin@fieldforce.com",
+    mobileNo: "+1 (555) 019-2834",
+  };
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getInitials = () => {
+    if (!mounted) return "AG"; // Default server-side render (Admin + Global Ops)
+    const activeUser = currentUser || defaultUser;
+    const firstInit = activeUser.firstName ? activeUser.firstName.charAt(0).toUpperCase() : "";
+    const lastInit = activeUser.lastName 
+      ? activeUser.lastName.charAt(0).toUpperCase() 
+      : (activeUser.designation ? activeUser.designation.charAt(0).toUpperCase() : "");
+    return `${firstInit}${lastInit}` || "AG";
+  };
 
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  
+  // Dropdown & Modal States
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
-  // Close dropdown when clicking outside
+  // Form States
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+    designation: "",
+    photoUrl: null as string | null,
+    email: "",
+    mobileNo: "",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  // Close search dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -58,6 +121,30 @@ export default function Topbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Sync profile details with store
+  useEffect(() => {
+    const activeUser = currentUser || defaultUser;
+    setProfileForm({
+      firstName: activeUser.firstName,
+      lastName: activeUser.lastName,
+      designation: activeUser.designation,
+      photoUrl: activeUser.photoUrl,
+      email: activeUser.email,
+      mobileNo: activeUser.mobileNo,
+    });
+  }, [currentUser]);
 
   // Build search results
   const getResults = (): SearchResult[] => {
@@ -112,6 +199,84 @@ export default function Topbar() {
       setIsFocused(false);
       setQuery("");
     }
+  };
+
+  // Profile Action Handlers
+  const handleOpenEditProfile = () => {
+    const activeUser = currentUser || defaultUser;
+    setProfileForm({
+      firstName: activeUser.firstName,
+      lastName: activeUser.lastName,
+      designation: activeUser.designation,
+      photoUrl: activeUser.photoUrl,
+      email: activeUser.email,
+      mobileNo: activeUser.mobileNo,
+    });
+    setIsEditProfileOpen(true);
+    setIsProfileDropdownOpen(false);
+  };
+
+  const handleOpenChangePassword = () => {
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setIsChangePasswordOpen(true);
+    setIsProfileDropdownOpen(false);
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showToast("File size exceeds 2MB limit", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileForm((prev) => ({ ...prev, photoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    dispatch(updateProfile({
+      firstName: profileForm.firstName,
+      lastName: profileForm.lastName,
+      designation: profileForm.designation,
+      photoUrl: profileForm.photoUrl,
+      email: profileForm.email,
+      mobileNo: profileForm.mobileNo,
+    }));
+    showToast("Profile updated successfully!", "success");
+    setIsEditProfileOpen(false);
+  };
+
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.currentPassword !== passwordHash) {
+      showToast("Current password is incorrect.", "error");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showToast("Passwords do not match.", "error");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      showToast("Password must be at least 6 characters.", "error");
+      return;
+    }
+    dispatch(changePassword(passwordForm.newPassword));
+    showToast("Password updated successfully!", "success");
+    setIsChangePasswordOpen(false);
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push("/login");
   };
 
   return (
@@ -239,29 +404,415 @@ export default function Topbar() {
           title="Notification Settings"
         >
           <Bell size={18} color={pathname === "/notifications" ? "var(--accent-blue)" : "var(--text-secondary)"} />
-          <span style={{
-            position: "absolute", top: "7px", right: "7px",
-            width: "8px", height: "8px", borderRadius: "0",
-            background: "var(--accent-red)", border: "1px solid var(--bg-secondary)"
-          }} />
+          {unreadCount > 0 && (
+            <span style={{
+              position: "absolute", top: "-5px", right: "-5px",
+              minWidth: "16px", height: "16px", borderRadius: "50%",
+              background: "var(--accent-red)", color: "white", fontSize: "10px", fontWeight: 800,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "0 4px", border: "1px solid var(--bg-secondary)",
+              fontFamily: "var(--font-jetbrains), monospace"
+            }}>
+              {unreadCount}
+            </span>
+          )}
         </div>
 
-        {/* Admin avatar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-          <div style={{
-            width: "38px", height: "38px", borderRadius: "0",
-            background: "var(--bg-hover)", border: "1px solid var(--border)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 700, fontSize: "14px", color: "var(--text-primary)",
-          }}>
-            <User size={18} color="var(--text-secondary)" />
+        {/* Admin avatar dropdown trigger */}
+        <div ref={profileRef} style={{ position: "relative" }}>
+          <div
+            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              cursor: "pointer",
+              padding: "4px 8px",
+              background: isProfileDropdownOpen ? "var(--bg-hover)" : "transparent",
+              border: "1px solid " + (isProfileDropdownOpen ? "var(--border)" : "transparent"),
+              transition: "all 0.15s ease",
+            }}
+          >
+            <div style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "0",
+              background: "var(--bg-hover)",
+              border: "1px solid var(--border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: "13px",
+              color: "var(--text-primary)", // Dark color
+              fontFamily: "var(--font-jetbrains), monospace",
+              overflow: "hidden",
+            }}>
+              {getInitials()}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                {!mounted ? "Admin" : (currentUser ? (currentUser.lastName ? `${currentUser.firstName} ${currentUser.lastName}` : currentUser.firstName) : "Admin")}
+              </span>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-jetbrains), monospace", textTransform: "uppercase" }}>
+                {!mounted ? "Global Ops" : (currentUser?.designation || "Global Ops")}
+              </span>
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>Admin</span>
-            <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-jetbrains), monospace", textTransform: "uppercase" }}>Global Ops</span>
-          </div>
+
+          {/* Profile Dropdown Menu */}
+          {isProfileDropdownOpen && (
+            <div style={{
+              position: "absolute",
+              top: "100%",
+              right: 0,
+              width: "240px",
+              background: "var(--bg-card)",
+              border: "1px solid var(--text-primary)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+              zIndex: 999,
+              marginTop: "6px",
+              animation: "fadeIn 0.15s ease",
+            }}>
+              {/* Dropdown Header */}
+              <div style={{ 
+                padding: "12px 16px", 
+                borderBottom: "1px solid var(--border)", 
+                background: "var(--bg-hover)",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px"
+              }}>
+                <div style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "0",
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-card)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}>
+                  {(currentUser || defaultUser).photoUrl ? (
+                    <img 
+                      src={(currentUser || defaultUser).photoUrl!} 
+                      alt="Profile" 
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                    />
+                  ) : (
+                    <User size={18} color="var(--text-secondary)" />
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", fontFamily: "var(--font-jetbrains), monospace" }}>Signed in as</div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>
+                    {(currentUser || defaultUser).email}
+                  </div>
+                </div>
+              </div>
+
+              {/* Menu items */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <button
+                  onClick={handleOpenEditProfile}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    width: "100%", padding: "11px 16px", background: "none",
+                    border: "none", cursor: "pointer", textAlign: "left",
+                    color: "var(--text-primary)", fontSize: "13px",
+                    fontFamily: "Inter, sans-serif",
+                    transition: "background 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <Edit3 size={15} color="var(--text-secondary)" />
+                  <span>Profile Edit</span>
+                </button>
+
+                <button
+                  onClick={handleOpenChangePassword}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    width: "100%", padding: "11px 16px", background: "none",
+                    border: "none", cursor: "pointer", textAlign: "left",
+                    color: "var(--text-primary)", fontSize: "13px",
+                    fontFamily: "Inter, sans-serif",
+                    transition: "background 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <Lock size={15} color="var(--text-secondary)" />
+                  <span>Change Password</span>
+                </button>
+
+                <div style={{ height: "1px", background: "var(--border)" }} />
+
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    width: "100%", padding: "11px 16px", background: "none",
+                    border: "none", cursor: "pointer", textAlign: "left",
+                    color: "var(--accent-red)", fontSize: "13px",
+                    fontFamily: "Inter, sans-serif",
+                    transition: "background 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(186,26,26,0.06)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <LogOut size={15} color="var(--accent-red)" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Floating toast notification */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          bottom: "24px",
+          right: "24px",
+          background: toast.type === "success" ? "var(--accent-green)" : "var(--accent-red)",
+          color: "white",
+          padding: "12px 20px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          zIndex: 9999,
+          animation: "fadeIn 0.2s ease",
+          border: "1px solid rgba(0,0,0,0.1)",
+        }}>
+          {toast.type === "success" ? <Check size={16} /> : <X size={16} />}
+          <span style={{ fontSize: "13px", fontWeight: 600, fontFamily: "Inter, sans-serif" }}>{toast.message}</span>
+        </div>
+      )}
+
+      {/* Profile Edit Modal */}
+      {isEditProfileOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth: "520px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px", fontFamily: "var(--font-hanken), sans-serif" }}>
+                <Edit3 size={18} color="var(--accent-blue)" /> Edit Admin Profile
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Photo Upload area */}
+              <div style={{ display: "flex", alignItems: "center", gap: "20px", padding: "14px", border: "1px dashed var(--border)", background: "var(--bg-hover)" }}>
+                <div style={{ position: "relative", width: "70px", height: "70px", background: "var(--bg-card)", border: "1px solid var(--border)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {profileForm.photoUrl ? (
+                    <img src={profileForm.photoUrl} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <User size={30} color="var(--text-secondary)" />
+                  )}
+                  <label
+                    htmlFor="profile-upload"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(0,0,0,0.5)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: 0,
+                      transition: "opacity 0.2s ease",
+                      cursor: "pointer"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                  >
+                    <Camera size={18} color="white" />
+                  </label>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", fontFamily: "Inter, sans-serif" }}>Profile Photo</div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px", fontFamily: "Inter, sans-serif" }}>Upload JPG or PNG image (Max 2MB).</div>
+                  <input
+                    id="profile-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    style={{ display: "none" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("profile-upload")?.click()}
+                    className="btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px" }}
+                  >
+                    Choose Photo
+                  </button>
+                  {profileForm.photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setProfileForm(p => ({ ...p, photoUrl: null }))}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-red)", fontSize: "11px", marginLeft: "12px", textDecoration: "underline" }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Name Fields Row */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>First Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="input"
+                    value={profileForm.firstName}
+                    onChange={(e) => setProfileForm(p => ({ ...p, firstName: e.target.value }))}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>Last Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="input"
+                    value={profileForm.lastName}
+                    onChange={(e) => setProfileForm(p => ({ ...p, lastName: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Designation */}
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>Designation</label>
+                <input
+                  type="text"
+                  required
+                  className="input"
+                  value={profileForm.designation}
+                  onChange={(e) => setProfileForm(p => ({ ...p, designation: e.target.value }))}
+                />
+              </div>
+
+              {/* Email & Mobile Row */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>Email</label>
+                  <input
+                    type="email"
+                    required
+                    className="input"
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm(p => ({ ...p, email: e.target.value }))}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>Mobile No.</label>
+                  <input
+                    type="text"
+                    required
+                    className="input"
+                    value={profileForm.mobileNo}
+                    onChange={(e) => setProfileForm(p => ({ ...p, mobileNo: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
+                <button type="button" onClick={() => setIsEditProfileOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth: "420px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px", fontFamily: "var(--font-hanken), sans-serif" }}>
+                <Lock size={18} color="var(--accent-blue)" /> Change Password
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsChangePasswordOpen(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePassword} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Current Password */}
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>Current Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter current password"
+                  className="input"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))}
+                />
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>New Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter new password"
+                  className="input"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                />
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", fontFamily: "Inter, sans-serif" }}>Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Confirm new password"
+                  className="input"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
+                <button type="button" onClick={() => setIsChangePasswordOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

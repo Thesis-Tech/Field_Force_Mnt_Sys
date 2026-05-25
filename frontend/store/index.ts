@@ -4,6 +4,8 @@ import authReducer from "./slices/authSlice";
 import employeeReducer from "./slices/employeeSlice";
 import taskReducer from "./slices/taskSlice";
 import attendanceReducer from "./slices/attendanceSlice";
+import notificationReducer from "./slices/notificationSlice";
+import expenseReducer from "./slices/expenseSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +13,8 @@ export const store = configureStore({
     employees: employeeReducer,
     tasks: taskReducer,
     attendance: attendanceReducer,
+    notifications: notificationReducer,
+    expenses: expenseReducer,
   },
 });
 

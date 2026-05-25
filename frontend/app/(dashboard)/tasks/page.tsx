@@ -3,14 +3,16 @@ import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { addTask, updateTaskStatus, deleteTask, Task } from "@/store/slices/taskSlice";
+import { Employee } from "@/store/slices/employeeSlice";
 import { getStatusColor } from "@/lib/utils";
-import { Plus, Trash2, X, Flag, Calendar, User } from "lucide-react";
+import { Plus, Trash2, X, Flag, Calendar, User, Mail, CheckCircle } from "lucide-react";
 
 const STATUSES = ["pending", "in-progress", "completed"];
 const PRIORITIES = ["low", "medium", "high"];
 
-function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave: (t: Task) => void; employees: { id: string; name: string }[] }) {
+function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave: (t: Task, sendEmail: boolean, empEmail: string) => void; employees: Employee[] }) {
   const [form, setForm] = useState({ title:"", description:"", employeeId: employees[0]?.id||"", priority:"medium", deadline:"", territory:"" });
+  const [sendEmail, setSendEmail] = useState(true);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const emp = employees.find(e => e.id === form.employeeId);
 
@@ -48,10 +50,17 @@ function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Deadline</label>
             <input className="input" type="date" value={form.deadline} onChange={e=>set("deadline",e.target.value)} />
           </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer", marginTop: "4px" }}>
+            <input type="checkbox" checked={sendEmail} onChange={e => setSendEmail(e.target.checked)} style={{ cursor: "pointer" }} />
+            <Mail size={14} color={sendEmail ? "var(--accent-blue)" : "var(--text-muted)"} />
+            Send email notification to {emp?.name || "employee"} ({emp?.email || ""})
+          </label>
+
           <button className="btn-primary" style={{ width:"100%",justifyContent:"center",marginTop:"4px" }}
             onClick={()=>{
               if(!form.title.trim()) return;
-              onSave({ id:Date.now().toString(), title:form.title, description:form.description, assignedTo:emp?.name||"", employeeId:form.employeeId, priority:form.priority, status:"pending", deadline:form.deadline, territory:"" });
+              onSave({ id:Date.now().toString(), title:form.title, description:form.description, assignedTo:emp?.name||"", employeeId:form.employeeId, priority:form.priority, status:"pending", deadline:form.deadline, territory:"" }, sendEmail, emp?.email || "");
             }}>
             Create Task
           </button>
@@ -67,6 +76,7 @@ export default function TasksPage() {
   const employees = useSelector((s: RootState) => s.employees.list);
   const [modal, setModal] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [toast, setToast] = useState<string | null>(null);
 
   const filtered = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
   const counts = { all: tasks.length, pending: tasks.filter(t=>t.status==="pending").length, "in-progress": tasks.filter(t=>t.status==="in-progress").length, completed: tasks.filter(t=>t.status==="completed").length };
@@ -139,7 +149,42 @@ export default function TasksPage() {
         <div style={{ textAlign:"center",padding:"60px",color:"var(--text-muted)" }}>No tasks found.</div>
       )}
 
-      {modal && <TaskModal employees={employees.map(e=>({id:e.id,name:e.name}))} onClose={()=>setModal(false)} onSave={t=>{ dispatch(addTask(t)); setModal(false); }} />}
+      {modal && <TaskModal employees={employees} onClose={()=>setModal(false)} onSave={(t, sendEmail, empEmail)=>{ 
+        dispatch(addTask(t)); 
+        setModal(false); 
+        if (sendEmail) {
+          setToast(`Task assigned successfully. Email notification sent to ${empEmail}.`);
+          setTimeout(() => setToast(null), 4000);
+        }
+      }} />}
+
+      {/* Floating toast notification */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          bottom: "24px",
+          right: "24px",
+          background: "var(--bg-card)",
+          color: "var(--text-primary)",
+          padding: "14px 20px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          zIndex: 9999,
+          animation: "fadeIn 0.2s ease",
+          border: "1px solid var(--accent-green)",
+          borderLeft: "4px solid var(--accent-green)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+        }}>
+          <div style={{ background: "rgba(34,211,165,0.1)", borderRadius: "50%", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <CheckCircle size={16} color="var(--accent-green)" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>Email Sent</span>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{toast}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ export interface Employee {
   avatar: string;
   lat: number;
   lng: number;
+  password?: string;
 }
 
 interface EmployeeState {

@@ -343,39 +343,56 @@ export default function Sidebar() {
                   ➔ Geofencing Monitor
                 </span>
               </Link>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Visits (Demo)
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Visit Beat Plans
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Customers
-              </span>
+              <Link href="/activities/visits" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/activities/visits" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/activities/visits" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Visits
+                </span>
+              </Link>
+              <Link href="/activities/beat-plans" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/activities/beat-plans" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/activities/beat-plans" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Visit Beat Plans
+                </span>
+              </Link>
+              <Link href="/activities/customers" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/activities/customers" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/activities/customers" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Customers
+                </span>
+              </Link>
             </div>
           )}
         </div>
 
-        {/* 5. Expenses Placeholder */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: isExpanded ? "10px 12px" : "10px 0",
-              justifyContent: isExpanded ? "flex-start" : "center",
-              opacity: 0.45,
-              cursor: "not-allowed",
-              marginBottom: "2px",
-              color: "var(--text-muted)",
-              transition: "all 0.2s ease",
-            }}
-            title="Expenses"
-          >
-            {renderIcon(Wallet, false)}
+        {/* 5. Expenses */}
+        <Link href="/expenses" style={{ textDecoration: "none" }} title="Expenses">
+          <div style={getLinkStyle(pathname === "/expenses")} className="sidebar-link">
+            {renderIcon(Wallet, pathname === "/expenses")}
             <span style={{
               fontSize: "13.5px",
+              fontWeight: pathname === "/expenses" ? 700 : 500,
               opacity: isExpanded ? 1 : 0,
               width: isExpanded ? "auto" : 0,
               overflow: "hidden",
@@ -383,7 +400,7 @@ export default function Sidebar() {
               transition: "opacity 0.2s ease 0.05s",
             }}>Expenses</span>
           </div>
-        </div>
+        </Link>
 
         {/* 6. Insights Accordion */}
         <div>
@@ -440,39 +457,56 @@ export default function Sidebar() {
                   ➔ Map Insights (Playback)
                 </span>
               </Link>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Overview
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Attendance Analytics
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Expense Audits
-              </span>
+              <Link href="/insights/overview" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/insights/overview" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/insights/overview" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Overview
+                </span>
+              </Link>
+              <Link href="/insights/attendance-analytics" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/insights/attendance-analytics" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/insights/attendance-analytics" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Attendance Analytics
+                </span>
+              </Link>
+              <Link href="/insights/expense-audits" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/insights/expense-audits" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/insights/expense-audits" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Expense Audits
+                </span>
+              </Link>
             </div>
           )}
         </div>
 
-        {/* 7. Forms Placeholder */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: isExpanded ? "10px 12px" : "10px 0",
-              justifyContent: isExpanded ? "flex-start" : "center",
-              opacity: 0.45,
-              cursor: "not-allowed",
-              marginBottom: "2px",
-              color: "var(--text-muted)",
-              transition: "all 0.2s ease",
-            }}
-            title="Forms"
-          >
-            {renderIcon(FileText, false)}
+        {/* 7. Forms */}
+        <Link href="/forms" style={{ textDecoration: "none" }} title="Forms & Feedback">
+          <div style={getLinkStyle(pathname === "/forms")} className="sidebar-link">
+            {renderIcon(FileText, pathname === "/forms")}
             <span style={{
               fontSize: "13.5px",
+              fontWeight: pathname === "/forms" ? 700 : 500,
               opacity: isExpanded ? 1 : 0,
               width: isExpanded ? "auto" : 0,
               overflow: "hidden",
@@ -480,7 +514,7 @@ export default function Sidebar() {
               transition: "opacity 0.2s ease 0.05s",
             }}>Forms</span>
           </div>
-        </div>
+        </Link>
 
         {/* 8. Reports Accordion */}
         <div>
@@ -524,15 +558,39 @@ export default function Sidebar() {
                   ➔ Visits & Performance
                 </span>
               </Link>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Travel Expenses
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Productivity Reports
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Compliance Metrics
-              </span>
+              <Link href="/reports/travel-expenses" style={{ textDecoration: "none", color: "inherit" }}>
+                <span style={{
+                  fontSize: "12.5px",
+                  color: pathname === "/reports/travel-expenses" ? "var(--accent-blue)" : "var(--text-secondary)",
+                  fontWeight: pathname === "/reports/travel-expenses" ? 700 : 400,
+                  display: "block",
+                  padding: "4px 8px",
+                }}>
+                  ➔ Travel Expenses
+                </span>
+              </Link>
+              <Link href="/reports/productivity" style={{ textDecoration: "none", color: "inherit" }}>
+                <span style={{
+                  fontSize: "12.5px",
+                  color: pathname === "/reports/productivity" ? "var(--accent-blue)" : "var(--text-secondary)",
+                  fontWeight: pathname === "/reports/productivity" ? 700 : 400,
+                  display: "block",
+                  padding: "4px 8px",
+                }}>
+                  ➔ Productivity Reports
+                </span>
+              </Link>
+              <Link href="/reports/compliance" style={{ textDecoration: "none", color: "inherit" }}>
+                <span style={{
+                  fontSize: "12.5px",
+                  color: pathname === "/reports/compliance" ? "var(--accent-blue)" : "var(--text-secondary)",
+                  fontWeight: pathname === "/reports/compliance" ? 700 : 400,
+                  display: "block",
+                  padding: "4px 8px",
+                }}>
+                  ➔ Compliance Metrics
+                </span>
+              </Link>
             </div>
           )}
         </div>
@@ -579,18 +637,58 @@ export default function Sidebar() {
                   ➔ Notification Settings
                 </span>
               </Link>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ User Management
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Territory Setup
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Travel Policies
-              </span>
-              <span style={{ fontSize: "12.5px", color: "var(--text-muted)", opacity: 0.5, cursor: "not-allowed", display: "block", padding: "4px 8px" }}>
-                ➔ Security & Access
-              </span>
+              <Link href="/settings/user-management" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/settings/user-management" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/settings/user-management" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ User Management
+                </span>
+              </Link>
+              <Link href="/settings/territory-setup" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/settings/territory-setup" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/settings/territory-setup" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Territory Setup
+                </span>
+              </Link>
+              <Link href="/settings/travel-policies" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/settings/travel-policies" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/settings/travel-policies" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Travel Policies
+                </span>
+              </Link>
+              <Link href="/settings/security-access" style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === "/settings/security-access" ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === "/settings/security-access" ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Security & Access
+                </span>
+              </Link>
             </div>
           )}
         </div>

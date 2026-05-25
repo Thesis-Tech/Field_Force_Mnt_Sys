@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
+import {
+  addNotification,
+  markAllAsRead,
+  clearAllNotifications,
+  toggleNotificationRead,
+} from "@/store/slices/notificationSlice";
 import {
   Bell,
   Trash2,
@@ -19,24 +25,12 @@ import {
   Activity
 } from "lucide-react";
 
-interface NotificationItem {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  avatar: string;
-  type: "attendance" | "task" | "alert" | "system";
-  message: string;
-  time: string;
-  date: string;
-  priority: "high" | "normal";
-  read: boolean;
-}
-
 export default function NotificationsPage() {
+  const dispatch = useDispatch();
   const employees = useSelector((s: RootState) => s.employees.list);
   const tasks = useSelector((s: RootState) => s.tasks.list);
+  const notifications = useSelector((s: RootState) => s.notifications.list);
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<"all" | "alert" | "task" | "attendance" | "system">("all");
 
@@ -48,7 +42,7 @@ export default function NotificationsPage() {
 
   // Form states for creating custom notifications
   const [simEmployeeId, setSimEmployeeId] = useState("1");
-  const [simEventType, setSimEventType] = useState<"checkin" | "task" | "late" | "geofence">("checkin");
+  const [simEventType, setSimEventType] = useState<"checkin" | "task" | "late" | "geofence" | "offline">("checkin");
   const [simPriority, setSimPriority] = useState<"high" | "normal">("normal");
 
   // Form states for sending outgoing broadcast notifications to employees
@@ -57,85 +51,11 @@ export default function NotificationsPage() {
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastPriority, setBroadcastPriority] = useState<"high" | "normal">("normal");
 
-  // Load initial notifications built from employee data
-  useEffect(() => {
-    setNotifications([
-      {
-        id: "notif-1",
-        employeeId: "1",
-        employeeName: "Rahul Sharma",
-        avatar: "RS",
-        type: "attendance",
-        message: "Rahul Sharma checked in at Mumbai North HQ",
-        time: "09:02 AM",
-        date: "Today",
-        priority: "normal",
-        read: false
-      },
-      {
-        id: "notif-2",
-        employeeId: "2",
-        employeeName: "Priya Patel",
-        avatar: "PP",
-        type: "task",
-        message: "Priya Patel completed delivery task 'Order #4521'",
-        time: "10:30 AM",
-        date: "Today",
-        priority: "normal",
-        read: false
-      },
-      {
-        id: "notif-3",
-        employeeId: "8",
-        employeeName: "Ananya Roy",
-        avatar: "AR",
-        type: "alert",
-        message: "Ananya Roy logged check-in: 1h 15m Late arrival",
-        time: "10:15 AM",
-        date: "Today",
-        priority: "high",
-        read: false
-      },
-      {
-        id: "notif-4",
-        employeeId: "3",
-        employeeName: "Arjun Singh",
-        avatar: "AS",
-        type: "alert",
-        message: "Arjun Singh marked absent: No active device signal detected",
-        time: "09:30 AM",
-        date: "Today",
-        priority: "high",
-        read: true
-      },
-      {
-        id: "notif-5",
-        employeeId: "4",
-        employeeName: "Kavya Nair",
-        avatar: "KN",
-        type: "attendance",
-        message: "Kavya Nair checked in at Pune West Zone",
-        time: "08:55 AM",
-        date: "Yesterday",
-        priority: "normal",
-        read: true
-      },
-      {
-        id: "notif-6",
-        employeeId: "5",
-        employeeName: "Suresh Yadav",
-        avatar: "SY",
-        type: "system",
-        message: "Device Battery Warning: Suresh Yadav's terminal battery is below 15%",
-        time: "04:12 PM",
-        date: "Yesterday",
-        priority: "high",
-        read: true
-      }
-    ]);
-  }, []);
-
   // Filter logic (Priority filter removed)
+  const [emailAlertOffline, setEmailAlertOffline] = useState(true);
+  const [emailAlertGeofence, setEmailAlertGeofence] = useState(true);
+  const [emailAlertLate, setEmailAlertLate] = useState(true);
+
   const filteredList = notifications.filter((n) => {
     const matchesSearch = n.message.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           n.employeeName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -150,27 +70,23 @@ export default function NotificationsPage() {
 
   // Mark all read
   const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    dispatch(markAllAsRead());
   };
 
   // Clear all
   const handleClearAll = () => {
-    setNotifications([]);
+    dispatch(clearAllNotifications());
   };
 
   // Toggle single notification read status
   const handleToggleRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n))
-    );
+    dispatch(toggleNotificationRead(id));
   };
 
   // Inject a new mock notification (Simulator)
   const handleInjectNotification = (e: React.FormEvent) => {
     e.preventDefault();
     const emp = employees.find((e) => e.id === simEmployeeId) || employees[0];
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     let message = "";
     let type: "attendance" | "task" | "alert" | "system" = "system";
@@ -188,30 +104,29 @@ export default function NotificationsPage() {
     } else if (simEventType === "geofence") {
       message = `Geofence BREACH: ${emp.name} exited assigned boundary ring near South Hub`;
       type = "alert";
+    } else if (simEventType === "offline") {
+      const battery = Math.floor(Math.random() * 15) + 1; // 1% to 15%
+      const lat = emp.lat ? emp.lat.toFixed(4) : "19.0760";
+      const lng = emp.lng ? emp.lng.toFixed(4) : "72.8777";
+      const emailStatus = emailAlertOffline ? "Email alert dispatched to admin." : "Email alert disabled in settings.";
+      message = `CRITICAL OFFLINE: ${emp.name}'s phone is unreachable (>30 mins). Last known battery: ${battery}%. Last coords: [${lat}, ${lng}]. ${emailStatus}`;
+      type = "system";
     }
 
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
+    dispatch(addNotification({
       employeeId: emp.id,
       employeeName: emp.name,
       avatar: emp.avatar,
       type,
       message,
-      time: timeString,
-      date: "Today",
       priority: simPriority,
-      read: false
-    };
-
-    setNotifications((prev) => [newNotif, ...prev]);
+    }));
   };
 
   // Send outgoing broadcast to a particular employee
   const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
     const emp = employees.find((e) => e.id === broadcastEmpId) || employees[0];
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     let messageContent = broadcastMessage;
     if (broadcastTemplate !== "custom") {
@@ -223,20 +138,15 @@ export default function NotificationsPage() {
       return;
     }
 
-    const newBroadcast: NotificationItem = {
-      id: `broadcast-${Date.now()}`,
+    dispatch(addNotification({
       employeeId: emp.id,
       employeeName: `SYSTEM BROADCAST ➔ ${emp.name}`,
       avatar: "SYS",
       type: "system",
       message: `Outgoing message sent to ${emp.name}: "${messageContent}"`,
-      time: timeString,
-      date: "Today",
       priority: broadcastPriority,
-      read: true
-    };
+    }));
 
-    setNotifications((prev) => [newBroadcast, ...prev]);
     setBroadcastMessage("");
     setBroadcastTemplate("custom");
     alert(`Broadcast successfully dispatched to ${emp.name}'s device!`);
@@ -277,21 +187,14 @@ export default function NotificationsPage() {
           priority = "high";
         }
 
-        const geofenceAlert: NotificationItem = {
-          id: `geofence-alert-${Date.now()}`,
+        dispatch(addNotification({
           employeeId: randomEmp.id,
           employeeName: randomEmp.name,
           avatar: randomEmp.avatar,
           type: "alert",
           message,
-          time: timeString,
-          date: "Today",
           priority,
-          read: false
-        };
-
-        // Prepend to notifications feed
-        setNotifications((prev) => [geofenceAlert, ...prev]);
+        }));
 
         // Prepend to sidebar status scanner logs
         setGeofenceLogs((prev) => [
@@ -348,6 +251,82 @@ export default function NotificationsPage() {
         {/* Left Side: Simulation & Filters */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           
+          {/* Notification Settings Panel */}
+          <div className="card" style={{ display: "flex", flexDirection: "column", gap: "12px", border: "1px solid var(--accent-blue)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
+              <SlidersHorizontal size={16} color="var(--accent-blue)" />
+              <span style={{ fontWeight: 700, fontSize: "14px" }}>Notification Settings</span>
+            </div>
+            
+            <p style={{ fontSize: "11.5px", color: "var(--text-muted)", margin: 0 }}>
+              Configure operational rules for automated alert dispatches and admin email subscriptions.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+              {/* Device Offline Alert Rule */}
+              <div style={{ padding: "10px", background: "var(--bg-secondary)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700 }}>Device Offline Alarm</span>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={emailAlertOffline} 
+                      onChange={(e) => setEmailAlertOffline(e.target.checked)} 
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "10px", fontWeight: 600 }}>{emailAlertOffline ? "ACTIVE" : "OFF"}</span>
+                  </label>
+                </div>
+                <p style={{ fontSize: "10.5px", color: "var(--text-muted)", margin: 0 }}>
+                  Trigger admin email & notification feed warning when device remains unreachable/inactive &gt; 30 minutes.
+                </p>
+                {emailAlertOffline && (
+                  <div style={{ fontSize: "9px", color: "var(--accent-green)", fontWeight: 700 }}>
+                    🟢 SMTP Live Dispatch & Alert Log Active
+                  </div>
+                )}
+              </div>
+
+              {/* Geofence Breach Alert Rule */}
+              <div style={{ padding: "10px", background: "var(--bg-secondary)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700 }}>Geofence Breach Alert</span>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={emailAlertGeofence} 
+                      onChange={(e) => setEmailAlertGeofence(e.target.checked)} 
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "10px", fontWeight: 600 }}>{emailAlertGeofence ? "ACTIVE" : "OFF"}</span>
+                  </label>
+                </div>
+                <p style={{ fontSize: "10.5px", color: "var(--text-muted)", margin: 0 }}>
+                  Dispatch email alert + log entry to admin whenever a field boundary perimeter is crossed without clearance.
+                </p>
+              </div>
+
+              {/* Late Check-in Alert Rule */}
+              <div style={{ padding: "10px", background: "var(--bg-secondary)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700 }}>Late Shift Alert</span>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={emailAlertLate} 
+                      onChange={(e) => setEmailAlertLate(e.target.checked)} 
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "10px", fontWeight: 600 }}>{emailAlertLate ? "ACTIVE" : "OFF"}</span>
+                  </label>
+                </div>
+                <p style={{ fontSize: "10.5px", color: "var(--text-muted)", margin: 0 }}>
+                  Automatically send a notification if an employee checks in past scheduled operational slot.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Live Geofence Boundary Monitor Receiver */}
           <div className="card" style={{ display: "flex", flexDirection: "column", gap: "12px", border: isListenerActive ? "1px solid var(--accent-green)" : "1px solid var(--border)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -511,6 +490,7 @@ export default function NotificationsPage() {
                 <option value="task">Task Completion</option>
                 <option value="late">Late Check-in Alert</option>
                 <option value="geofence">Geofence Boundary Breach</option>
+                <option value="offline">Device Inactive (Offline)</option>
               </select>
             </div>
 
