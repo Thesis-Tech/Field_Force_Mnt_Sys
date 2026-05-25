@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # feature file contains daily work that i have to do
 features
+
+# temp_design has no use in github so ignoring
+temp_design/
