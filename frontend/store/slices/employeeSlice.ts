@@ -12,7 +12,10 @@ export interface Employee {
   avatar: string;
   lat: number;
   lng: number;
+<<<<<<< HEAD
   password?: string;
+=======
+>>>>>>> shagufta-rewrite
 }
 
 interface EmployeeState {

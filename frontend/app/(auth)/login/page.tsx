@@ -21,7 +21,16 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 1200));
     if (email === "admin@fieldforce.com" && password === "admin123") {
       dispatch(login({ name: "Admin", email, role: "Super Admin" }));
-      router.push("/dashboard");
+      if (typeof window !== "undefined") {
+        const setupData = localStorage.getItem("adminSetupData");
+        if (setupData) {
+          router.push("/dashboard");
+        } else {
+          window.location.href = "/admin-setup.html";
+        }
+      } else {
+        router.push("/dashboard");
+      }
     } else {
       setError("Invalid email or password.");
       setLoading(false);

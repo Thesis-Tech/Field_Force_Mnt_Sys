@@ -142,7 +142,6 @@ export default function AttendancePage() {
           </tbody>
         </table>
       </div>
-
       {/* Floating toast notification */}
       {toast && (
         <div style={{

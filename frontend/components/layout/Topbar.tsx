@@ -145,7 +145,6 @@ export default function Topbar() {
       mobileNo: activeUser.mobileNo,
     });
   }, [currentUser]);
-
   // Build search results
   const getResults = (): SearchResult[] => {
     if (!query.trim()) return [];
@@ -278,7 +277,6 @@ export default function Topbar() {
     dispatch(logout());
     router.push("/login");
   };
-
   return (
     <header style={{
       height: "70px",

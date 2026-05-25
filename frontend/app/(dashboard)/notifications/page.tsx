@@ -30,7 +30,6 @@ export default function NotificationsPage() {
   const employees = useSelector((s: RootState) => s.employees.list);
   const tasks = useSelector((s: RootState) => s.tasks.list);
   const notifications = useSelector((s: RootState) => s.notifications.list);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<"all" | "alert" | "task" | "attendance" | "system">("all");
 
@@ -55,7 +54,6 @@ export default function NotificationsPage() {
   const [emailAlertOffline, setEmailAlertOffline] = useState(true);
   const [emailAlertGeofence, setEmailAlertGeofence] = useState(true);
   const [emailAlertLate, setEmailAlertLate] = useState(true);
-
   const filteredList = notifications.filter((n) => {
     const matchesSearch = n.message.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           n.employeeName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -326,7 +324,6 @@ export default function NotificationsPage() {
               </div>
             </div>
           </div>
-
           {/* Live Geofence Boundary Monitor Receiver */}
           <div className="card" style={{ display: "flex", flexDirection: "column", gap: "12px", border: isListenerActive ? "1px solid var(--accent-green)" : "1px solid var(--border)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -490,7 +487,10 @@ export default function NotificationsPage() {
                 <option value="task">Task Completion</option>
                 <option value="late">Late Check-in Alert</option>
                 <option value="geofence">Geofence Boundary Breach</option>
+<<<<<<< HEAD
                 <option value="offline">Device Inactive (Offline)</option>
+=======
+>>>>>>> shagufta-rewrite
               </select>
             </div>
 
