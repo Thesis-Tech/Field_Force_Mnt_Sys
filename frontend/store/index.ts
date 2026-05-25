@@ -4,11 +4,8 @@ import authReducer from "./slices/authSlice";
 import employeeReducer from "./slices/employeeSlice";
 import taskReducer from "./slices/taskSlice";
 import attendanceReducer from "./slices/attendanceSlice";
-<<<<<<< HEAD
 import notificationReducer from "./slices/notificationSlice";
 import expenseReducer from "./slices/expenseSlice";
-=======
->>>>>>> shagufta-rewrite
 
 export const store = configureStore({
   reducer: {
@@ -16,11 +13,8 @@ export const store = configureStore({
     employees: employeeReducer,
     tasks: taskReducer,
     attendance: attendanceReducer,
-<<<<<<< HEAD
     notifications: notificationReducer,
     expenses: expenseReducer,
-=======
->>>>>>> shagufta-rewrite
   },
 });
 

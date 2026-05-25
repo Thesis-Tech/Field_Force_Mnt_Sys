@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-<<<<<<< HEAD
 export interface UserProfile {
   firstName: string;
   lastName: string;
@@ -71,23 +70,12 @@ const initialState: AuthState = {
   isLoggedIn: getInitialIsLoggedIn(),
   user: getInitialUser(),
   passwordHash: getLocalStorageItem("ff_password", "admin123"),
-=======
-interface AuthState {
-  isLoggedIn: boolean;
-  user: { name: string; email: string; role: string } | null;
-}
-
-const initialState: AuthState = {
-  isLoggedIn: false,
-  user: null,
->>>>>>> shagufta-rewrite
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-<<<<<<< HEAD
     login(state, action: PayloadAction<{ name?: string; email: string; role?: string }>) {
       state.isLoggedIn = true;
       const parts = (action.payload.name || "Global Ops").split(" ");
@@ -105,16 +93,10 @@ const authSlice = createSlice({
       };
       setLocalStorageItem("ff_is_logged_in", "true");
       setLocalStorageItem("ff_user_profile", JSON.stringify(state.user));
-=======
-    login(state, action: PayloadAction<{ name: string; email: string; role: string }>) {
-      state.isLoggedIn = true;
-      state.user = action.payload;
->>>>>>> shagufta-rewrite
     },
     logout(state) {
       state.isLoggedIn = false;
       state.user = null;
-<<<<<<< HEAD
       if (typeof window !== "undefined") {
         localStorage.removeItem("ff_is_logged_in");
         localStorage.removeItem("ff_user_profile");
@@ -137,11 +119,4 @@ const authSlice = createSlice({
 });
 
 export const { login, logout, updateProfile, changePassword } = authSlice.actions;
-=======
-    },
-  },
-});
-
-export const { login, logout } = authSlice.actions;
->>>>>>> shagufta-rewrite
 export default authSlice.reducer;

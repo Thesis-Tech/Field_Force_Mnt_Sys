@@ -3,26 +3,16 @@ import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { addTask, updateTaskStatus, deleteTask, Task } from "@/store/slices/taskSlice";
-<<<<<<< HEAD
 import { Employee } from "@/store/slices/employeeSlice";
 import { getStatusColor } from "@/lib/utils";
 import { Plus, Trash2, X, Flag, Calendar, User, Mail, CheckCircle } from "lucide-react";
-=======
-import { getStatusColor } from "@/lib/utils";
-import { Plus, Trash2, X, Flag, Calendar, User } from "lucide-react";
->>>>>>> shagufta-rewrite
 
 const STATUSES = ["pending", "in-progress", "completed"];
 const PRIORITIES = ["low", "medium", "high"];
 
-<<<<<<< HEAD
 function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave: (t: Task, sendEmail: boolean, empEmail: string) => void; employees: Employee[] }) {
   const [form, setForm] = useState({ title:"", description:"", employeeId: employees[0]?.id||"", priority:"medium", deadline:"", territory:"" });
   const [sendEmail, setSendEmail] = useState(true);
-=======
-function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave: (t: Task) => void; employees: { id: string; name: string }[] }) {
-  const [form, setForm] = useState({ title:"", description:"", employeeId: employees[0]?.id||"", priority:"medium", deadline:"", territory:"" });
->>>>>>> shagufta-rewrite
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const emp = employees.find(e => e.id === form.employeeId);
 
@@ -60,7 +50,7 @@ function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Deadline</label>
             <input className="input" type="date" value={form.deadline} onChange={e=>set("deadline",e.target.value)} />
           </div>
-<<<<<<< HEAD
+
 
           <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer", marginTop: "4px" }}>
             <input type="checkbox" checked={sendEmail} onChange={e => setSendEmail(e.target.checked)} style={{ cursor: "pointer" }} />
@@ -72,12 +62,6 @@ function TaskModal({ onClose, onSave, employees }: { onClose: () => void; onSave
             onClick={()=>{
               if(!form.title.trim()) return;
               onSave({ id:Date.now().toString(), title:form.title, description:form.description, assignedTo:emp?.name||"", employeeId:form.employeeId, priority:form.priority, status:"pending", deadline:form.deadline, territory:"" }, sendEmail, emp?.email || "");
-=======
-          <button className="btn-primary" style={{ width:"100%",justifyContent:"center",marginTop:"4px" }}
-            onClick={()=>{
-              if(!form.title.trim()) return;
-              onSave({ id:Date.now().toString(), title:form.title, description:form.description, assignedTo:emp?.name||"", employeeId:form.employeeId, priority:form.priority, status:"pending", deadline:form.deadline, territory:"" });
->>>>>>> shagufta-rewrite
             }}>
             Create Task
           </button>
@@ -93,10 +77,7 @@ export default function TasksPage() {
   const employees = useSelector((s: RootState) => s.employees.list);
   const [modal, setModal] = useState(false);
   const [filter, setFilter] = useState("all");
-<<<<<<< HEAD
   const [toast, setToast] = useState<string | null>(null);
-=======
->>>>>>> shagufta-rewrite
 
   const filtered = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
   const counts = { all: tasks.length, pending: tasks.filter(t=>t.status==="pending").length, "in-progress": tasks.filter(t=>t.status==="in-progress").length, completed: tasks.filter(t=>t.status==="completed").length };
@@ -169,7 +150,6 @@ export default function TasksPage() {
         <div style={{ textAlign:"center",padding:"60px",color:"var(--text-muted)" }}>No tasks found.</div>
       )}
 
-<<<<<<< HEAD
       {modal && <TaskModal employees={employees} onClose={()=>setModal(false)} onSave={(t, sendEmail, empEmail)=>{ 
         dispatch(addTask(t)); 
         setModal(false); 
@@ -206,9 +186,6 @@ export default function TasksPage() {
           </div>
         </div>
       )}
-=======
-      {modal && <TaskModal employees={employees.map(e=>({id:e.id,name:e.name}))} onClose={()=>setModal(false)} onSave={t=>{ dispatch(addTask(t)); setModal(false); }} />}
->>>>>>> shagufta-rewrite
     </div>
   );
 }

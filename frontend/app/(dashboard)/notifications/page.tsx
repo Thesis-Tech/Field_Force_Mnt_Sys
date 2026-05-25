@@ -487,10 +487,7 @@ export default function NotificationsPage() {
                 <option value="task">Task Completion</option>
                 <option value="late">Late Check-in Alert</option>
                 <option value="geofence">Geofence Boundary Breach</option>
-<<<<<<< HEAD
                 <option value="offline">Device Inactive (Offline)</option>
-=======
->>>>>>> shagufta-rewrite
               </select>
             </div>
 
