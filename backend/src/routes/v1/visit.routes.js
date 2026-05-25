@@ -9,8 +9,9 @@ router.use(authenticate);
 router.use(checkOrgAccess);
 
 // Routes
-router.post('/', authorize('FIELD_STAFF'), visitController.createVisitReport);
-router.get('/', visitController.listVisitReports); // Restricts to FIELD_STAFF own inside service
-router.get('/:id', visitController.getVisitReportById);
-
+router.post('/',    authorize('FIELD_STAFF'),  visitController.createVisitReport)
+router.get('/',     visitController.listVisitReports)
+router.get('/my',   visitController.getMyVisits)         
+router.get('/:id',  visitController.getVisitReportById)
+router.put('/:id',  visitController.updateVisitReport)
 module.exports = router;

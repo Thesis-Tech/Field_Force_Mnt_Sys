@@ -406,6 +406,58 @@ const listComments = async (taskId, organizationId) => {
   });
 };
 
+const getMyTasks = async (userId, { page = 1, limit = 10, status } = {}) => {
+  const where = {
+    assignments: { some: { userId } },
+    ...(status && { status }),
+  }
+  const [tasks, total] = await Promise.all([
+    prisma.task.findMany({
+      where,
+      orderBy: { dueDate: 'asc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        assignments: { where: { userId }, select: { status: true, assignedAt: true } },
+        territory: { select: { name: true } },
+      },
+    }),
+    prisma.task.count({ where }),
+  ])
+  return { tasks, total, page, limit }
+};
+
+const assignTask = async (taskId, userId, assignedBy) => {
+  // Check task exists
+  const task = await prisma.task.findUnique({ where: { id: taskId } })
+  if (!task) {
+    const err = new Error('Task not found'); err.statusCode = 404; throw err
+  }
+
+  // Check user exists and is FIELD_STAFF
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) {
+    const err = new Error('User not found'); err.statusCode = 404; throw err
+  }
+
+  // Upsert — if already assigned just return existing
+  const assignment = await prisma.taskAssignment.upsert({
+    where: { taskId_userId: { taskId, userId } },
+    update: { status: 'ASSIGNED', assignedAt: new Date() },
+    create: { taskId, userId, status: 'ASSIGNED' },
+  })
+
+  // Update task status to IN_PROGRESS if it was PENDING
+  if (task.status === 'PENDING') {
+    await prisma.task.update({
+      where: { id: taskId },
+      data: { status: 'IN_PROGRESS' },
+    })
+  }
+
+  return assignment
+}
+
 module.exports = {
   createTask,
   listTasks,
@@ -414,5 +466,7 @@ module.exports = {
   deleteTask,
   updateAssignmentStatus,
   addComment,
-  listComments
+  listComments,
+  getMyTasks,
+  assignTask
 };

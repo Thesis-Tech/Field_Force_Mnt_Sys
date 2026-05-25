@@ -245,8 +245,38 @@ const getVisitReportById = async (id, organizationId) => {
   return visit;
 };
 
+const getMyVisits = async (userId, { page = 1, limit = 10 } = {}) => {
+  const [visits, total] = await Promise.all([
+    prisma.visitReport.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        taskAssignment: { include: { task: { select: { title: true } } } },
+      },
+    }),
+    prisma.visitReport.count({ where: { userId } }),
+  ])
+  return { visits, total, page, limit }
+};
+
+const updateVisitReport = async (visitId, userId, data) => {
+  const visit = await prisma.visitReport.findUnique({ where: { id: visitId } })
+  if (!visit) {
+    const err = new Error('Visit report not found'); err.statusCode = 404; throw err
+  }
+  if (visit.userId !== userId) {
+    const err = new Error('Not authorised'); err.statusCode = 403; throw err
+  }
+  return prisma.visitReport.update({ where: { id: visitId }, data })
+}
+
 module.exports = {
   createVisitReport,
   listVisitReports,
-  getVisitReportById
-};
+  getVisitReportById,
+  getMyVisits,
+  updateVisitReport
+}
+

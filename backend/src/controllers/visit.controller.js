@@ -70,8 +70,27 @@ const getVisitReportById = async (req, res, next) => {
   }
 };
 
+const getMyVisits = async (req, res, next) => {
+  try {
+    const { page, limit } = req.query
+    const data = await visitService.getMyVisits(req.user.id, {
+      page: +page || 1, limit: +limit || 10,
+    })
+    return sendSuccess(res, data)
+  } catch (err) { next(err) }
+};
+
+const updateVisitReport = async (req, res, next) => {
+  try {
+    const visit = await visitService.updateVisitReport(req.params.id, req.user.id, req.body)
+    return sendSuccess(res, visit, 'Visit report updated')
+  } catch (err) { next(err) }
+}
+
 module.exports = {
   createVisitReport,
   listVisitReports,
-  getVisitReportById
+  getVisitReportById,
+  getMyVisits,
+  updateVisitReport
 };

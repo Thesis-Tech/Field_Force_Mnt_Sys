@@ -186,6 +186,29 @@ const listComments = async (req, res, next) => {
   }
 };
 
+const getMyTasks = async (req, res, next) => {
+  try {
+    const { page, limit, status } = req.query
+    const data = await taskService.getMyTasks(req.user.id, {
+      page: +page || 1,
+      limit: +limit || 10,
+      status,
+    })
+    return sendSuccess(res, data)
+  } catch (err) { next(err) }
+}
+
+const assignTask = async (req, res, next) => {
+  try {
+    const assignment = await taskService.assignTask(
+      req.params.id,
+      req.body.userId,
+      req.user.id
+    )
+    return sendSuccess(res, assignment, 'Task assigned successfully', 201)
+  } catch (err) { next(err) }
+}
+
 module.exports = {
   createTask,
   listTasks,
@@ -194,5 +217,7 @@ module.exports = {
   deleteTask,
   updateAssignmentStatus,
   addComment,
-  listComments
+  listComments,
+  getMyTasks,
+  assignTask
 };
