@@ -7,6 +7,7 @@ const taskRoutes = require('./task.routes');
 const visitRoutes = require('./visit.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const exportRoutes = require('./export.routes');
+const leaveRoutes = require('./leave.routes');
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use('/tasks', taskRoutes);
 router.use('/visits', visitRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/export', exportRoutes);
+router.use('/leave', leaveRoutes);
 
 module.exports = router;

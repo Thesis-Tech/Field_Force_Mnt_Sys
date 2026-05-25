@@ -13,7 +13,6 @@ enum Role {
   FIELD_STAFF
 }
 
-
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -97,8 +96,23 @@ enum NotificationType {
   TASK
   ATTENDANCE
   LEAVE
+  GEOFENCE 
   SYSTEM
   REPORT
+}
+
+enum ExpenseCategory {
+  TRAVEL
+  FOOD
+  ACCOMMODATION
+  OTHER
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
 }
 
 model Organization {
@@ -157,6 +171,11 @@ model User {
   leavesApproved    Leave[]           @relation("ApprovedLeaves")
   notifications     Notification[]
   auditLogs         AuditLog[]
+  leaveBalances  LeaveBalance[]
+  geofenceAlerts GeofenceAlert[]
+  travelLogs     TravelLog[]
+  expenses         Expense[]  @relation("UserExpenses")
+  expensesApproved Expense[]  @relation("ApprovedExpenses")
 
   @@unique([organizationId, employeeId])
   @@index([organizationId])
@@ -171,6 +190,7 @@ model Territory {
   polygon        Json?        // GeoJSON polygon coordinates
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  geofenceAlerts GeofenceAlert[]
 
   users          User[]
   tasks          Task[]
@@ -429,4 +449,65 @@ model AuditLog {
 
   @@index([userId])
   @@index([resource, resourceId])
+}
+
+model LeaveBalance {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           LeaveType
+  year           Int
+  allocated      Float     @default(0)
+  used           Float     @default(0)
+
+  @@unique([userId, type, year])
+  @@index([userId])
+}
+
+model GeofenceAlert {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  territoryId String
+  territory   Territory @relation(fields: [territoryId], references: [id])
+  latitude    Float
+  longitude   Float
+  alertedAt   DateTime  @default(now())
+  resolved    Boolean   @default(false)
+
+  @@index([userId])
+  @@index([territoryId])
+}
+
+model TravelLog {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime @db.Date
+  totalDistanceKm Float    @default(0)
+  pathGeoJson     Json?
+  attendanceId    String?  @unique
+  createdAt       DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+model Expense {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation("UserExpenses", fields: [userId], references: [id], onDelete: Cascade)
+  category     ExpenseCategory
+  amount       Float
+  description  String?
+  receiptUrl   String?
+  date         DateTime        @db.Date
+  status       ExpenseStatus   @default(DRAFT)
+  approvedById String?
+  approvedBy   User?           @relation("ApprovedExpenses", fields: [approvedById], references: [id])
+  taskId       String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([approvedById])
 }

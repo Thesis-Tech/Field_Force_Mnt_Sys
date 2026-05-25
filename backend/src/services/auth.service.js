@@ -48,15 +48,6 @@ const login = async (email, password) => {
   const accessToken = signAccessToken(user.id, user.role, user.organizationId);
   const refreshToken = signRefreshToken(user.id);
 
-  // Store hashed refresh token in database (User model has deviceToken, but let's see how we can handle refresh tokens - wait, the prompt says "Refresh token stored in DB (hashed) on User model". But User model does not have a dedicated refresh token field in the prompt schema! Let's check: "Refresh token stored in DB (hashed) on User model". Oh! Let's check schema.prisma User model fields. The User model currently does not have a `refreshToken` field!
-  // Wait, let's look at schema.prisma we wrote - it does NOT have a refreshToken field. Let's see if we should add it or store it in another way or use user's deviceToken or alter the User model to include a refreshToken string field!
-  // Yes, since we can update the User model, we should probably add `refreshToken String?` to User model in prisma.prisma. Wait! Let's inspect the prisma.prisma schema. If we need to edit prisma.prisma, we can use `replace_file_content` or `multi_replace_file_content`. Let's add the `refreshToken String?` field to User model so that we can hash and store it securely!)
-  
-  // Wait, let's first check if we need to modify schema.prisma. Yes, we should! Let's check User model in schema.prisma.
-  // Let's add it. But for now, we can write the service code to update user with `deviceToken` or update a field named `deviceToken` or just add a `refreshToken` field to User model. Let's assume we add `refreshToken` String? to User.
-  // Wait, let's implement the token storing in auth.service using update on User model. We can store it as hashed.
-  // Let's check if we can run migration. Since we are using Docker Compose, the database isn't running on the host immediately. Let's make sure the code is completely resilient.
-  // Let's check if we can update the User model. Yes! Let's update schema.prisma to include `refreshToken` in the User model.
   
   // Let's continue writing auth.service assuming `refreshToken` is on User.
   const hashedRefreshToken = hashToken(refreshToken);
