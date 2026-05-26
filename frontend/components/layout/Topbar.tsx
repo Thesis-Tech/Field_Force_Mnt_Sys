@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Bell, Search, User, ArrowRight, Lock, Edit3, Camera, Check, X, LogOut } from "lucide-react";
+import { Bell, Search, User, ArrowRight, Lock, Edit3, Camera, Check, X, LogOut, Menu } from "lucide-react";
+import { useMobileSidebar } from "./MobileSidebarContext";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
@@ -49,6 +50,16 @@ export default function Topbar() {
   const passwordHash = useSelector((s: RootState) => s.auth.passwordHash);
   const notifications = useSelector((s: RootState) => s.notifications.list);
   const unreadCount = notifications.filter(n => !n.read).length;
+  const { toggleMobileSidebar } = useMobileSidebar();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const defaultUser = {
     firstName: "Admin",
@@ -283,18 +294,42 @@ export default function Topbar() {
       background: "var(--bg-secondary)",
       borderBottom: "1px solid var(--border)",
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "0 28px",
+      padding: isMobile ? "0 16px" : "0 28px",
       position: "sticky", top: 0, zIndex: 50,
     }}>
-      {/* Left — Page title */}
-      <div>
-        <h1 style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-primary)", margin: 0, fontFamily: "var(--font-hanken), sans-serif" }}>{info.title}</h1>
-        <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0, fontFamily: "'Inter', sans-serif" }}>{info.subtitle}</p>
+      {/* Left — Hamburger (mobile) + Page title */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+        {isMobile && (
+          <button
+            onClick={toggleMobileSidebar}
+            aria-label="Toggle navigation menu"
+            style={{
+              background: "none",
+              border: "1px solid var(--border)",
+              cursor: "pointer",
+              color: "var(--text-primary)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "38px",
+              height: "38px",
+              flexShrink: 0,
+              transition: "background 0.15s ease",
+            }}
+          >
+            <Menu size={20} />
+          </button>
+        )}
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: isMobile ? "16px" : "20px", fontWeight: 600, color: "var(--text-primary)", margin: 0, fontFamily: "var(--font-hanken), sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{info.title}</h1>
+          {!isMobile && <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0, fontFamily: "'Inter', sans-serif" }}>{info.subtitle}</p>}
+        </div>
       </div>
 
       {/* Right — Search + Notifications + Profile */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        {/* Search bar with dropdown */}
+        {/* Search bar with dropdown — hidden on mobile */}
+        {!isMobile && (
         <div ref={searchRef} style={{ position: "relative" }}>
           <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", zIndex: 1 }} />
           <input
@@ -385,6 +420,7 @@ export default function Topbar() {
             </div>
           )}
         </div>
+        )}
 
         {/* Notification bell — navigates to /notifications */}
         <div
@@ -448,6 +484,7 @@ export default function Topbar() {
             }}>
               {getInitials()}
             </div>
+            {!isMobile && (
             <div style={{ display: "flex", flexDirection: "column" }}>
               <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
                 {!mounted ? "Admin" : (currentUser ? (currentUser.lastName ? `${currentUser.firstName} ${currentUser.lastName}` : currentUser.firstName) : "Admin")}
@@ -456,6 +493,7 @@ export default function Topbar() {
                 {!mounted ? "Global Ops" : (currentUser?.designation || "Global Ops")}
               </span>
             </div>
+            )}
           </div>
 
           {/* Profile Dropdown Menu */}

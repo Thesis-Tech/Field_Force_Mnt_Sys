@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMobileSidebar } from "./MobileSidebarContext";
 import {
   Gauge,
   Users,
@@ -25,7 +26,27 @@ const EXPANDED_WIDTH = 240;
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { isMobileOpen, closeMobileSidebar } = useMobileSidebar();
+  const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    if (isMobile) closeMobileSidebar();
+  }, [pathname]);
+
+  // Force expanded on mobile
+  useEffect(() => {
+    if (isMobile) setIsExpanded(true);
+  }, [isMobile]);
 
   // Accordion open states
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -107,11 +128,25 @@ export default function Sidebar() {
   };
 
   return (
+    <>
+    {/* Mobile backdrop overlay */}
+    {isMobile && isMobileOpen && (
+      <div
+        onClick={closeMobileSidebar}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          zIndex: 9998,
+          animation: "fadeIn 0.2s ease",
+        }}
+      />
+    )}
     <aside
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
+      onMouseEnter={isMobile ? undefined : () => setIsExpanded(true)}
+      onMouseLeave={isMobile ? undefined : () => setIsExpanded(false)}
       style={{
-        width: isExpanded ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`,
+        width: isMobile ? `${EXPANDED_WIDTH}px` : (isExpanded ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`),
         height: "100vh",
         maxHeight: "100vh",
         background: "var(--bg-secondary)",
@@ -122,9 +157,12 @@ export default function Sidebar() {
         top: 0,
         left: 0,
         zIndex: 9999,
-        transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        transition: isMobile ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)" : "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         overflow: "hidden",
-        boxShadow: isExpanded ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none",
+        boxShadow: isMobile
+          ? (isMobileOpen ? "4px 0 24px rgba(0, 0, 0, 0.25)" : "none")
+          : (isExpanded ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"),
+        transform: isMobile ? (isMobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
       }}
     >
       {/* Brand Header */}
@@ -724,5 +762,6 @@ export default function Sidebar() {
         </Link>
       </div>
     </aside>
+    </>
   );
 }

@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [userType, setUserType] = useState<"new" | "existing">("existing");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,11 +23,15 @@ export default function LoginPage() {
     if (email === "admin@fieldforce.com" && password === "admin123") {
       dispatch(login({ name: "Admin", email, role: "Super Admin" }));
       if (typeof window !== "undefined") {
-        const setupData = localStorage.getItem("adminSetupData");
-        if (setupData) {
-          router.push("/dashboard");
-        } else {
+        if (userType === "new") {
+          // Clear any prior setup flags so they can experience the setup wizard fresh
+          localStorage.removeItem("adminSetupComplete");
+          localStorage.removeItem("adminSetupData");
           window.location.href = "/admin-setup.html";
+        } else {
+          // Existing User - mark setup as complete so they bypass it and go straight to dashboard
+          localStorage.setItem("adminSetupComplete", "true");
+          router.push("/dashboard");
         }
       } else {
         router.push("/dashboard");
@@ -70,6 +75,59 @@ export default function LoginPage() {
           boxShadow: "0 0 30px rgba(5, 5, 5, 0.2), 0 0 8px rgba(0, 0, 0, 0.1)",
         }}>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* User Type Switcher */}
+            <div>
+              <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>
+                Sign In As
+              </label>
+              <div style={{
+                display: "flex",
+                background: "var(--bg-primary)",
+                border: "1px solid var(--border)",
+                padding: "2px",
+                borderRadius: "0",
+              }}>
+                <button
+                  type="button"
+                  id="user-type-existing"
+                  onClick={() => setUserType("existing")}
+                  style={{
+                    flex: 1,
+                    padding: "9px 12px",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    border: "none",
+                    borderRadius: "0",
+                    cursor: "pointer",
+                    background: userType === "existing" ? "var(--accent-blue)" : "transparent",
+                    color: userType === "existing" ? "#ffffff" : "var(--text-secondary)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  Existing User
+                </button>
+                <button
+                  type="button"
+                  id="user-type-new"
+                  onClick={() => setUserType("new")}
+                  style={{
+                    flex: 1,
+                    padding: "9px 12px",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    border: "none",
+                    borderRadius: "0",
+                    cursor: "pointer",
+                    background: userType === "new" ? "var(--accent-blue)" : "transparent",
+                    color: userType === "new" ? "#ffffff" : "var(--text-secondary)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  New User
+                </button>
+              </div>
+            </div>
+
             {/* Email */}
             <div>
               <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>Email Address</label>
@@ -126,7 +184,7 @@ export default function LoginPage() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                   Signing in...
                 </span>
-              ) : "Sign In →"}
+              ) : (userType === "existing" ? "Sign In →" : "Sign In & Begin Setup →")}
             </button>
           </form>
         </div>
