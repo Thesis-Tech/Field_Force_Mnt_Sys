@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { mockChartData, mockStats, mockAttendance, mockTasks } from "@/lib/mock-data";
@@ -15,7 +16,8 @@ import {
   Trash2,
   Check,
   Send,
-  Plus
+  Plus,
+  Compass
 } from "lucide-react";
 import {
   AreaChart,
@@ -44,25 +46,10 @@ interface NotificationItem {
   read: boolean;
 }
 
-const StatCard = ({ icon: Icon, label, value, color, sub }: { icon: any; label: string; value: number | string; color: string; sub?: string }) => (
-  <div className="card fade-in" style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-    <div style={{
-      width: "48px", height: "48px", borderRadius: "0",
-      background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-    }}>
-      <Icon size={22} color={color} />
-    </div>
-    <div>
-      <div className="stat-number">{value}</div>
-      <div className="stat-label">{label}</div>
-      {sub && <div style={{ fontSize: "11px", color: "var(--accent-green)", marginTop: "4px" }}>{sub}</div>}
-    </div>
-  </div>
-);
-
 const PIE_COLORS = ["#22d3a5", "#f43f5e", "#f97316"];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const employees = useSelector((s: RootState) => s.employees.list);
   const reduxTasks = useSelector((s: RootState) => s.tasks.list);
 
@@ -76,15 +63,13 @@ export default function DashboardPage() {
     { name: "Late", value: 2 },
   ];
 
-  // Dynamic Notifications State
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notifFilter, setNotifFilter] = useState<"all" | "alert" | "task" | "attendance">("all");
-  
-  // Simulation Form states
+
+  // Simulation state kept as-is (no UI)
   const [simEmployeeId, setSimEmployeeId] = useState("1");
   const [simEventType, setSimEventType] = useState<"checkin" | "task" | "late" | "geofence">("checkin");
 
-  // Load initial notifications built from employee data
   useEffect(() => {
     const list: NotificationItem[] = [
       {
@@ -141,7 +126,6 @@ export default function DashboardPage() {
     setNotifications(list);
   }, []);
 
-  // Filtered Notifications
   const filteredNotifications = notifications.filter(n => {
     if (notifFilter === "all") return true;
     return n.type === notifFilter;
@@ -149,7 +133,6 @@ export default function DashboardPage() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Add Dynamic Notification
   const handleAddNotification = (e: React.FormEvent) => {
     e.preventDefault();
     const emp = employees.find(e => e.id === simEmployeeId) || employees[0];
@@ -163,7 +146,6 @@ export default function DashboardPage() {
       message = `${emp.name} checked in at ${emp.territory}`;
       type = "attendance";
     } else if (simEventType === "task") {
-      // Find a task for this employee or create a standard message
       const task = reduxTasks.find(t => t.assignedTo === emp.name) || { title: "Standard Operations Log" };
       message = `${emp.name} completed task '${task.title}'`;
       type = "task";
@@ -189,109 +171,174 @@ export default function DashboardPage() {
     setNotifications(prev => [newNotif, ...prev]);
   };
 
-  // Toggle Read Status
   const toggleRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n));
   };
 
-  // Mark All Read
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  // Clear All
   const clearAll = () => {
     setNotifications([]);
   };
 
+  const totalTasks = reduxTasks.length;
+
   return (
-    <div>
-      {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
-        <StatCard icon={Users} label="Total Employees" value={employees.length} color="#4f8ef7" sub="↑ 2 this month" />
-        <StatCard icon={CheckCircle} label="Present Today" value={mockStats.presentToday} color="#22d3a5" sub="75% attendance" />
-        <StatCard icon={XCircle} label="Absent Today" value={mockStats.absentToday} color="#f43f5e" />
-        <StatCard icon={ClipboardList} label="Tasks Today" value={reduxTasks.length} color="#a78bfa" sub={`${completed} completed`} />
+    <div className="flex flex-col gap-5 p-1">
+
+      {/* ── Row 1: KPI Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Total Staff */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
+          <span className="text-sm text-gray-500">Total Staff</span>
+          <span className="text-3xl font-bold text-gray-900">{employees.length}</span>
+          <span className="text-xs text-gray-400">Registered employees</span>
+        </div>
+
+        {/* Present Today */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
+          <span className="text-sm text-gray-500">Present Today</span>
+          <span className="text-3xl font-bold text-green-600">{mockStats.presentToday}</span>
+          <span className="text-xs text-gray-400">Checked in so far</span>
+        </div>
+
+        {/* Absent Today */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
+          <span className="text-sm text-gray-500">Absent Today</span>
+          <span className="text-3xl font-bold text-red-500">{mockStats.absentToday}</span>
+          <span className="text-xs text-gray-400">No check-in recorded</span>
+        </div>
+
+        {/* Tasks Today */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
+          <span className="text-sm text-gray-500">Tasks Today</span>
+          <span className="text-3xl font-bold text-blue-600">{totalTasks}</span>
+          <span className="text-xs text-gray-400">Assigned across all staff</span>
+        </div>
       </div>
 
-      {/* Second stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
-        <div className="card" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "6px" }}>✅ Completed</div>
-          <div style={{ fontSize: "28px", fontWeight: 800, color: "#22d3a5" }}>{completed}</div>
-        </div>
-        <div className="card" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "6px" }}>🔄 In Progress</div>
-          <div style={{ fontSize: "28px", fontWeight: 800, color: "#4f8ef7" }}>{inProgress}</div>
-        </div>
-        <div className="card" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "6px" }}>⏳ Pending</div>
-          <div style={{ fontSize: "28px", fontWeight: 800, color: "#f97316" }}>{pending}</div>
-        </div>
-      </div>
+      {/* ── Row 2: Task Status + Attendance Operations ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-      {/* Charts row */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px", marginBottom: "24px" }}>
-        {/* Area Chart - Weekly Attendance */}
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "15px" }}>Weekly Attendance</div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Present vs Absent this week</div>
-            </div>
-            <TrendingUp size={18} color="var(--accent-green)" />
+        {/* Task Status Breakdown */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700">Task Status</span>
+            <span className="text-xs text-gray-400">{totalTasks} total</span>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={mockChartData}>
-              <defs>
-                <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22d3a5" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#22d3a5" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0", color: "var(--text-primary)" }} />
-              <Area type="monotone" dataKey="present" stroke="#22d3a5" fill="url(#presentGrad)" strokeWidth={2} name="Present" />
-              <Area type="monotone" dataKey="absent" stroke="#f43f5e" fill="url(#absentGrad)" strokeWidth={2} name="Absent" />
-            </AreaChart>
-          </ResponsiveContainer>
+
+          {/* Completed */}
+          <div className="flex flex-col gap-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Completed</span>
+              <span className="font-semibold text-green-600">{completed}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5">
+              <div
+                className="bg-green-500 h-1.5 rounded-full"
+                style={{ width: totalTasks ? `${(completed / totalTasks) * 100}%` : "0%" }}
+              />
+            </div>
+          </div>
+
+          {/* In Progress */}
+          <div className="flex flex-col gap-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">In Progress</span>
+              <span className="font-semibold text-blue-600">{inProgress}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5">
+              <div
+                className="bg-blue-500 h-1.5 rounded-full"
+                style={{ width: totalTasks ? `${(inProgress / totalTasks) * 100}%` : "0%" }}
+              />
+            </div>
+          </div>
+
+          {/* Pending */}
+          <div className="flex flex-col gap-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Pending</span>
+              <span className="font-semibold text-orange-500">{pending}</span>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5">
+              <div
+                className="bg-orange-400 h-1.5 rounded-full"
+                style={{ width: totalTasks ? `${(pending / totalTasks) * 100}%` : "0%" }}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={() => router.push("/tasks")}
+            className="mt-1 w-full py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg bg-blue-50 hover:bg-blue-100"
+          >
+            View All Tasks
+          </button>
         </div>
 
-        {/* Pie Chart - Today's attendance breakdown */}
-        <div className="card">
-          <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>Today's Attendance</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>Breakdown by status</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value">
-                {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
-              </Pie>
-              <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0" }} />
-              <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: "12px", color: "var(--text-secondary)" }} />
-            </PieChart>
-          </ResponsiveContainer>
+        {/* Attendance Operations */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4">
+          <span className="text-sm font-semibold text-gray-700">Attendance Operations</span>
+
+          <button
+            onClick={() => router.push("/attendance")}
+            className="w-full py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          >
+            View Attendance Roster
+          </button>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => router.push("/map")}
+              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
+            >
+              <Compass size={15} className="text-blue-500" />
+              Live Map
+            </button>
+            <button
+              onClick={() => router.push("/playback")}
+              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
+            >
+              <Activity size={15} className="text-purple-500" />
+              Route History
+            </button>
+            <button
+              onClick={() => router.push("/employees")}
+              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
+            >
+              <Users size={15} className="text-green-500" />
+              Staff Cards
+            </button>
+            <button
+              onClick={() => router.push("/geofencing")}
+              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
+            >
+              <CheckCircle size={15} className="text-orange-500" />
+              Geofences
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Task chart + Operations Notifications Hub Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "16px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* Bar Chart */}
-          <div className="card" style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>Daily Tasks</div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>Tasks assigned per day</div>
-            <ResponsiveContainer width="100%" height={180}>
+      {/* ── Row 3: Bar Chart + Notifications ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* Daily Tasks Bar Chart */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-700">Daily Tasks</p>
+            <p className="text-xs text-gray-400">Tasks assigned per day</p>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={mockChartData} barSize={22}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0", color: "var(--text-primary)" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day" tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "12px" }} />
                 <Bar dataKey="tasks" fill="url(#barGrad)" radius={[6, 6, 0, 0]} name="Tasks" />
                 <defs>
                   <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
@@ -302,185 +349,87 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Simulate Action Panel */}
-          <form className="card" onSubmit={handleAddNotification} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Plus size={16} color="var(--accent-blue)" />
-              <span style={{ fontWeight: 700, fontSize: "14px" }}>Simulate Field Event</span>
-            </div>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "4px" }}>EMPLOYEE</label>
-                <select 
-                  value={simEmployeeId} 
-                  onChange={(e) => setSimEmployeeId(e.target.value)}
-                  className="input"
-                  style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
-                >
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "4px" }}>EVENT LOG</label>
-                <select 
-                  value={simEventType} 
-                  onChange={(e) => setSimEventType(e.target.value as any)}
-                  className="input"
-                  style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
-                >
-                  <option value="checkin">Normal Check-In</option>
-                  <option value="task">Task Completed</option>
-                  <option value="late">Late Arrival Alert</option>
-                  <option value="geofence">Geofence Boundary Breach</option>
-                </select>
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              style={{ padding: "8px 12px", fontSize: "12px", justifyContent: "center", gap: "6px", width: "100%", height: "36px" }}
-            >
-              <Send size={12} /> Inject Event Log
-            </button>
-          </form>
         </div>
 
-        {/* Dynamic Operations Notification Hub */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", height: "450px" }}>
-          {/* Header section with controls */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "12px" }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Bell size={16} color="var(--accent-blue)" />
-                <span style={{ fontWeight: 700, fontSize: "15px" }}>Operations Notification Hub</span>
-              </div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-                {unreadCount} unread notices active now
-              </div>
-            </div>
+        {/* Notifications */}
+        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-3">
 
-            <div style={{ display: "flex", gap: "6px" }}>
-              <button 
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-700">Notifications</p>
+              <p className="text-xs text-gray-400">{unreadCount} unread</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
                 onClick={markAllRead}
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent-blue)", fontSize: "11px", fontWeight: 600, display: "flex", alignItems: "center", gap: "2px" }}
-                title="Mark all read"
+                className="text-xs text-blue-600 font-medium flex items-center gap-1"
               >
-                <Check size={12} /> Mark Read
+                <Check size={12} /> Mark all read
               </button>
-              <span style={{ color: "var(--border)" }}>|</span>
-              <button 
+              <span className="text-gray-300">|</span>
+              <button
                 onClick={clearAll}
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent-red)", fontSize: "11px", fontWeight: 600, display: "flex", alignItems: "center", gap: "2px" }}
-                title="Clear all notifications"
+                className="text-xs text-red-500 font-medium flex items-center gap-1"
               >
-                <Trash2 size={12} /> Clear All
+                <Trash2 size={12} /> Clear
               </button>
             </div>
           </div>
 
-          {/* Filters Row */}
-          <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
-            {[
-              { id: "all", label: "All" },
-              { id: "attendance", label: "Attendance" },
-              { id: "task", label: "Tasks" },
-              { id: "alert", label: "Alerts" },
-            ].map(filter => (
+          {/* Filter Tabs */}
+          <div className="flex gap-2">
+            {(["all", "attendance", "task", "alert"] as const).map(f => (
               <button
-                key={filter.id}
-                onClick={() => setNotifFilter(filter.id as any)}
-                style={{
-                  padding: "4px 10px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  border: "1px solid var(--border)",
-                  cursor: "pointer",
-                  background: notifFilter === filter.id ? "var(--accent-blue)" : "var(--bg-hover)",
-                  color: notifFilter === filter.id ? "white" : "var(--text-secondary)",
-                  transition: "all 0.15s ease"
-                }}
+                key={f}
+                onClick={() => setNotifFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                  notifFilter === f
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-gray-50 text-gray-500 border-gray-200"
+                }`}
               >
-                {filter.label}
+                {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
             ))}
           </div>
 
-          {/* Scrollable Notifications List */}
-          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", paddingRight: "4px" }}>
+          {/* List */}
+          <div className="flex flex-col gap-2 overflow-y-auto max-h-48 pr-1">
             {filteredNotifications.length > 0 ? (
               filteredNotifications.map(item => (
-                <div 
+                <div
                   key={item.id}
                   onClick={() => toggleRead(item.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "10px",
-                    padding: "10px",
-                    cursor: "pointer",
-                    background: item.read ? "var(--bg-card)" : "rgba(0, 82, 255, 0.03)",
-                    border: item.read ? "1px solid var(--border)" : "1px solid rgba(0, 82, 255, 0.15)",
-                    transition: "all 0.15s ease",
-                    position: "relative"
-                  }}
+                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border ${
+                    item.read
+                      ? "bg-white border-gray-100"
+                      : "bg-blue-50 border-blue-100"
+                  }`}
                 >
-                  {/* Left avatar badge */}
-                  <div style={{
-                    width: "32px",
-                    height: "32px",
-                    background: "linear-gradient(135deg, #4f8ef7, #0052ff)",
-                    color: "white",
-                    fontWeight: 700,
-                    fontSize: "11px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0
-                  }}>
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                     {item.avatar}
                   </div>
-
-                  {/* Message body */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ 
-                      fontSize: "12.5px", 
-                      color: item.read ? "var(--text-secondary)" : "var(--text-primary)",
-                      fontWeight: item.read ? 400 : 600,
-                      lineHeight: 1.4
-                    }}>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs leading-snug ${item.read ? "text-gray-500 font-normal" : "text-gray-800 font-medium"}`}>
                       {item.message}
-                    </div>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px" }}>
-                      {item.time}
-                    </div>
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{item.time}</p>
                   </div>
-
-                  {/* Read/Unread dot indicator */}
                   {!item.read && (
-                    <div style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "var(--accent-blue)",
-                      marginTop: "6px"
-                    }} />
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1 shrink-0" />
                   )}
                 </div>
               ))
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, color: "var(--text-muted)", gap: "8px" }}>
-                <Bell size={24} style={{ opacity: 0.5 }} />
-                <span style={{ fontSize: "12px" }}>No operational logs matching filter.</span>
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
+                <Bell size={22} className="opacity-40" />
+                <span className="text-xs">No notifications</span>
               </div>
             )}
           </div>
         </div>
+
       </div>
     </div>
   );
