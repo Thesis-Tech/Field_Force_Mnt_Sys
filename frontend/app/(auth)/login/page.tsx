@@ -1,12 +1,10 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { login } from "@/store/slices/authSlice";
 import { Zap, Eye, EyeOff, MapPin } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const dispatch = useDispatch();
   const [email, setEmail] = useState("admin@fieldforce.com");
   const [password, setPassword] = useState("admin123");
