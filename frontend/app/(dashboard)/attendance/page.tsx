@@ -4,8 +4,18 @@ import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { getStatusColor } from "@/lib/utils";
-import { Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { addNotification } from "@/store/slices/notificationSlice";
+import { mockChartData } from "@/lib/mock-data";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
 
 export default function AttendancePage() {
   const dispatch = useDispatch();
@@ -60,6 +70,37 @@ export default function AttendancePage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Weekly Attendance Graph */}
+      <div className="card" style={{ marginBottom: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: "15px" }}>Weekly Attendance</div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Present vs Absent this week</div>
+          </div>
+          <TrendingUp size={18} color="var(--accent-green)" />
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={mockChartData}>
+            <defs>
+              <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22d3a5" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#22d3a5" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0", color: "var(--text-primary)" }} />
+            <Area type="monotone" dataKey="present" stroke="#22d3a5" fill="url(#presentGrad)" strokeWidth={2} name="Present" />
+            <Area type="monotone" dataKey="absent" stroke="#f43f5e" fill="url(#absentGrad)" strokeWidth={2} name="Absent" />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Late Check-in Alert Banner */}
