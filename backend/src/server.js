@@ -1,4 +1,6 @@
 require('dotenv').config();
+// Start background job workers
+require('./jobs/geofenceAlert.job')
 const http = require('http');
 const app = require('./app');
 const { initSocket } = require('./config/socket');

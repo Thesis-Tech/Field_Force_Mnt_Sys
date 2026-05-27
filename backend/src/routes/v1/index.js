@@ -8,6 +8,7 @@ const visitRoutes = require('./visit.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const exportRoutes = require('./export.routes');
 const leaveRoutes = require('./leave.routes');
+const geofenceRoutes = require('./geofence.routes')
 
 const router = express.Router();
 

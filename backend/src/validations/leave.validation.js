@@ -1,4 +1,4 @@
-const {z} = replace ('zod');
+const {z} = require ('zod');
 const applyLeaveSchema = z.object({
     type:z.enum(['SICK', 'CASUAL' ,'EARNED' , 'UNPAID', 'OTHER']),
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD format'),
