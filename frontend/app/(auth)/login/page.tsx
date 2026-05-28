@@ -1,11 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { login } from "@/store/slices/authSlice";
+import { useRouter } from "next/navigation";
 import { Zap, Eye, EyeOff, MapPin } from "lucide-react";
 
 export default function LoginPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const [email, setEmail] = useState("admin@fieldforce.com");
   const [password, setPassword] = useState("admin123");
   const [showPass, setShowPass] = useState(false);
@@ -13,119 +15,94 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [userType, setUserType] = useState<"new" | "existing">("existing");
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("type") === "new") {
+        router.push("/register");
+      }
+    }
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     await new Promise((r) => setTimeout(r, 1200));
-    if (email === "admin@fieldforce.com" && password === "admin123") {
-      dispatch(login({ name: "Admin", email, role: "Super Admin" }));
+
+    if (userType === "new") {
+      // Register Flow: Allow registering with ANY email and password!
+      const displayName = email.split("@")[0];
+      const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+      dispatch(login({ name: capitalizedName, email, role: "Super Admin" }));
+
       if (typeof window !== "undefined") {
-        if (userType === "new") {
-          // Clear any prior setup flags so they can experience the setup wizard fresh
-          localStorage.removeItem("adminSetupComplete");
-          localStorage.removeItem("adminSetupData");
-          window.location.href = "/admin-setup.html";
-        } else {
-          // Existing User - mark setup as complete so they bypass it and go straight to dashboard
+        localStorage.setItem("ff_password", password);
+        // Clear prior setup logs so the wizard starts fresh
+        localStorage.removeItem("adminSetupComplete");
+        localStorage.removeItem("adminSetupData");
+        window.location.href = "/admin-setup.html";
+      }
+    } else {
+      // Existing User login
+      const storedEmail = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("ff_user_profile") || "{}").email || "admin@fieldforce.com") : "admin@fieldforce.com";
+      const storedPassword = typeof window !== "undefined" ? (localStorage.getItem("ff_password") || "admin123") : "admin123";
+
+      // Allow either the default credentials OR the custom registered/updated credentials
+      const isDefaultCreds = email === "admin@fieldforce.com" && password === "admin123";
+      const isCustomCreds = email === storedEmail && password === storedPassword;
+
+      if (isDefaultCreds || isCustomCreds) {
+        const storedProfileName = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("ff_user_profile") || "{}").firstName || "Admin") : "Admin";
+        dispatch(login({ name: storedProfileName, email, role: "Super Admin" }));
+        
+        if (typeof window !== "undefined") {
           localStorage.setItem("adminSetupComplete", "true");
+          router.push("/dashboard");
+        } else {
           router.push("/dashboard");
         }
       } else {
-        router.push("/dashboard");
+        setError("Invalid email or password. Use demo details (admin@fieldforce.com / admin123) or your custom registered credentials.");
+        setLoading(false);
       }
-    } else {
-      setError("Invalid email or password.");
-      setLoading(false);
     }
   };
 
   return (
     <div style={{
-      minHeight: "100vh", background: "var(--bg-primary)",
+      height: "100vh",
+      background: "url(/login-bg.jpg) no-repeat center center / cover",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "20px", position: "relative", overflow: "hidden",
     }}>
-      {/* Background glow orbs */}
-      <div style={{ position: "absolute", top: "-100px", left: "-100px", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(79,142,247,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "-100px", right: "-100px", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(124,95,252,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ width: "100%", maxWidth: "420px", animation: "fadeIn 0.5s ease" }}>
+      <div style={{ width: "100%", maxWidth: "410px", animation: "fadeIn 0.5s ease", position: "relative", zIndex: 2 }}>
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+        <div style={{ textAlign: "center", marginBottom: "16px" }}>
           <div style={{
-            width: "60px", height: "60px", borderRadius: "0",
-            background: "var(--accent-blue)",
+            width: "50px", height: "50px", borderRadius: "10px",
+            background: "linear-gradient(135deg, #0052ff 0%, #0041cc 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-            boxShadow: "0 8px 32px rgba(79,142,247,0.35)"
+            margin: "0 auto 10px",
+            boxShadow: "0 6px 20px rgba(0, 82, 255, 0.2)"
           }}>
-            <Zap size={28} color="white" />
+            <Zap size={24} color="white" />
           </div>
-          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px" }}>FieldForce Admin</h1>
-          <p style={{ fontSize: "14px", color: "var(--text-secondary)" }}>Sign in to your dashboard</p>
+          <h1 style={{ fontSize: "23px", fontWeight: 900, color: "var(--text-primary)", margin: "0 0 2px" }}>FieldForce Admin</h1>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 500 }}>Sign in to your dashboard</p>
         </div>
 
         {/* Card */}
         <div style={{
-          background: "var(--bg-card)", border: "1.5px solid var(--border)",
-          borderRadius: "10px", padding: "32px",
-          boxShadow: "0 0 30px rgba(5, 5, 5, 0.2), 0 0 8px rgba(0, 0, 0, 0.1)",
+          background: "rgba(255, 255, 255, 0.95)",
+          border: "1px solid rgba(0, 82, 255, 0.12)",
+          borderRadius: "14px",
+          padding: "26px 28px",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 15px 35px rgba(0, 82, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02)",
         }}>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* User Type Switcher */}
-            <div>
-              <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>
-                Sign In As
-              </label>
-              <div style={{
-                display: "flex",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border)",
-                padding: "2px",
-                borderRadius: "0",
-              }}>
-                <button
-                  type="button"
-                  id="user-type-existing"
-                  onClick={() => setUserType("existing")}
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    border: "none",
-                    borderRadius: "0",
-                    cursor: "pointer",
-                    background: userType === "existing" ? "var(--accent-blue)" : "transparent",
-                    color: userType === "existing" ? "#ffffff" : "var(--text-secondary)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  Existing User
-                </button>
-                <button
-                  type="button"
-                  id="user-type-new"
-                  onClick={() => setUserType("new")}
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    border: "none",
-                    borderRadius: "0",
-                    cursor: "pointer",
-                    background: userType === "new" ? "var(--accent-blue)" : "transparent",
-                    color: userType === "new" ? "#ffffff" : "var(--text-secondary)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  New User
-                </button>
-              </div>
-            </div>
-
             {/* Email */}
             <div>
               <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "8px" }}>Email Address</label>
@@ -182,8 +159,23 @@ export default function LoginPage() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                   Signing in...
                 </span>
-              ) : (userType === "existing" ? "Sign In →" : "Sign In & Begin Setup →")}
+              ) : "Sign In →"}
             </button>
+
+            {/* Registration Direct Link */}
+            <div style={{ textAlign: "center", marginTop: "2px", fontSize: "13px" }}>
+              <span style={{ color: "var(--text-secondary)" }}>Don't have an account? </span>
+              <button
+                type="button"
+                onClick={() => router.push("/register")}
+                style={{
+                  background: "none", border: "none", color: "var(--accent-blue)",
+                  fontWeight: 700, cursor: "pointer", padding: 0, textDecoration: "underline"
+                }}
+              >
+                Register here
+              </button>
+            </div>
           </form>
         </div>
 

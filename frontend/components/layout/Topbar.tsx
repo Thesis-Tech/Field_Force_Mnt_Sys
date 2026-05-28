@@ -62,11 +62,11 @@ export default function Topbar() {
   }, []);
 
   const defaultUser = {
-    firstName: "Admin",
-    lastName: "",
-    designation: "Global Ops",
+    firstName: "Rahul",
+    lastName: "Kumar",
+    designation: "Admin",
     photoUrl: null as string | null,
-    email: "admin@fieldforce.com",
+    email: "rahul@fieldforce.com",
     mobileNo: "+1 (555) 019-2834",
   };
 
@@ -76,13 +76,13 @@ export default function Topbar() {
   }, []);
 
   const getInitials = () => {
-    if (!mounted) return "AG"; // Default server-side render (Admin + Global Ops)
+    if (!mounted) return "RK"; // Default server-side render
     const activeUser = currentUser || defaultUser;
     const firstInit = activeUser.firstName ? activeUser.firstName.charAt(0).toUpperCase() : "";
     const lastInit = activeUser.lastName 
       ? activeUser.lastName.charAt(0).toUpperCase() 
       : (activeUser.designation ? activeUser.designation.charAt(0).toUpperCase() : "");
-    return `${firstInit}${lastInit}` || "AG";
+    return `${firstInit}${lastInit}` || "RK";
   };
 
   const [query, setQuery] = useState("");
@@ -331,21 +331,21 @@ export default function Topbar() {
         {/* Search bar with dropdown — hidden on mobile */}
         {!isMobile && (
         <div ref={searchRef} style={{ position: "relative" }}>
-          <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", zIndex: 1 }} />
+          <Search size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", zIndex: 1 }} />
           <input
             id="topbar-search"
-            placeholder="Search operations..."
+            placeholder="Search..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onKeyDown={handleSearchKeyDown}
             style={{
-              background: "var(--bg-hover)", border: "1px solid var(--border)",
-              borderRadius: "0", padding: "8px 12px 8px 36px",
+              background: "#f1f5f9", border: "none",
+              borderRadius: "9999px", padding: "10px 16px 10px 40px",
               color: "var(--text-primary)", fontSize: "13px", outline: "none",
-              width: "250px", fontFamily: "Inter, sans-serif",
-              transition: "border-color 0.15s ease",
-              borderColor: isFocused ? "var(--accent-blue)" : "var(--border)",
+              width: "320px", fontFamily: "Inter, sans-serif",
+              transition: "all 0.15s ease",
+              boxShadow: isFocused ? "0 0 0 2px #2563eb" : "none",
             }}
           />
 
@@ -427,29 +427,25 @@ export default function Topbar() {
           id="topbar-notification-bell"
           onClick={() => router.push("/notifications")}
           style={{
-            width: "38px", height: "38px", borderRadius: "0",
-            background: "var(--bg-card)", border: "1px solid var(--border)",
+            width: "38px", height: "38px", borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", position: "relative",
             transition: "background 0.15s ease",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-card)")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           title="Notification Settings"
         >
-          <Bell size={18} color={pathname === "/notifications" ? "var(--accent-blue)" : "var(--text-secondary)"} />
-          {unreadCount > 0 && (
-            <span style={{
-              position: "absolute", top: "-5px", right: "-5px",
-              minWidth: "16px", height: "16px", borderRadius: "50%",
-              background: "var(--accent-red)", color: "white", fontSize: "10px", fontWeight: 800,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              padding: "0 4px", border: "1px solid var(--bg-secondary)",
-              fontFamily: "var(--font-jetbrains), monospace"
-            }}>
-              {unreadCount}
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
+            <Bell size={18} color={pathname === "/notifications" ? "#2563eb" : "#475569"} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: "absolute", top: "7px", right: "7px",
+                width: "8px", height: "8px", borderRadius: "50%",
+                background: "#ef4444", border: "1.5px solid white"
+              }} />
+            )}
+          </div>
         </div>
 
         {/* Admin avatar dropdown trigger */}
@@ -461,31 +457,29 @@ export default function Topbar() {
               alignItems: "center",
               gap: "10px",
               cursor: "pointer",
-              padding: "4px 8px",
-              background: isProfileDropdownOpen ? "var(--bg-hover)" : "transparent",
-              border: "1px solid " + (isProfileDropdownOpen ? "var(--border)" : "transparent"),
+              padding: "4px",
+              borderRadius: "50%",
               transition: "all 0.15s ease",
             }}
           >
             <div style={{
               width: "38px",
               height: "38px",
-              borderRadius: "0",
-              background: "var(--bg-hover)",
-              border: "1px solid var(--border)",
+              borderRadius: "50%",
+              background: "#2563eb",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontWeight: 700,
               fontSize: "13px",
-              color: "var(--text-primary)", // Dark color
-              fontFamily: "var(--font-jetbrains), monospace",
+              color: "white",
+              fontFamily: "Inter, sans-serif",
               overflow: "hidden",
             }}>
               {getInitials()}
             </div>
             {!isMobile && (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "none" }}>
               <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
                 {!mounted ? "Admin" : (currentUser ? (currentUser.lastName ? `${currentUser.firstName} ${currentUser.lastName}` : currentUser.firstName) : "Admin")}
               </span>

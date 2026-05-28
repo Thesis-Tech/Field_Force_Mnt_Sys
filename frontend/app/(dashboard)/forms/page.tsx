@@ -13,7 +13,8 @@ import {
   ClipboardList,
   X,
   AlertCircle,
-  Pencil
+  Pencil,
+  Smartphone
 } from "lucide-react";
 
 interface LeaveForm {
@@ -35,6 +36,7 @@ interface FeedbackRecord {
   message: string;
   submittedOn: string;
   anonymous: boolean;
+  source?: "web" | "mobile";
 }
 
 const LEAVE_TYPES = ["Casual Leave", "Sick Leave", "Emergency Leave", "Earned Leave", "Comp-Off"];
@@ -117,7 +119,8 @@ export default function FormsPage() {
       rating: 4,
       message: "The office setup and tools are great. Would love faster device replacements for field kits.",
       submittedOn: "2026-05-22",
-      anonymous: false
+      anonymous: false,
+      source: "web"
     },
     {
       id: "fb-2",
@@ -126,7 +129,18 @@ export default function FormsPage() {
       rating: 3,
       message: "Communication from HQ on route changes can be improved. Need more advance notice.",
       submittedOn: "2026-05-23",
-      anonymous: true
+      anonymous: true,
+      source: "mobile"
+    },
+    {
+      id: "fb-3",
+      submittedBy: "Amit Kumar",
+      category: "Tools & Processes",
+      rating: 5,
+      message: "The new mobile field operations update is outstanding! Real-time notifications keep operations synced.",
+      submittedOn: "2026-05-25",
+      anonymous: false,
+      source: "mobile"
     }
   ]);
 
@@ -212,7 +226,8 @@ export default function FormsPage() {
       rating: feedbackForm.rating,
       message: feedbackForm.message,
       submittedOn: new Date().toISOString().split("T")[0],
-      anonymous: feedbackForm.anonymous
+      anonymous: feedbackForm.anonymous,
+      source: "web"
     };
 
     setFeedbackList(prev => [record, ...prev]);
@@ -390,10 +405,30 @@ export default function FormsPage() {
               <div key={fb.id} className="card" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "13.5px" }}>
+                    <div style={{ fontWeight: 700, fontSize: "13.5px", display: "flex", alignItems: "center", gap: "6px" }}>
                       {fb.anonymous ? (
                         <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Anonymous</span>
                       ) : fb.submittedBy}
+                      {fb.source === "mobile" && (
+                        <span 
+                          title="Submitted via Mobile App" 
+                          style={{ 
+                            display: "inline-flex", 
+                            alignItems: "center", 
+                            gap: "3.5px", 
+                            background: "rgba(34, 197, 94, 0.08)", 
+                            border: "1px solid rgba(34, 197, 94, 0.25)",
+                            color: "#16a34a", 
+                            fontSize: "10px", 
+                            fontWeight: 700, 
+                            padding: "2px 6px",
+                            borderRadius: "0px",
+                            fontFamily: "var(--font-jetbrains), monospace"
+                          }}
+                        >
+                          <Smartphone size={10} /> Mobile
+                        </span>
+                      )}
                     </div>
                     <span className="badge" style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", fontSize: "10.5px", marginTop: "4px", display: "inline-block" }}>
                       {fb.category}

@@ -394,19 +394,7 @@ export default function Sidebar() {
                   ➔ Visits
                 </span>
               </Link>
-              <Link href="/activities/beat-plans" style={{ textDecoration: "none", color: "inherit" }}>
-                <span
-                  style={{
-                    fontSize: "12.5px",
-                    color: pathname === "/activities/beat-plans" ? "var(--accent-blue)" : "var(--text-secondary)",
-                    fontWeight: pathname === "/activities/beat-plans" ? 700 : 400,
-                    display: "block",
-                    padding: "4px 8px",
-                  }}
-                >
-                  ➔ Visit Beat Plans
-                </span>
-              </Link>
+
               <Link href="/activities/customers" style={{ textDecoration: "none", color: "inherit" }}>
                 <span
                   style={{

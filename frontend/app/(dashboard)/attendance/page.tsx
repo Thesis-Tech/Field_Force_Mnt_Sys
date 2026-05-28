@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { getStatusColor } from "@/lib/utils";
 import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { addNotification } from "@/store/slices/notificationSlice";
-import { mockChartData } from "@/lib/mock-data";
 import {
   AreaChart,
   Area,
@@ -17,9 +16,24 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+const WEEKLY_ATTENDANCE_DATA = [
+  { day: "Mon", present: 10, absent: 2 },
+  { day: "Tue", present: 11, absent: 1 },
+  { day: "Wed", present: 9, absent: 3 },
+  { day: "Thu", present: 10, absent: 2 },
+  { day: "Fri", present: 12, absent: 0 },
+  { day: "Sat", present: 8, absent: 4 },
+  { day: "Sun", present: 7, absent: 5 },
+];
+
 export default function AttendancePage() {
   const dispatch = useDispatch();
   const attendance = useSelector((s: RootState) => s.attendance.list);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [notified, setNotified] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -82,24 +96,30 @@ export default function AttendancePage() {
           <TrendingUp size={18} color="var(--accent-green)" />
         </div>
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={mockChartData}>
-            <defs>
-              <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22d3a5" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#22d3a5" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0", color: "var(--text-primary)" }} />
-            <Area type="monotone" dataKey="present" stroke="#22d3a5" fill="url(#presentGrad)" strokeWidth={2} name="Present" />
-            <Area type="monotone" dataKey="absent" stroke="#f43f5e" fill="url(#absentGrad)" strokeWidth={2} name="Absent" />
-          </AreaChart>
+          {mounted ? (
+            <AreaChart data={WEEKLY_ATTENDANCE_DATA}>
+              <defs>
+                <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22d3a5" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#22d3a5" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0", color: "var(--text-primary)" }} />
+              <Area type="monotone" dataKey="present" stroke="#22d3a5" fill="url(#presentGrad)" strokeWidth={2} name="Present" />
+              <Area type="monotone" dataKey="absent" stroke="#f43f5e" fill="url(#absentGrad)" strokeWidth={2} name="Absent" />
+            </AreaChart>
+          ) : (
+            <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "13px" }}>
+              Loading Weekly Analytics...
+            </div>
+          )}
         </ResponsiveContainer>
       </div>
 

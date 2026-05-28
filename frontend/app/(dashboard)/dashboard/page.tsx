@@ -1,436 +1,357 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
-import { mockChartData, mockStats, mockAttendance, mockTasks } from "@/lib/mock-data";
+import { mockStats, mockRecentActivity, taskOverviewData, productivityData } from "@/lib/mock-data";
 import {
   Users,
-  CheckCircle,
-  XCircle,
-  ClipboardList,
-  Activity,
+  UserCheck,
+  UserX,
+  Briefcase,
+  UserPlus,
+  ClipboardCheck,
+  Target,
+  BarChart3,
   TrendingUp,
-  Bell,
-  Trash2,
-  Check,
-  Send,
-  Plus,
-  Compass
+  TrendingDown,
+  MapPin,
+  ChevronDown
 } from "lucide-react";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Legend,
-  BarChart,
-  Bar
+  LineChart,
+  Line,
+  ComposedChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip
 } from "recharts";
 
-interface NotificationItem {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  avatar: string;
-  type: "attendance" | "task" | "alert" | "system";
-  message: string;
-  time: string;
-  read: boolean;
-}
+/* ── activity details lookup ── */
+const activityMeta: Record<string, { name: string; action: string; target: string; location: string }> = {
+  "1": { name: "John Doe", action: "checked in at Site A.", location: "Site A, New York", target: "" },
+  "2": { name: "Sarah Miller", action: "marked Task #42 as pending.", location: "Main Street, New York", target: "" },
+  "3": { name: "Amit Kumar", action: "completed Delivery #88.", location: "Warehouse, New Jersey", target: "" },
+  "4": { name: "Rick James", action: "missed check-in window.", location: "Downtown, New York", target: "" },
+  "5": { name: "Priya Lal", action: "entered geofence Zone North.", location: "Zone North", target: "" },
+};
 
-const PIE_COLORS = ["#22d3a5", "#f43f5e", "#f97316"];
+const avatarColors: Record<string, { bg: string; text: string }> = {
+  JD: { bg: "#dcfce7", text: "#16a34a" },
+  SM: { bg: "#ffedd5", text: "#ea580c" },
+  AK: { bg: "#dbeafe", text: "#2563eb" },
+  RJ: { bg: "#fee2e2", text: "#dc2626" },
+  PL: { bg: "#f3e8ff", text: "#9333ea" },
+};
+
+/* ── donut data ── */
+const taskStatusData = [
+  { name: "Completed", value: 24, color: "#22c55e" },
+  { name: "In Progress", value: 10, color: "#3b82f6" },
+  { name: "Pending", value: 8, color: "#f97316" },
+];
 
 export default function DashboardPage() {
   const router = useRouter();
   const employees = useSelector((s: RootState) => s.employees.list);
-  const reduxTasks = useSelector((s: RootState) => s.tasks.list);
-
-  const completed = reduxTasks.filter(t => t.status === "completed").length;
-  const inProgress = reduxTasks.filter(t => t.status === "in-progress").length;
-  const pending = reduxTasks.filter(t => t.status === "pending").length;
-
-  const pieData = [
-    { name: "Present", value: mockStats.presentToday },
-    { name: "Absent", value: mockStats.absentToday },
-    { name: "Late", value: 2 },
-  ];
-
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [notifFilter, setNotifFilter] = useState<"all" | "alert" | "task" | "attendance">("all");
-
-  // Simulation state kept as-is (no UI)
-  const [simEmployeeId, setSimEmployeeId] = useState("1");
-  const [simEventType, setSimEventType] = useState<"checkin" | "task" | "late" | "geofence">("checkin");
-
-  useEffect(() => {
-    const list: NotificationItem[] = [
-      {
-        id: "n-1",
-        employeeId: "1",
-        employeeName: "Rahul Sharma",
-        avatar: "RS",
-        type: "attendance",
-        message: "Rahul Sharma checked in at Mumbai North HQ",
-        time: "09:02 AM",
-        read: false
-      },
-      {
-        id: "n-2",
-        employeeId: "2",
-        employeeName: "Priya Patel",
-        avatar: "PP",
-        type: "task",
-        message: "Priya Patel completed delivery task 'Order #4521'",
-        time: "10:30 AM",
-        read: false
-      },
-      {
-        id: "n-3",
-        employeeId: "8",
-        employeeName: "Ananya Roy",
-        avatar: "AR",
-        type: "alert",
-        message: "Ananya Roy logged check-in: 1h 15m Late arrival",
-        time: "10:15 AM",
-        read: false
-      },
-      {
-        id: "n-4",
-        employeeId: "3",
-        employeeName: "Arjun Singh",
-        avatar: "AS",
-        type: "alert",
-        message: "Arjun Singh marked absent: No active device signal detected",
-        time: "09:30 AM",
-        read: true
-      },
-      {
-        id: "n-5",
-        employeeId: "4",
-        employeeName: "Kavya Nair",
-        avatar: "KN",
-        type: "attendance",
-        message: "Kavya Nair checked in at Pune West Zone",
-        time: "08:55 AM",
-        read: true
-      }
-    ];
-    setNotifications(list);
-  }, []);
-
-  const filteredNotifications = notifications.filter(n => {
-    if (notifFilter === "all") return true;
-    return n.type === notifFilter;
-  });
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const handleAddNotification = (e: React.FormEvent) => {
-    e.preventDefault();
-    const emp = employees.find(e => e.id === simEmployeeId) || employees[0];
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    let message = "";
-    let type: "attendance" | "task" | "alert" | "system" = "system";
-
-    if (simEventType === "checkin") {
-      message = `${emp.name} checked in at ${emp.territory}`;
-      type = "attendance";
-    } else if (simEventType === "task") {
-      const task = reduxTasks.find(t => t.assignedTo === emp.name) || { title: "Standard Operations Log" };
-      message = `${emp.name} completed task '${task.title}'`;
-      type = "task";
-    } else if (simEventType === "late") {
-      message = `${emp.name} logged late check-in: 45m past standard hours`;
-      type = "alert";
-    } else if (simEventType === "geofence") {
-      message = `${emp.name} breached geofence boundary at Pune Sector 10`;
-      type = "alert";
-    }
-
-    const newNotif: NotificationItem = {
-      id: `n-${Date.now()}`,
-      employeeId: emp.id,
-      employeeName: emp.name,
-      avatar: emp.avatar,
-      type,
-      message,
-      time: timeString,
-      read: false
-    };
-
-    setNotifications(prev => [newNotif, ...prev]);
-  };
-
-  const toggleRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n));
-  };
-
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const clearAll = () => {
-    setNotifications([]);
-  };
-
-  const totalTasks = reduxTasks.length;
+  const tasks = useSelector((s: RootState) => s.tasks.list);
+  const totalTasks = tasks.length || 42;
 
   return (
-    <div className="flex flex-col gap-5 p-1">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "4px 4px 40px", maxWidth: 1600, margin: "0 auto", fontFamily: "Inter, system-ui, sans-serif" }}>
 
-      {/* ── Row 1: KPI Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Total Staff */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
-          <span className="text-sm text-gray-500">Total Staff</span>
-          <span className="text-3xl font-bold text-gray-900">{employees.length}</span>
-          <span className="text-xs text-gray-400">Registered employees</span>
-        </div>
-
-        {/* Present Today */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
-          <span className="text-sm text-gray-500">Present Today</span>
-          <span className="text-3xl font-bold text-green-600">{mockStats.presentToday}</span>
-          <span className="text-xs text-gray-400">Checked in so far</span>
-        </div>
-
-        {/* Absent Today */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
-          <span className="text-sm text-gray-500">Absent Today</span>
-          <span className="text-3xl font-bold text-red-500">{mockStats.absentToday}</span>
-          <span className="text-xs text-gray-400">No check-in recorded</span>
-        </div>
-
-        {/* Tasks Today */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-1">
-          <span className="text-sm text-gray-500">Tasks Today</span>
-          <span className="text-3xl font-bold text-blue-600">{totalTasks}</span>
-          <span className="text-xs text-gray-400">Assigned across all staff</span>
-        </div>
+      {/* ════ ROW 1 — KPI Cards ════ */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
+        <KpiCard icon={<Users size={22} />} iconBg="#eff6ff" iconColor="#3b82f6" label="TOTAL EMPLOYEES" value={employees.length || 12} trend="up" trendText="12% from last month" />
+        <KpiCard icon={<UserCheck size={22} />} iconBg="#ecfdf5" iconColor="#10b981" label="PRESENT TODAY" value={mockStats.presentToday} trend="up" trendText="8% from yesterday" />
+        <KpiCard icon={<UserX size={22} />} iconBg="#fef2f2" iconColor="#ef4444" label="ABSENT TODAY" value={mockStats.absentToday} trend="down" trendText="4% from yesterday" />
+        <KpiCard icon={<Briefcase size={22} />} iconBg="#faf5ff" iconColor="#8b5cf6" label="TASKS TODAY" value={totalTasks} trend="up" trendText="18% from yesterday" />
       </div>
 
-      {/* ── Row 2: Task Status + Attendance Operations ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* ════ ROW 2 — Task Overview | Task Status | Quick Actions ════ */}
+      <div style={{ display: "grid", gridTemplateColumns: "5fr 4fr 3fr", gap: 20 }}>
 
-        {/* Task Status Breakdown */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-700">Task Status</span>
-            <span className="text-xs text-gray-400">{totalTasks} total</span>
-          </div>
-
-          {/* Completed */}
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Completed</span>
-              <span className="font-semibold text-green-600">{completed}</span>
+        {/* ── Task Overview (Line Chart) ── */}
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", margin: 0 }}>Task Overview <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>(This Week)</span></h3>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div
-                className="bg-green-500 h-1.5 rounded-full"
-                style={{ width: totalTasks ? `${(completed / totalTasks) * 100}%` : "0%" }}
-              />
-            </div>
+            <DropdownPill text="This Week" />
           </div>
-
-          {/* In Progress */}
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">In Progress</span>
-              <span className="font-semibold text-blue-600">{inProgress}</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div
-                className="bg-blue-500 h-1.5 rounded-full"
-                style={{ width: totalTasks ? `${(inProgress / totalTasks) * 100}%` : "0%" }}
-              />
-            </div>
-          </div>
-
-          {/* Pending */}
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Pending</span>
-              <span className="font-semibold text-orange-500">{pending}</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div
-                className="bg-orange-400 h-1.5 rounded-full"
-                style={{ width: totalTasks ? `${(pending / totalTasks) * 100}%` : "0%" }}
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={() => router.push("/tasks")}
-            className="mt-1 w-full py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg bg-blue-50 hover:bg-blue-100"
-          >
-            View All Tasks
-          </button>
-        </div>
-
-        {/* Attendance Operations */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4">
-          <span className="text-sm font-semibold text-gray-700">Attendance Operations</span>
-
-          <button
-            onClick={() => router.push("/attendance")}
-            className="w-full py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            View Attendance Roster
-          </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => router.push("/map")}
-              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
-            >
-              <Compass size={15} className="text-blue-500" />
-              Live Map
-            </button>
-            <button
-              onClick={() => router.push("/playback")}
-              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
-            >
-              <Activity size={15} className="text-purple-500" />
-              Route History
-            </button>
-            <button
-              onClick={() => router.push("/employees")}
-              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
-            >
-              <Users size={15} className="text-green-500" />
-              Staff Cards
-            </button>
-            <button
-              onClick={() => router.push("/geofencing")}
-              className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100"
-            >
-              <CheckCircle size={15} className="text-orange-500" />
-              Geofences
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Row 3: Bar Chart + Notifications ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-        {/* Daily Tasks Bar Chart */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-700">Daily Tasks</p>
-            <p className="text-xs text-gray-400">Tasks assigned per day</p>
-          </div>
-          <div className="h-56">
+          <div style={{ width: "100%", height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockChartData} barSize={22}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="day" tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="tasks" fill="url(#barGrad)" radius={[6, 6, 0, 0]} name="Tasks" />
-                <defs>
-                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4f8ef7" />
-                    <stop offset="100%" stopColor="#7c5ffc" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
+              <LineChart data={taskOverviewData} margin={{ left: -20, right: 10, top: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,.08)", fontSize: 13 }} />
+                <Line type="monotone" dataKey="completed" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3, fill: "#22c55e", strokeWidth: 0 }} activeDot={{ r: 5 }} name="Completed" />
+                <Line type="monotone" dataKey="inProgress" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3, fill: "#3b82f6", strokeWidth: 0 }} activeDot={{ r: 5 }} name="In Progress" />
+                <Line type="monotone" dataKey="pending" stroke="#f97316" strokeWidth={2.5} dot={{ r: 3, fill: "#f97316", strokeWidth: 0 }} activeDot={{ r: 5 }} name="Pending" />
+              </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 24, justifyContent: "center", marginTop: 12 }}>
+            <LegendDot color="#22c55e" label="Completed" />
+            <LegendDot color="#3b82f6" label="In Progress" />
+            <LegendDot color="#f97316" label="Pending" />
+          </div>
+        </Card>
 
-        {/* Notifications */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col gap-3">
-
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Notifications</p>
-              <p className="text-xs text-gray-400">{unreadCount} unread</p>
+        {/* ── Task Status (Donut) ── */}
+        <Card>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", margin: "0 0 8px" }}>Task Status</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1 }}>
+            {/* Donut */}
+            <div style={{ position: "relative", width: 150, height: 150, flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={taskStatusData} cx="50%" cy="50%" innerRadius={48} outerRadius={68} paddingAngle={3} dataKey="value" startAngle={90} endAngle={-270} stroke="none">
+                    {taskStatusData.map((d, i) => (<Cell key={i} fill={d.color} />))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 28, fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>42</span>
+                <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500 }}>Total</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={markAllRead}
-                className="text-xs text-blue-600 font-medium flex items-center gap-1"
-              >
-                <Check size={12} /> Mark all read
-              </button>
-              <span className="text-gray-300">|</span>
-              <button
-                onClick={clearAll}
-                className="text-xs text-red-500 font-medium flex items-center gap-1"
-              >
-                <Trash2 size={12} /> Clear
-              </button>
+            {/* Legend */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {taskStatusData.map((d) => (
+                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{d.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginLeft: "auto" }}>{d.value}</span>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>({Math.round(d.value / 42 * 100)}%)</span>
+                </div>
+              ))}
             </div>
           </div>
-
-          {/* Filter Tabs */}
-          <div className="flex gap-2">
-            {(["all", "attendance", "task", "alert"] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setNotifFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                  notifFilter === f
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-gray-50 text-gray-500 border-gray-200"
-                }`}
-              >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+          {/* Badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+            <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999 }}>+18%</span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>More tasks completed than yesterday</span>
           </div>
+        </Card>
 
-          {/* List */}
-          <div className="flex flex-col gap-2 overflow-y-auto max-h-48 pr-1">
-            {filteredNotifications.length > 0 ? (
-              filteredNotifications.map(item => (
-                <div
-                  key={item.id}
-                  onClick={() => toggleRead(item.id)}
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border ${
-                    item.read
-                      ? "bg-white border-gray-100"
-                      : "bg-blue-50 border-blue-100"
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+        {/* ── Quick Actions ── */}
+        <Card>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", margin: "0 0 16px" }}>Quick Actions</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, flex: 1 }}>
+            <QuickBtn icon={<UserPlus size={22} />} bg="#eff6ff" color="#3b82f6" label="Add Employee" onClick={() => router.push("/employees")} />
+            <QuickBtn icon={<ClipboardCheck size={22} />} bg="#faf5ff" color="#8b5cf6" label="Assign Task" onClick={() => router.push("/tasks")} />
+            <QuickBtn icon={<Target size={22} />} bg="#ecfdf5" color="#10b981" label="Add Geofence" onClick={() => router.push("/geofencing")} />
+            <QuickBtn icon={<BarChart3 size={22} />} bg="#fff7ed" color="#f97316" label="View Reports" onClick={() => router.push("/reports")} />
+          </div>
+        </Card>
+      </div>
+
+      {/* ════ ROW 3 — Live Activity | Productivity | Live Map ════ */}
+      <div style={{ display: "grid", gridTemplateColumns: "4fr 5fr 3fr", gap: 20 }}>
+
+        {/* ── Live Activity ── */}
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", margin: 0 }}>Live Activity</h3>
+            <button onClick={() => router.push("/notifications")} style={{ background: "none", border: "none", fontSize: 13, fontWeight: 600, color: "#3b82f6", cursor: "pointer" }}>View All</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {mockRecentActivity.map((item) => {
+              const meta = activityMeta[item.id];
+              const ac = avatarColors[item.avatar] || { bg: "#f1f5f9", text: "#64748b" };
+              return (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f8fafc", gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: ac.bg, color: ac.text, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
                     {item.avatar}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs leading-snug ${item.read ? "text-gray-500 font-normal" : "text-gray-800 font-medium"}`}>
-                      {item.message}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{item.time}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.4 }}>
+                      <span style={{ fontWeight: 700 }}>{meta?.name || item.employeeName}</span>{" "}
+                      <span style={{ fontWeight: 400 }}>{meta?.action || item.message}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{meta?.location}</div>
                   </div>
-                  {!item.read && (
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1 shrink-0" />
-                  )}
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", flexShrink: 0, whiteSpace: "nowrap" }}>{item.time}</span>
                 </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
-                <Bell size={22} className="opacity-40" />
-                <span className="text-xs">No notifications</span>
-              </div>
-            )}
+              );
+            })}
           </div>
-        </div>
+        </Card>
 
+        {/* ── Productivity Overview (Combo Chart) ── */}
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", margin: 0 }}>Productivity Overview <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>(This Week)</span></h3>
+            </div>
+            <DropdownPill text="This Week" />
+          </div>
+          <div style={{ display: "flex", gap: 32, marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>Tasks Completed</span>
+            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>Completion Rate (%)</span>
+          </div>
+          <div style={{ width: "100%", height: 210 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={productivityData} margin={{ left: -15, right: -15, top: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} unit="%" />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,.08)", fontSize: 13 }} />
+                <Bar yAxisId="left" dataKey="tasksCompleted" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} name="Tasks Completed" />
+                <Line yAxisId="right" type="monotone" dataKey="completionRate" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: "#fff", stroke: "#3b82f6", strokeWidth: 2 }} activeDot={{ r: 6 }} name="Completion Rate" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 24, marginTop: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 12, height: 12, borderRadius: 3, background: "#3b82f6" }} />
+              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>Tasks Completed</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 12, height: 3, borderRadius: 2, background: "#3b82f6" }} />
+              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>Completion Rate</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* ── Live Map ── */}
+        <Card noPad>
+          <div style={{ padding: "16px 20px 8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <MapPin size={16} color="#3b82f6" />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", margin: 0 }}>Live Map</h3>
+            </div>
+          </div>
+          {/* Map visual */}
+          <div style={{ flex: 1, margin: "0 12px", borderRadius: 12, overflow: "hidden", position: "relative", background: "#f8fafc", minHeight: 220 }}>
+            {/* Real Map Image */}
+            <img src="/dashboard-map-bg.png" alt="Live Map" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
+            {/* Pin markers */}
+            {[
+              { top: "22%", left: "32%", color: "#3b82f6" },
+              { top: "50%", left: "58%", color: "#ef4444" },
+              { top: "68%", left: "22%", color: "#22c55e" },
+              { top: "35%", left: "72%", color: "#f59e0b" },
+              { top: "75%", left: "65%", color: "#8b5cf6" },
+            ].map((pin, i) => (
+              <div key={i} style={{ position: "absolute", top: pin.top, left: pin.left, transform: "translate(-50%, -100%)" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <MapPin size={20} fill={pin.color} color={pin.color} />
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: pin.color, opacity: 0.3, marginTop: -2 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: "12px 20px", textAlign: "center" }}>
+            <button onClick={() => router.push("/map")} style={{ background: "none", border: "none", fontSize: 13, fontWeight: 600, color: "#3b82f6", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>
+              View Full Map
+            </button>
+          </div>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════
+   Sub-components (kept in same file for simplicity)
+   ════════════════════════════════════════════ */
+
+function Card({ children, noPad }: { children: React.ReactNode; noPad?: boolean }) {
+  return (
+    <div style={{
+      background: "#f8f8faff",
+      borderRadius: 16,
+      border: "1px solid #6d90d1ff",
+      boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)",
+      padding: noPad ? 0 : 24,
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function KpiCard({ icon, iconBg, iconColor, label, value, trend, trendText }: {
+  icon: React.ReactNode; iconBg: string; iconColor: string;
+  label: string; value: number; trend: "up" | "down"; trendText: string;
+}) {
+  const isUp = trend === "up";
+  return (
+    <div style={{
+      background: "#f8f8faff", borderRadius: 16, border: "1px solid #92b3f1ff",
+      boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "20px 24px",
+      display: "flex", flexDirection: "column", gap: 12,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 48, height: 48, borderRadius: "50%", background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", color: iconColor, flexShrink: 0 }}>
+          {icon}
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</span>
+      </div>
+      <div style={{ fontSize: 36, fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>{value}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+        {isUp ? <TrendingUp size={14} color="#22c55e" /> : <TrendingDown size={14} color="#ef4444" />}
+        <span style={{ fontWeight: 600, color: isUp ? "#22c55e" : "#ef4444" }}>{trendText.split(" ")[0]}</span>
+        <span style={{ color: "#94a3b8" }}>{trendText.split(" ").slice(1).join(" ")}</span>
+      </div>
+    </div>
+  );
+}
+
+function QuickBtn({ icon, bg, color, label, onClick }: {
+  icon: React.ReactNode; bg: string; color: string; label: string; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: 10, padding: 16, cursor: "pointer", transition: "all .15s ease",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
+    >
+      <div style={{ width: 44, height: 44, borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", color }}>
+        {icon}
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{label}</span>
+    </button>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+      <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>{label}</span>
+    </div>
+  );
+}
+
+function DropdownPill({ text }: { text: string }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 999,
+      padding: "6px 14px", fontSize: 13, fontWeight: 500, color: "#64748b", cursor: "pointer",
+    }}>
+      {text}
+      <ChevronDown size={14} />
     </div>
   );
 }
