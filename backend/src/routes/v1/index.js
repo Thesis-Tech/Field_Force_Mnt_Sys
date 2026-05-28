@@ -8,7 +8,11 @@ const visitRoutes = require('./visit.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const exportRoutes = require('./export.routes');
 const leaveRoutes = require('./leave.routes');
-const geofenceRoutes = require('./geofence.routes')
+const geofenceRoutes = require('./geofence.routes');
+const expenseRoutes      = require('./expense.routes')
+const notificationRoutes = require('./notification.routes')
+
+
 
 const router = express.Router();
 
@@ -19,6 +23,8 @@ router.use('/attendance', attendanceRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/visits', visitRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/expenses', expenseRoutes);
+router.use('/notifications', notificationRoutes);
 router.use('/export', exportRoutes);
 router.use('/leave', leaveRoutes);
 
