@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import StoreProvider from "@/components/StoreProvider";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });

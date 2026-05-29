@@ -41,10 +41,44 @@ export default function LoginPage() {
         // Clear prior setup logs so the wizard starts fresh
         localStorage.removeItem("adminSetupComplete");
         localStorage.removeItem("adminSetupData");
-        window.location.href = "/admin-setup.html";
+        window.location.href = "/admin-setup";
       }
     } else {
       // Existing User login
+      const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success && resData.data?.token) {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("auth_token", resData.data.token);
+              localStorage.setItem("adminSetupComplete", "true");
+              
+              // Cache profile name
+              const profile = { firstName: resData.data.user.name, email: resData.data.user.email };
+              localStorage.setItem("ff_user_profile", JSON.stringify(profile));
+            }
+            dispatch(login({ 
+              name: resData.data.user.name, 
+              email: resData.data.user.email, 
+              role: resData.data.user.role 
+            }));
+            router.push("/dashboard");
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("[Login] Secure backend login failed or offline. Falling back to local offline mock authentication.", err);
+      }
+
+      // Offline/Local Fallback Creds Check
       const storedEmail = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("ff_user_profile") || "{}").email || "admin@fieldforce.com") : "admin@fieldforce.com";
       const storedPassword = typeof window !== "undefined" ? (localStorage.getItem("ff_password") || "admin123") : "admin123";
 
@@ -58,6 +92,8 @@ export default function LoginPage() {
         
         if (typeof window !== "undefined") {
           localStorage.setItem("adminSetupComplete", "true");
+          // Add a dummy dev token to localStorage for local fallback map loading
+          localStorage.setItem("auth_token", "dev_fallback_token");
           router.push("/dashboard");
         } else {
           router.push("/dashboard");

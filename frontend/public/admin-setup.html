@@ -9,8 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=nncetrtusifadzfungczgygoyhwvlxlixvon&layer=vector"></script>
   <style>
     :root {
       --bg-primary: #f8fafc;
@@ -1000,12 +999,14 @@
     let mapMarkers = [];
 
     function updateMap() {
-      if (!document.getElementById('map-container') || typeof L === 'undefined') return;
+      if (!document.getElementById('map-container') || typeof mappls === 'undefined') return;
       if (!locMap) {
-        locMap = L.map('map-container').setView([20, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(locMap);
+        locMap = new mappls.Map('map-container', {
+          center: [20, 0],
+          zoom: 2,
+          zoomControl: true,
+          search: false,
+        });
       }
 
       mapMarkers.forEach(m => locMap.removeLayer(m));
