@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Geofencing Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@600&amp;family=Hanken+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#b7c4ff",
+                        "on-tertiary-fixed-variant": "#891e00",
+                        "tertiary-container": "#bf3003",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "primary-fixed": "#dde1ff",
+                        "on-surface": "#131b2e",
+                        "on-secondary-fixed": "#0b1c30",
+                        "primary": "#003ec7",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb4a1",
+                        "inverse-surface": "#283044",
+                        "inverse-on-surface": "#eef0ff",
+                        "surface-container-high": "#e2e7ff",
+                        "secondary-fixed": "#d3e4fe",
+                        "primary-container": "#0052ff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#001452",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#faf8ff",
+                        "outline": "#737688",
+                        "on-primary-container": "#dfe3ff",
+                        "on-tertiary-fixed": "#3c0800",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#d2d9f4",
+                        "secondary-container": "#d0e1fb",
+                        "surface-container-low": "#f2f3ff",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#ffddd5",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c3c5d9",
+                        "surface-container": "#eaedff",
+                        "on-background": "#131b2e",
+                        "surface-tint": "#004ced",
+                        "surface-container-highest": "#dae2fd",
+                        "surface-variant": "#dae2fd",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "secondary": "#505f76",
+                        "tertiary-fixed": "#ffdbd2",
+                        "tertiary": "#952200",
+                        "on-surface-variant": "#434656",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#54647a",
+                        "surface-bright": "#faf8ff",
+                        "background": "#faf8ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "gutter": "16px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface h-screen w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline flex flex-col h-full py-4 z-20">
+<div class="px-gutter mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-inverse-primary">FieldForce Pro</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Operational Hub</p>
+</div>
+<ul class="flex-1 space-y-1 px-4">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">groups</span>
+                    Staff
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">assignment</span>
+                    Tasks
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">location_searching</span>
+                    Live Tracking
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                    Analytics
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-primary dark:text-inverse-primary font-bold border-r-2 border-primary hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md bg-surface-container-low" href="#">
+<span class="material-symbols-outlined">language</span>
+                    Geofencing
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors duration-150 ease-in-out font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">notifications</span>
+                    Notifications
+                </a>
+</li>
+</ul>
+<div class="px-4 mt-auto border-t border-outline-variant pt-4">
+<ul class="space-y-1">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors duration-150 font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">settings</span>
+                        Settings
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors duration-150 font-body-md text-body-md rounded" href="#">
+<span class="material-symbols-outlined">help</span>
+                        Support
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-inverse-surface fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-outline-variant dark:border-outline flex justify-between items-center px-gutter ml-64 z-10">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface">Admin Control Center</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 border border-outline-variant rounded-none bg-surface-lowest focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-body-md text-body-md w-64 h-8 text-on-surface" placeholder="Search..." type="text"/>
+</div>
+<button class="bg-primary text-on-primary px-4 h-8 font-label-sm text-label-sm uppercase rounded-none hover:bg-primary-container transition-colors">
+                New Task
+            </button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-2 rounded transition-all duration-200">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-high p-2 rounded transition-all duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 mt-16 p-margin-desktop w-full max-w-[calc(1440px-16rem)] flex flex-col gap-6">
+<!-- Top Section: Sidebar + Map -->
+<div class="flex gap-4 h-[500px]">
+<!-- Sidebar: Geofence Zones -->
+<div class="w-80 bg-surface-container-lowest border border-outline-variant flex flex-col rounded-none">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest">
+<h3 class="font-label-caps text-label-caps text-on-surface uppercase tracking-wider">Geofence Zones</h3>
+<button class="bg-primary text-on-primary px-3 h-7 font-label-sm text-label-sm rounded-none hover:bg-primary-container transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+                        Create
+                    </button>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-2">
+<!-- Zone Item 1 -->
+<div class="border border-outline-variant p-3 bg-surface hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<span class="font-body-md text-body-md font-semibold text-on-surface">Downtown Sector A</span>
+<span class="px-2 py-0.5 bg-primary/10 border-l-2 border-primary text-primary font-label-sm text-[10px] uppercase">Active</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px;">radio_button_unchecked</span>
+                            Circular (500m radius)
+                        </div>
+<div class="mt-2 text-on-surface-variant font-label-sm text-label-sm">
+                            3 active staff
+                        </div>
+</div>
+<!-- Zone Item 2 -->
+<div class="border border-outline-variant p-3 bg-surface hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex justify-between items-start mb-1">
+<span class="font-body-md text-body-md font-semibold text-on-surface">North Warehouse</span>
+<span class="px-2 py-0.5 bg-primary/10 border-l-2 border-primary text-primary font-label-sm text-[10px] uppercase">Active</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px;">polyline</span>
+                            Polygonal
+                        </div>
+<div class="mt-2 text-on-surface-variant font-label-sm text-label-sm">
+                            1 active staff
+                        </div>
+</div>
+<!-- Zone Item 3 -->
+<div class="border border-outline-variant p-3 bg-surface hover:bg-surface-container-low transition-colors cursor-pointer opacity-70">
+<div class="flex justify-between items-start mb-1">
+<span class="font-body-md text-body-md font-semibold text-on-surface">Temp Event Site</span>
+<span class="px-2 py-0.5 bg-outline-variant/20 border-l-2 border-outline-variant text-on-surface-variant font-label-sm text-[10px] uppercase">Inactive</span>
+</div>
+<div class="text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px;">radio_button_unchecked</span>
+                            Circular (1km radius)
+                        </div>
+<div class="mt-2 text-on-surface-variant font-label-sm text-label-sm">
+                            0 active staff
+                        </div>
+</div>
+</div>
+</div>
+<!-- Map Area -->
+<div class="flex-1 bg-surface-container border border-outline-variant relative rounded-none overflow-hidden group">
+<!-- Decorative Map Background Pattern -->
+<div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 2px 2px, #0f172a 1px, transparent 0); background-size: 24px 24px;"></div>
+<!-- Simulated Map UI Elements -->
+<div class="absolute top-4 left-4 flex flex-col gap-2 z-10">
+<button class="bg-surface-container-lowest border border-outline-variant p-2 hover:border-primary text-on-surface shadow-sm">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="bg-surface-container-lowest border border-outline-variant p-2 hover:border-primary text-on-surface shadow-sm">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+<div class="absolute top-4 right-4 flex gap-2 z-10">
+<button class="bg-surface-container-lowest border border-outline-variant px-3 py-1.5 hover:border-primary text-on-surface font-label-sm text-label-sm shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 16px;">draw</span>
+                        Draw Polygon
+                    </button>
+<button class="bg-surface-container-lowest border border-outline-variant px-3 py-1.5 hover:border-primary text-on-surface font-label-sm text-label-sm shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 16px;">radio_button_unchecked</span>
+                        Draw Circle
+                    </button>
+</div>
+<!-- Simulated Geofence overlays -->
+<!-- Circular Fence -->
+<div class="absolute top-1/3 left-1/4 w-48 h-48 border-2 border-primary bg-primary/10 rounded-full flex items-center justify-center">
+<div class="w-3 h-3 bg-primary rounded-full ring-4 ring-primary/30"></div>
+</div>
+<!-- Polygonal Fence -->
+<svg class="absolute top-1/2 right-1/4 w-64 h-64 overflow-visible" viewbox="0 0 100 100">
+<polygon fill="rgba(0, 82, 255, 0.1)" points="10,10 90,20 80,80 20,90" stroke="#0052FF" stroke-width="1.5"></polygon>
+<!-- Polygon nodes -->
+<circle cx="10" cy="10" fill="#0052FF" r="2"></circle>
+<circle cx="90" cy="20" fill="#0052FF" r="2"></circle>
+<circle cx="80" cy="80" fill="#0052FF" r="2"></circle>
+<circle cx="20" cy="90" fill="#0052FF" r="2"></circle>
+</svg>
+</div>
+</div>
+<!-- Bottom Section: Alert Logs Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-none">
+<div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center">
+<h3 class="font-label-caps text-label-caps text-on-surface uppercase tracking-wider">Alert Logs</h3>
+<button class="text-on-surface-variant font-label-sm text-label-sm border border-outline-variant px-3 py-1 hover:bg-surface-container-low transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 16px;">filter_list</span>
+                    Filter
+                 </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b-2 border-on-surface bg-surface-container-lowest">
+<th class="p-2 font-label-caps text-label-caps text-on-surface font-semibold">Timestamp</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface font-semibold">Event</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface font-semibold">Staff Member</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface font-semibold">Zone</th>
+<th class="p-2 font-label-caps text-label-caps text-on-surface font-semibold text-right">Action</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<tr class="border-b border-surface-container-high hover:bg-surface-container-low transition-colors bg-surface">
+<td class="p-2 text-on-surface-variant">2023-10-27 14:32:01</td>
+<td class="p-2">
+<span class="px-2 py-0.5 bg-error/10 border-l-2 border-error text-error font-label-sm text-[10px] uppercase">Exit</span>
+</td>
+<td class="p-2 text-on-surface font-medium">Sarah Jenkins</td>
+<td class="p-2 text-on-surface-variant">Downtown Sector A</td>
+<td class="p-2 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm">View</button>
+</td>
+</tr>
+<tr class="border-b border-surface-container-high hover:bg-surface-container-low transition-colors bg-background">
+<td class="p-2 text-on-surface-variant">2023-10-27 14:15:22</td>
+<td class="p-2">
+<span class="px-2 py-0.5 bg-primary/10 border-l-2 border-primary text-primary font-label-sm text-[10px] uppercase">Entry</span>
+</td>
+<td class="p-2 text-on-surface font-medium">Marcus Vance</td>
+<td class="p-2 text-on-surface-variant">North Warehouse</td>
+<td class="p-2 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm">View</button>
+</td>
+</tr>
+<tr class="border-b border-surface-container-high hover:bg-surface-container-low transition-colors bg-surface">
+<td class="p-2 text-on-surface-variant">2023-10-27 13:45:10</td>
+<td class="p-2">
+<span class="px-2 py-0.5 bg-error/10 border-l-2 border-error text-error font-label-sm text-[10px] uppercase">Exit</span>
+</td>
+<td class="p-2 text-on-surface font-medium">Marcus Vance</td>
+<td class="p-2 text-on-surface-variant">Downtown Sector A</td>
+<td class="p-2 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm">View</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-background">
+<td class="p-2 text-on-surface-variant">2023-10-27 12:00:05</td>
+<td class="p-2">
+<span class="px-2 py-0.5 bg-primary/10 border-l-2 border-primary text-primary font-label-sm text-[10px] uppercase">Entry</span>
+</td>
+<td class="p-2 text-on-surface font-medium">Sarah Jenkins</td>
+<td class="p-2 text-on-surface-variant">Downtown Sector A</td>
+<td class="p-2 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm">View</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</body></html>

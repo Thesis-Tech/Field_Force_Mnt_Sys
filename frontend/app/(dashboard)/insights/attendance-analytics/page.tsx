@@ -9,6 +9,7 @@ import {
   Calendar,
   Award,
   TrendingUp,
+  SlidersHorizontal,
   ChevronRight
 } from "lucide-react";
 
@@ -18,11 +19,8 @@ export default function AttendanceAnalyticsPage() {
 
   // Compute analytics metrics
   const totalEmployees = employees.length;
-  const lateCount = attendance.filter(a => a.status?.toLowerCase() === "late").length;
-  const presentCount = attendance.filter(a => {
-    const s = a.status?.toLowerCase();
-    return s === "present" || s === "on time" || s === "on-time";
-  }).length;
+  const lateCount = attendance.filter(a => a.status === "Late").length;
+  const presentCount = attendance.filter(a => a.status === "Present" || a.status === "On Time").length;
   const onTimeCount = presentCount - lateCount;
   
   // Calculate delay rates
@@ -180,7 +178,7 @@ export default function AttendanceAnalyticsPage() {
                     </span>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontSize: "13px", fontWeight: 700 }}>{emp.name}</span>
-                      <span style={{ fontSize: "10.5px", color: "var(--text-muted)" }}>{emp.role}</span>
+                      <span style={{ fontSize: "10.5px", color: "var(--text-muted)" }}>{emp.designation}</span>
                     </div>
                   </div>
 

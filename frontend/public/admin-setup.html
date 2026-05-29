@@ -1572,7 +1572,6 @@
         });
       }
       setTimeout(() => {
-        localStorage.setItem('adminSetupComplete', 'true');
         showToast("Setup fully complete! Redirecting to dashboard...");
         setTimeout(() => window.location.href = '/dashboard', 1500);
       }, 500);

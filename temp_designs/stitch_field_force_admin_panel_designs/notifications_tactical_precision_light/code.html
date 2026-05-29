@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Notifications - Operations Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#b7c4ff",
+                        "tertiary-container": "#bf3003",
+                        "on-surface": "#131b2e",
+                        "primary": "#003ec7",
+                        "surface-container-highest": "#dae2fd",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#0052ff",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#dde1ff",
+                        "surface-container-low": "#f2f3ff",
+                        "surface-bright": "#faf8ff",
+                        "inverse-on-surface": "#eef0ff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-secondary-container": "#54647a",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#d2d9f4",
+                        "inverse-surface": "#283044",
+                        "secondary": "#505f76",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "on-tertiary-fixed": "#3c0800",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-variant": "#dae2fd",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eaedff",
+                        "background": "#faf8ff",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#d0e1fb",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb4a1",
+                        "on-tertiary-fixed-variant": "#891e00",
+                        "on-tertiary-container": "#ffddd5",
+                        "surface-tint": "#004ced",
+                        "outline-variant": "#c3c5d9",
+                        "on-surface-variant": "#434656",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-background": "#131b2e",
+                        "tertiary": "#952200",
+                        "on-primary-fixed": "#001452",
+                        "surface": "#faf8ff",
+                        "on-primary-container": "#dfe3ff",
+                        "surface-container-high": "#e2e7ff",
+                        "outline": "#737688",
+                        "inverse-primary": "#b7c4ff",
+                        "tertiary-fixed": "#ffdbd2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max": "1440px",
+                        "margin-desktop": "32px",
+                        "unit": "4px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #F8FAFC; } /* Level 0 Background per specs */
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        .bento-hover:hover { transform: translateY(-2px); transition: transform 0.2s ease; }
+    </style>
+</head>
+<body class="text-on-background font-body-md h-screen flex overflow-hidden">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex bg-surface-container-lowest dark:bg-on-secondary-fixed-variant flex-col h-full py-gutter docked fixed left-0 top-0 h-full w-64 border-r border-outline-variant dark:border-outline z-50">
+<div class="px-4 pb-6 border-b border-outline-variant mb-4">
+<h1 class="font-headline-md text-headline-md font-bold text-on-background dark:text-surface-bright">ForceAdmin</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Precision Operations</p>
+</div>
+<ul class="flex flex-col gap-1 px-2 flex-grow">
+<li>
+<a class="text-on-surface-variant dark:text-outline-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low dark:hover:bg-secondary-fixed-dim/10 hover:text-primary transition-colors rounded-DEFAULT font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="text-on-surface-variant dark:text-outline-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low dark:hover:bg-secondary-fixed-dim/10 hover:text-primary transition-colors rounded-DEFAULT font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">groups</span>
+                    Staff
+                </a>
+</li>
+<li>
+<a class="text-on-surface-variant dark:text-outline-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low dark:hover:bg-secondary-fixed-dim/10 hover:text-primary transition-colors rounded-DEFAULT font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assignment</span>
+                    Tasks
+                </a>
+</li>
+<li>
+<a class="text-on-surface-variant dark:text-outline-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low dark:hover:bg-secondary-fixed-dim/10 hover:text-primary transition-colors rounded-DEFAULT font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">location_on</span>
+                    Live Tracking
+                </a>
+</li>
+<li>
+<a class="text-on-surface-variant dark:text-outline-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-low dark:hover:bg-secondary-fixed-dim/10 hover:text-primary transition-colors rounded-DEFAULT font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">analytics</span>
+                    Analytics
+                </a>
+</li>
+<li>
+<a class="text-primary dark:text-primary-fixed-dim border-r-2 border-primary dark:border-primary-fixed-dim bg-primary-container/10 px-4 py-3 flex items-center gap-3 rounded-DEFAULT font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">notifications</span>
+                    Notifications
+                </a>
+</li>
+</ul>
+<div class="px-4 mt-auto">
+<div class="flex items-center gap-3 py-3 border-t border-outline-variant">
+<img alt="Company Logo" class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A small, circular avatar image of a professional operator in a tactical setting. Soft, clinical lighting against a light gray background, matching the corporate modern aesthetic of the UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD6EzpqcN9FCyI2Ar0sbNT2xuD7lX-KgwCLtamQr1LokZ1VMhSGv9fVAnlxyY6AZCQE6Iu5zu1bBswefYfgKh4dBvMlfaJn5FqGrcAmKfYLUC9AN8Iuk7zImCpM0wnm-EKgICzb8ZmRT6au_i86HC6K4g1ZoJdok3aeFF2VcpG9dKYOTnxxxv29DAn2pNYFovYP1ud44Zp3zn5naKXQZAilFHdP2aZGSdGmSRs_-M13G8EdreAPKaweImxpfajFLjdXpy7G8m8-f1d"/>
+<div>
+<p class="font-label-sm text-label-sm font-bold text-on-surface">Admin User</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 relative flex flex-col h-full overflow-hidden">
+<!-- TopAppBar (Desktop) -->
+<header class="hidden md:flex bg-surface-container-lowest dark:bg-on-secondary-fixed-variant justify-between items-center h-16 px-margin-desktop w-[calc(100%-16rem)] z-40 fixed top-0 right-0 border-b border-outline-variant dark:border-outline">
+<div class="flex-1 flex items-center">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-2 top-2.5 text-outline text-sm">search</span>
+<input class="w-full pl-8 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-DEFAULT font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-DEFAULT hover:bg-surface-container-low">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="Administrator Profile" class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A small, circular avatar image of a professional operator in a tactical setting. Soft, clinical lighting against a light gray background, matching the corporate modern aesthetic of the UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlPQB2osQqweehHwhZFs8y2jQLeBOM4uZgVl0Y8oUZSYi4Utw1KBtDyJ3DsA-k0aj4Ojd8kSCuWiAL7i2npFPPyXrNB2uqKIqm5-uCl_de21s__z4WtgtrN6c0vM2kLVuHTFfo9xF4X4lQhjzXiklp6vyLWsi3vji_ARJbIoGxHvLXvxyRoQd17TkmqXCmzNtU6_qF-DTcIkedNDVqo0Jm08CQjNWbOslR0Bae8H-YXMRyrckINkLqtkB-G1n_vd5DNZVtkxSzZa-1"/>
+</div>
+</header>
+<!-- Scrollable Canvas -->
+<div class="flex-1 overflow-y-auto mt-0 md:mt-16 p-margin-mobile md:p-margin-desktop bg-[#F8FAFC]">
+<div class="max-w-container-max mx-auto space-y-6">
+<!-- Page Header -->
+<div class="flex justify-between items-end border-b-2 border-on-background pb-4">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-background">System Feed</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Real-time alerts, task assignments, and geofence events.</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant text-on-surface font-label-caps text-label-caps rounded-DEFAULT hover:bg-surface-container-low">Filter</button>
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant text-on-surface font-label-caps text-label-caps rounded-DEFAULT hover:bg-surface-container-low">Mark All Read</button>
+</div>
+</div>
+<!-- Bento Grid Layout for Notifications -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+<!-- Critical Alert (Spans more columns) -->
+<div class="md:col-span-8 bg-surface-container-lowest border border-error p-4 rounded-DEFAULT bento-hover shadow-sm">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center border border-error/20">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 bg-error-container/30 border-l-2 border-error font-label-caps text-[10px] text-error font-bold uppercase tracking-wider">Critical</span>
+<h3 class="font-headline-md text-headline-md text-on-surface leading-tight">Geofence Breach Detected</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Unit Alpha crossed restricted perimeter at Sector 7G.</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Just now</span>
+</div>
+<div class="mt-4 flex gap-2">
+<button class="px-4 py-1.5 bg-[#0052FF] text-white font-label-caps text-label-caps rounded-DEFAULT border border-transparent">View Map</button>
+<button class="px-4 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface font-label-caps text-label-caps rounded-DEFAULT">Acknowledge</button>
+</div>
+</div>
+<!-- Status Update (Smaller block) -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant p-4 rounded-DEFAULT bento-hover">
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="px-2 py-0.5 bg-primary-container/10 border-l-2 border-primary font-label-caps text-[10px] text-primary font-bold uppercase tracking-wider">Task</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">10m ago</span>
+</div>
+<h3 class="font-headline-md text-[16px] font-bold text-on-surface leading-tight mb-1">Server Maintenance Complete</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">All primary nodes are back online and operational.</p>
+</div>
+<!-- Assignment Notification -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant p-4 rounded-DEFAULT bento-hover">
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">assignment_ind</span>
+<span class="px-2 py-0.5 bg-surface-container-highest border-l-2 border-secondary font-label-caps text-[10px] text-secondary font-bold uppercase tracking-wider">Assignment</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">1h ago</span>
+</div>
+<h3 class="font-headline-md text-[16px] font-bold text-on-surface leading-tight mb-1">New Route Assigned</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">You have been assigned to Route Delta for the upcoming shift.</p>
+<button class="mt-3 px-3 py-1 bg-surface-container-lowest border border-outline-variant text-on-surface font-label-sm text-label-sm rounded-DEFAULT w-full text-left flex justify-between items-center hover:border-primary">
+                            Review Details <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<!-- System Alert (Informational) -->
+<div class="md:col-span-8 bg-surface-container-lowest border border-outline-variant p-4 rounded-DEFAULT bento-hover">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface" style="font-variation-settings: 'FILL' 0;">info</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high border-l-2 border-outline font-label-caps text-[10px] text-on-surface font-bold uppercase tracking-wider">System</span>
+<h3 class="font-headline-md text-headline-md text-on-surface leading-tight">Scheduled Downtime Notice</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Database optimization scheduled for 0200 hrs UTC. Expect minor latency.</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline">2h ago</span>
+</div>
+</div>
+<!-- Standard List View fallback for older items to show density -->
+<div class="md:col-span-12 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT overflow-hidden mt-2">
+<div class="px-4 py-2 border-b border-outline-variant bg-[#F8FAFC]">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Older Notifications</span>
+</div>
+<div class="divide-y divide-outline-variant">
+<!-- List Item 1 -->
+<div class="px-4 py-3 hover:bg-[#F8FAFC] transition-colors flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline text-[20px]" style="font-variation-settings: 'FILL' 0;">mark_email_read</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Weekly Report Generated</p>
+<p class="font-label-sm text-label-sm text-outline">Analytics dashboard has been updated with Q3 data.</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps text-outline">Yesterday</span>
+</div>
+<!-- List Item 2 -->
+<div class="px-4 py-3 hover:bg-[#F8FAFC] transition-colors flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline text-[20px]" style="font-variation-settings: 'FILL' 0;">group_add</span>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-medium">New Team Member Added</p>
+<p class="font-label-sm text-label-sm text-outline">Sarah Jenkins joined 'Operations Alpha'.</p>
+</div>
+</div>
+<span class="font-label-caps text-label-caps text-outline">Yesterday</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Mobile Navigation (Bottom Nav) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-outline-variant z-50 flex justify-around items-center h-16 pb-safe">
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-label-caps text-[10px] mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assignment</span>
+<span class="font-label-caps text-[10px] mt-1">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-primary bg-primary-container/10 border-t-2 border-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">notifications</span>
+<span class="font-label-caps text-[10px] mt-1">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+<span class="font-label-caps text-[10px] mt-1">More</span>
+</a>
+</nav>
+</body></html>
