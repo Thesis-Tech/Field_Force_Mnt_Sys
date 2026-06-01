@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev --turbo -H localhost.com",
     "build": "next build",
-    "pages:build": "npx @cloudflare/next-on-pages@1",
     "start": "next start",
     "lint": "eslint"
   },
@@ -24,7 +23,6 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
