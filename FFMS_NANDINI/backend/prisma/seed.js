@@ -1,120 +1,48 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting seed...');
+  // Required – will throw if missing
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME || 'Admin User';
+  const adminRole = process.env.ADMIN_ROLE || 'ADMIN';
+  const adminStatus = process.env.ADMIN_STATUS || 'ACTIVE';
 
-  // Create Organization
-  const org = await prisma.organization.upsert({
-    where: { slug: 'tctc-ffms' },
-    update: {},
+  if (!adminEmail) {
+    throw new Error('❌ ADMIN_EMAIL environment variable is required');
+  }
+  if (!adminPassword) {
+    throw new Error('❌ ADMIN_PASSWORD environment variable is required');
+  }
+
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+  const user = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      name: adminName,
+      password: hashedPassword,
+      role: adminRole,
+      status: adminStatus,
+    },
     create: {
-      name: 'Tinplate Computer Training Center',
-      slug: 'tctc-ffms',
-      email: 'admin@tctc.com',
-      phone: '+1234567890',
-      address: '123 Tech Park, TCTC',
-    }
+      email: adminEmail,
+      password: hashedPassword,
+      name: adminName,
+      role: adminRole,
+      status: adminStatus,
+    },
   });
 
-  console.log(`Created/Ensured Organization: ${org.name}`);
-
-  // Create Territories
-  let northTerritory = await prisma.territory.findFirst({
-    where: { organizationId: org.id, name: 'North Region' }
-  });
-  if (!northTerritory) {
-    northTerritory = await prisma.territory.create({
-      data: {
-        organizationId: org.id,
-        name: 'North Region',
-        description: 'Northern operational area',
-      }
-    });
-  }
-  
-  let southTerritory = await prisma.territory.findFirst({
-    where: { organizationId: org.id, name: 'South Region' }
-  });
-  if (!southTerritory) {
-    southTerritory = await prisma.territory.create({
-      data: {
-        organizationId: org.id,
-        name: 'South Region',
-        description: 'Southern operational area',
-      }
-    });
-  }
-
-  // Create Users
-  const passwordHash = await bcrypt.hash('password123', 10);
-
-  // 1 Admin
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@tctc.com' },
-    update: {},
-    create: {
-      organizationId: org.id,
-      name: 'Admin User',
-      email: 'admin@tctc.com',
-      passwordHash,
-      employeeId: 'EMP-001',
-      role: 'ADMIN',
-    }
-  });
-  console.log(`Created/Ensured Admin User: ${adminUser.email}`);
-
-
-  // 3 Managers
-  const managers = [];
-  for (let i = 1; i <= 3; i++) {
-    const manager = await prisma.user.upsert({
-      where: { email: `manager${i}@tctc.com` },
-      update: {},
-      create: {
-        organizationId: org.id,
-        name: `Manager ${i}`,
-        email: `manager${i}@tctc.com`,
-        passwordHash,
-        employeeId: `EMP-M${i}`,
-        role: 'MANAGER',
-        territoryId: i % 2 === 0 ? northTerritory.id : southTerritory.id,
-      }
-    });
-    managers.push(manager);
-  }
-  console.log(`Created/Ensured 3 Managers`);
-
-  // 10 Field Staff
-  for (let i = 1; i <= 10; i++) {
-    await prisma.user.upsert({
-      where: { email: `staff${i}@tctc.com` },
-      update: {},
-      create: {
-        organizationId: org.id,
-        name: `Field Staff ${i}`,
-        email: `staff${i}@tctc.com`,
-        passwordHash,
-        employeeId: `EMP-F${i}`,
-        role: 'FIELD_STAFF',
-        managerId: managers[i % 3].id,
-        territoryId: i % 2 === 0 ? southTerritory.id : northTerritory.id,
-      }
-    });
-  }
-  console.log(`Created/Ensured 10 Field Staff`);
-
-  console.log('Seeding finished.');
+  console.log(`✅ Admin user seeded: ${user.email} (${user.role})`);
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error(e.message);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());
