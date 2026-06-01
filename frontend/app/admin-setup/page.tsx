@@ -861,7 +861,7 @@ export default function AdminSetupPage() {
   const importHolidays = async () => {
     setImportLoading(true);
     const calendarId = encodeURIComponent(`${importCountry}#holiday@group.v.calendar.google.com`);
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "mlddjdgsiiceeksvmdvagxxyghickrnvcbjl"; // mock/development standard key
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "arxkjsjvwolfdjwcjgxjnufhwlzhppvfpeca"; // mock/development standard key
 
     try {
       const timeMin = `${importYear}-01-01T00:00:00Z`;

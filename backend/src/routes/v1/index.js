@@ -11,8 +11,7 @@ const leaveRoutes = require('./leave.routes');
 const geofenceRoutes = require('./geofence.routes');
 const expenseRoutes      = require('./expense.routes')
 const notificationRoutes = require('./notification.routes')
-
-
+const mapRoutes = require('./map.routes');
 
 const router = express.Router();
 
@@ -27,5 +26,6 @@ router.use('/expenses', expenseRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/export', exportRoutes);
 router.use('/leave', leaveRoutes);
+router.use('/map', mapRoutes);
 
 module.exports = router;

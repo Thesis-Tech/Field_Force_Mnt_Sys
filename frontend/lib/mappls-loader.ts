@@ -20,6 +20,13 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_A
 async function fetchMapToken(): Promise<string> {
   if (cachedToken) return cachedToken;
 
+  // 1. Prioritize NEXT_PUBLIC_MAPPLS_KEY if configured in environment files (.env.local)
+  const envKey = process.env.NEXT_PUBLIC_MAPPLS_KEY;
+  if (envKey) {
+    return envKey;
+  }
+
+  // 2. Fallback to secure JWT backend fetching
   const jwt = localStorage.getItem("auth_token");
 
   // If no JWT yet (user not logged in), use the fallback key for development
@@ -35,7 +42,7 @@ async function fetchMapToken(): Promise<string> {
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/map/token`, {
+    const response = await fetch(`${API_URL}/api/v1/map/token`, {
       headers: {
         Authorization: `Bearer ${jwt}`,
         "Content-Type": "application/json",
@@ -70,7 +77,7 @@ async function fetchMapToken(): Promise<string> {
     );
     
     // Developer Fallback Key (the user's working key)
-    const devFallbackKey = "mlddjdgsiiceeksvmdvagxxyghickrnvcbjl";
+    const devFallbackKey = "arxkjsjvwolfdjwcjgxjnufhwlzhppvfpeca";
     return devFallbackKey;
   }
 }
@@ -120,7 +127,7 @@ export function loadMapplsSDK(): Promise<void> {
         safeResolve();
       };
 
-      // 4. Inject SDK script with the token from backend
+      // 4. Inject SDK script with the token
       const script = document.createElement("script");
       script.src = `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${token}&callback=${callbackName}`;
       script.async = true;
