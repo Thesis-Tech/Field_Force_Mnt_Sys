@@ -38,13 +38,36 @@ const app = express();
 app.use(helmet());
 
 // CORS Configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
-  'http://localhost:5001',
-  'http://127.0.0.1:5001',
-  'http://192.168.1.6',
-  'http://192.168.1.8:5001'
-];
+// Read allowed origins from environment variable (comma-separated)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(origin => origin);
+
+// Add FRONTEND_URL if it exists and not already included
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+// Add local development origins only in non-production (Render sets NODE_ENV=production)
+if (process.env.NODE_ENV !== 'production') {
+  const localOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5001',
+    'http://127.0.0.1:5001',
+    'http://192.168.1.6',
+    'http://192.168.1.8:5001'
+  ];
+  localOrigins.forEach(origin => {
+    if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+  });
+}
+
+// If no origins defined at all, fallback to localhost:3000 for safety
+if (allowedOrigins.length === 0) {
+  allowedOrigins.push('http://localhost:3000');
+}
+
 app.use(cors({
   origin: (origin, callback) => {
     const isLocalhostCom = origin && /https?:\/\/(localhost\.com)(:\d+)?$/.test(origin);
@@ -61,6 +84,8 @@ app.use(cors({
 app.use(morgan('combined', {
   stream: { write: (message) => logger.info(message.trim()) }
 }));
+
+
 
 // Parsers
 app.use(express.json({ limit: '10mb' }));
@@ -79,6 +104,7 @@ app.get('/api/v1/docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
+
 
 // API Routes mounting
 app.use('/api/v1', v1Router);
