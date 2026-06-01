@@ -8,6 +8,9 @@ import '../widgets/custom_button.dart';
 import '../core/theme/app_theme.dart';
 import 'submit_report_screen.dart';
 
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+
 class TaskDetailScreen extends StatefulWidget {
   final String taskId;
 
@@ -39,10 +42,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     });
   }
 
-  Future<void> _handleStatusUpdate(String assignmentId, String newStatus) async {
+  Future<void> _handleStatusUpdate(String assignmentId, String newStatus, {String? completionNote, List<String>? completionImages}) async {
     setState(() => _isActionInProgress = true);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-    final success = await taskProvider.updateAssignmentStatus(widget.taskId, assignmentId, newStatus);
+    final success = await taskProvider.updateAssignmentStatus(widget.taskId, assignmentId, newStatus, completionNote: completionNote, completionImages: completionImages);
     setState(() => _isActionInProgress = false);
 
     if (mounted) {
@@ -81,6 +84,86 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showCompletionDialog(String assignmentId) async {
+    final noteController = TextEditingController();
+    String? base64Image;
+    bool isPicking = false;
+    
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Complete Task'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: noteController,
+                      decoration: const InputDecoration(labelText: 'Completion Note', hintText: 'Optional notes...'),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    if (base64Image != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(base64Decode(base64Image!), height: 100, fit: BoxFit.cover),
+                      )
+                    else
+                      const Text('Proof of completion is MANDATORY', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      icon: isPicking ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.camera_alt),
+                      label: const Text('Take Photo'),
+                      onPressed: isPicking ? null : () async {
+                        setState(() => isPicking = true);
+                        try {
+                          final picker = ImagePicker();
+                          final XFile? image = await picker.pickImage(
+                            source: ImageSource.camera, 
+                            imageQuality: 30, // Extremely compressed to save Cloudinary storage
+                            maxWidth: 800,
+                            maxHeight: 800,
+                          );
+                          if (image != null) {
+                            final bytes = await image.readAsBytes();
+                            setState(() => base64Image = base64Encode(bytes));
+                          }
+                        } finally {
+                          setState(() => isPicking = false);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: base64Image == null ? null : () {
+                    Navigator.pop(ctx, true);
+                  },
+                  child: const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((submit) {
+      if (submit == true) {
+        _handleStatusUpdate(
+          assignmentId, 
+          'COMPLETED',
+          completionNote: noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+          completionImages: base64Image != null ? [base64Image!] : null,
+        );
+      }
+    });
   }
 
   @override
@@ -169,7 +252,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    if (assignmentStatus == 'PENDING')
+                    if (assignmentStatus == 'PENDING' || assignmentStatus == 'ASSIGNED')
                       CustomButton(
                         text: 'Start Task',
                         isLoading: _isActionInProgress,
@@ -180,7 +263,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       CustomButton(
                         text: 'Complete Task',
                         isLoading: _isActionInProgress,
-                        onPressed: () => _handleStatusUpdate(assignment.id, 'COMPLETED'),
+                        onPressed: () => _showCompletionDialog(assignment.id),
                         backgroundColor: AppColors.secondary,
                       ),
                       const SizedBox(height: 12),

@@ -6,6 +6,13 @@ import '../models/user_model.dart';
 
 enum AuthState { initial, loading, authenticated, unauthenticated }
 
+/// `AuthProvider` serves as the central State Manager for user authentication.
+/// It wraps the `AuthService` and broadcasts state changes (`ChangeNotifier`)
+/// across the entire Flutter widget tree.
+/// 
+/// Integrations:
+/// - Secures the `SocketService` by connecting/disconnecting upon login/logout.
+/// - Controls the Root Application flow (Splash Screen -> Login vs Dashboard).
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   

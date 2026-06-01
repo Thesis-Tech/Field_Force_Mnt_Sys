@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF004AC6);
+  // Tailwind Indigo-600
+  static const Color primary = Color(0xFF4F46E5);
   static const Color onPrimary = Colors.white;
-  static const Color primaryContainer = Color(0xFF2563EB);
-  static const Color onPrimaryContainer = Color(0xFFEEEFFF);
+  static const Color primaryContainer = Color(0xFFE0E7FF); // Indigo-100
+  static const Color onPrimaryContainer = Color(0xFF312E81); // Indigo-900
   
-  static const Color secondary = Color(0xFF006E2D);
+  // Tailwind Emerald-600
+  static const Color secondary = Color(0xFF059669);
   static const Color onSecondary = Colors.white;
-  static const Color secondaryContainer = Color(0xFF7CF994);
-  static const Color onSecondaryContainer = Color(0xFF007230);
+  static const Color secondaryContainer = Color(0xFFD1FAE5); // Emerald-100
+  static const Color onSecondaryContainer = Color(0xFF064E3B); // Emerald-900
   
-  static const Color tertiary = Color(0xFF8E3C00);
+  static const Color tertiary = Color(0xFF0F172A); // Slate-900 (Used for AppBars like Web sidebar)
   static const Color onTertiary = Colors.white;
   
-  static const Color error = Color(0xFFBA1A1A);
+  static const Color error = Color(0xFFDC2626); // Red-600
   static const Color onError = Colors.white;
-  static const Color errorContainer = Color(0xFFFFDAD6);
-  static const Color onErrorContainer = Color(0xFF93000A);
+  static const Color errorContainer = Color(0xFFFEE2E2); // Red-100
+  static const Color onErrorContainer = Color(0xFF7F1D1D); // Red-900
   
-  static const Color background = Color(0xFFF7F9FB);
-  static const Color onBackground = Color(0xFF191C1E);
+  static const Color background = Color(0xFFF8FAFC); // Slate-50
+  static const Color onBackground = Color(0xFF0F172A); // Slate-900
   
   static const Color surface = Colors.white;
-  static const Color onSurface = Color(0xFF191C1E);
-  static const Color onSurfaceVariant = Color(0xFF434655);
+  static const Color onSurface = Color(0xFF1E293B); // Slate-800
+  static const Color onSurfaceVariant = Color(0xFF475569); // Slate-600
   
-  static const Color outline = Color(0xFF737686);
-  static const Color outlineVariant = Color(0xFFC3C6D7);
+  static const Color outline = Color(0xFF94A3B8); // Slate-400
+  static const Color outlineVariant = Color(0xFFE2E8F0); // Slate-200
 }
 
 class AppTheme {
@@ -59,11 +62,8 @@ class AppTheme {
         outline: AppColors.outline,
         outlineVariant: AppColors.outlineVariant,
       ),
-      fontFamily: 'Plus Jakarta Sans',
       scaffoldBackgroundColor: AppColors.background,
-      
-      // Text styling
-      textTheme: const TextTheme(
+      textTheme: GoogleFonts.interTextTheme().copyWith(
         headlineLarge: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
@@ -176,6 +176,27 @@ class AppTheme {
           side: const BorderSide(color: AppColors.outlineVariant, width: 1),
         ),
         margin: EdgeInsets.zero,
+      ),
+      // Sleek Web-like AppBar
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.onSurface,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: IconThemeData(color: AppColors.onSurfaceVariant),
+        titleTextStyle: TextStyle(
+          color: AppColors.onSurface,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.outline,
+        elevation: 10,
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
       ),
     );
   }

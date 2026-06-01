@@ -2,9 +2,9 @@ class AttendanceModel {
   final String id;
   final String userId;
   final DateTime date;
-  final DateTime checkInTime;
-  final double checkInLat;
-  final double checkInLng;
+  final DateTime? checkInTime;
+  final double? checkInLat;
+  final double? checkInLng;
   final DateTime? checkOutTime;
   final double? checkOutLat;
   final double? checkOutLng;
@@ -15,9 +15,9 @@ class AttendanceModel {
     required this.id,
     required this.userId,
     required this.date,
-    required this.checkInTime,
-    required this.checkInLat,
-    required this.checkInLng,
+    this.checkInTime,
+    this.checkInLat,
+    this.checkInLng,
     this.checkOutTime,
     this.checkOutLat,
     this.checkOutLng,
@@ -30,9 +30,13 @@ class AttendanceModel {
       id: json['id'] as String,
       userId: json['userId'] as String,
       date: DateTime.parse(json['date'] as String),
-      checkInTime: DateTime.parse(json['checkInTime'] as String),
-      checkInLat: ((json['checkInLatitude'] ?? json['checkInLat']) as num).toDouble(),
-      checkInLng: ((json['checkInLongitude'] ?? json['checkInLng']) as num).toDouble(),
+      checkInTime: json['checkInTime'] != null ? DateTime.parse(json['checkInTime'] as String) : null,
+      checkInLat: (json['checkInLatitude'] ?? json['checkInLat']) != null
+          ? ((json['checkInLatitude'] ?? json['checkInLat']) as num).toDouble()
+          : null,
+      checkInLng: (json['checkInLongitude'] ?? json['checkInLng']) != null
+          ? ((json['checkInLongitude'] ?? json['checkInLng']) as num).toDouble()
+          : null,
       checkOutTime: json['checkOutTime'] != null ? DateTime.parse(json['checkOutTime'] as String) : null,
       checkOutLat: (json['checkOutLatitude'] ?? json['checkOutLat']) != null
           ? ((json['checkOutLatitude'] ?? json['checkOutLat']) as num).toDouble()

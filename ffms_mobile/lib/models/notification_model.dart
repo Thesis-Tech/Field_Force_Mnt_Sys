@@ -22,7 +22,7 @@ class NotificationModel {
       id: json['id'] as String,
       userId: json['userId'] as String,
       title: json['title'] as String,
-      message: json['message'] as String,
+      message: (json['body'] ?? json['message'] ?? '') as String,
       type: json['type'] as String,
       isRead: json['isRead'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),

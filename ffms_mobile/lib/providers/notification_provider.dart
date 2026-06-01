@@ -36,7 +36,7 @@ class NotificationProvider extends ChangeNotifier {
     try {
       final response = await ApiService.client.get('/notifications/unread-count');
       if (response.data['success'] == true) {
-        _unreadCount = response.data['data']['count'] as int? ?? 0;
+        _unreadCount = response.data['data']['unreadCount'] as int? ?? 0;
       }
     } catch (e) {
       // Catch

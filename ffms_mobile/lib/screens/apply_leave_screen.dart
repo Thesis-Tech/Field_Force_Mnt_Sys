@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/leave_provider.dart';
 import '../models/leave_model.dart';
 import '../widgets/custom_button.dart';
@@ -22,6 +24,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isSubmitting = false;
+  String? _base64Image;
 
   final List<String> _leaveTypes = ['CASUAL', 'SICK', 'PLANNED', 'MATERNITY', 'PATERNITY'];
 
@@ -78,6 +81,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
       startDate: _startDate!,
       endDate: _endDate!,
       reason: _reasonController.text.trim(),
+      attachmentBase64: _base64Image,
     );
     setState(() => _isSubmitting = false);
 
@@ -239,6 +243,54 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 20),
+
+              // Attachment
+              Text(
+                'Attachment / Medical Proof',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  final picker = ImagePicker();
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 30, // Extremely compressed
+                    maxWidth: 800,
+                    maxHeight: 800,
+                  );
+                  if (image != null) {
+                    final bytes = await image.readAsBytes();
+                    setState(() => _base64Image = base64Encode(bytes));
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.outlineVariant),
+                  ),
+                  child: Column(
+                    children: [
+                      if (_base64Image != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(base64Decode(_base64Image!), height: 100, fit: BoxFit.cover),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text('Attachment Added (Tap to retake)', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                      ] else ...[
+                        const Icon(Icons.camera_alt, color: AppColors.outline, size: 32),
+                        const SizedBox(height: 8),
+                        const Text('Tap to capture document', style: TextStyle(color: AppColors.outline, fontSize: 14)),
+                      ]
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
 

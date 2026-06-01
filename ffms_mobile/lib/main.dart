@@ -12,12 +12,14 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/notifications_screen.dart';
+import 'core/utils/notification_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize API service and Secure Storage
   await ApiService.initialize();
+  await NotificationHelper.initialize();
   
   runApp(
     MultiProvider(

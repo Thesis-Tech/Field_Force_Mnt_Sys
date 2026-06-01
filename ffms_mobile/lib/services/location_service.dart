@@ -1,12 +1,37 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:battery_plus/battery_plus.dart';
+import '../core/utils/offline_cache.dart';
+import '../core/utils/notification_helper.dart';
 import 'api_service.dart';
 
+/// `LocationService` is a Singleton that manages high-precision GPS tracking for Field Agents.
+/// It integrates with `Geolocator` to spawn native foreground services (Android) or
+/// fitness trackers (iOS) to ensure continuous background execution.
+/// 
+/// Key Features:
+/// 1. 15-Minute Periodic Photo Prompts via local notifications.
+/// 2. Automatic Stop-Point Detection (tags locations where user pauses for >30s).
+/// 3. Offline queuing and batch uploading via `OfflineLocationCache`.
 class LocationService {
+  static final LocationService _instance = LocationService._internal();
+  factory LocationService() => _instance;
+  LocationService._internal();
+
   StreamSubscription<Position>? _positionStreamSubscription;
+  Timer? _stopTimer;
+  Timer? _photoPromptTimer;
   bool _isTracking = false;
+  Position? _lastPosition;
+  
+  // Stream controller to notify UI elements of location updates
+  final StreamController<Position> _locationStreamController = StreamController<Position>.broadcast();
 
   bool get isTracking => _isTracking;
+  Position? get lastPosition => _lastPosition;
+  Stream<Position> get onLocationChanged => _locationStreamController.stream;
 
   // Request permissions
   Future<bool> requestPermission() async {
@@ -34,7 +59,7 @@ class LocationService {
   }
 
   // Start background or active tracking
-  Future<void> startTracking(Function(Position) onLocationChanged) async {
+  Future<void> startTracking({Function(Position)? onLocationUpdated}) async {
     if (_isTracking) return;
 
     final hasPermission = await requestPermission();
@@ -42,14 +67,66 @@ class LocationService {
 
     _isTracking = true;
 
-    // Track active position changes
+    // Start 15-minute periodic timer for photo prompt
+    _photoPromptTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
+      NotificationHelper.showPeriodicPhotoPrompt();
+    });
+
+    LocationSettings locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5, // 5 meters for higher precision route path
+    );
+
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        locationSettings = AndroidSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10,
+            forceLocationManager: true,
+            intervalDuration: const Duration(seconds: 10),
+            foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationText:
+                "Tracking your location in background for territory management.",
+                notificationTitle: "FieldTrack Active",
+                enableWakeLock: true,
+            )
+        );
+      } else if (Platform.isIOS || Platform.isMacOS) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.high,
+          activityType: ActivityType.fitness,
+          distanceFilter: 5,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+        );
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Core Tracking Subscription
+    // -------------------------------------------------------------
+    // Listens to native GPS hardware changes based on distanceFilter (5m).
+    // Automatically yields new points when the user physically moves.
     _positionStreamSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // 10 meters
-      ),
+      locationSettings: locationSettings,
     ).listen((Position position) {
-      onLocationChanged(position);
+      _lastPosition = position;
+      _locationStreamController.add(position);
+      if (onLocationUpdated != null) {
+        onLocationUpdated(position);
+      }
+      
+      if (position.speed < 0.5) {
+        if (_stopTimer == null || !_stopTimer!.isActive) {
+          _stopTimer = Timer(const Duration(seconds: 30), () {
+            // User has been stopped for 30s, send stop pin point
+            _pingServer(position, isStopPoint: true);
+          });
+        }
+      } else {
+        _stopTimer?.cancel();
+      }
+
       _pingServer(position);
     });
   }
@@ -58,39 +135,64 @@ class LocationService {
   Future<void> stopTracking() async {
     if (!_isTracking) return;
     await _positionStreamSubscription?.cancel();
+    _stopTimer?.cancel();
+    _photoPromptTimer?.cancel();
+    _lastPosition = null;
     _isTracking = false;
   }
 
-  // Ping coordinates to the backend
-  Future<void> _pingServer(Position position) async {
+  // ----------------------------------------------------------------
+  // PING SERVER & OFFLINE QUEUE BATCHING
+  // ----------------------------------------------------------------
+  /// Constructs the standard ping payload, merges it with any accumulated offline pings,
+  /// and chunks the array into blocks of 50 to avoid HTTP Payload Too Large errors.
+  /// If the API succeeds, the offline cache is flushed. If it fails (no internet),
+  /// the current ping is pushed to the secure disk cache.
+  Future<void> _pingServer(Position position, {bool isStopPoint = false}) async {
+    final battery = Battery();
+    final batteryLevel = await battery.batteryLevel;
+
+    final currentPing = {
+      'latitude': position.latitude,
+      'longitude': position.longitude,
+      'accuracy': position.accuracy,
+      'speed': position.speed,
+      'isMoving': !isStopPoint && position.speed > 0.5,
+      'isStopPoint': isStopPoint,
+      'batteryLevel': batteryLevel,
+      'recordedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+
     try {
-      // Send location log to server batch endpoint
-      await ApiService.client.post(
-        '/location/batch',
-        data: {
-          'logs': [
-            {
-              'latitude': position.latitude,
-              'longitude': position.longitude,
-              'speed': position.speed,
-              'batteryLevel': 100.0, // Mock or fetch actual battery level
-              'timestamp': DateTime.now().toIso8601String(),
-            }
-          ]
-        },
-      );
+      // Load offline pings
+      final cachedPings = await OfflineLocationCache.getAllLocations();
+      final allPings = [...cachedPings, currentPing];
+
+      // Send location log to server batch endpoint in chunks to avoid payload limits
+      const int chunkSize = 50;
+      for (var i = 0; i < allPings.length; i += chunkSize) {
+        final chunk = allPings.sublist(i, i + chunkSize > allPings.length ? allPings.length : i + chunkSize);
+        await ApiService.client.post(
+          '/location/batch',
+          data: {
+            'locations': chunk
+          },
+        );
+      }
       
+      // If batch upload successful, wipe the local cache
+      if (cachedPings.isNotEmpty) {
+        await OfflineLocationCache.clearLocations();
+      }
+
       // Also ping geofence check engine
       await ApiService.client.post(
         '/geofence/ping',
-        data: {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'timestamp': DateTime.now().toIso8601String(),
-        },
+        data: currentPing,
       );
     } catch (e) {
-      // Offline fallback: silenty catch network issues during location updates
+      // Offline fallback: Save current ping to cache to sync later when connection is restored
+      await OfflineLocationCache.saveLocation(currentPing);
     }
   }
 }

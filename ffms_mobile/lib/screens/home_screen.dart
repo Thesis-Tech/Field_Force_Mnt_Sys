@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:battery_plus/battery_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/attendance_provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/task_card.dart';
+import '../widgets/task_skeleton.dart';
 import '../core/theme/app_theme.dart';
 import 'task_detail_screen.dart';
 import 'permissions_screen.dart';
@@ -26,7 +28,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_isInit) {
-      _loadData();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
       _isInit = false;
     }
   }
@@ -71,6 +75,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     try {
+      if (!attendanceProvider.isCheckedIn) {
+        final battery = Battery();
+        final batteryLevel = await battery.batteryLevel;
+        if (batteryLevel < 80) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Battery must be 80%+ to Check In. Current: $batteryLevel%'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -318,10 +338,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Tasks Preview list
               if (taskProvider.isLoading)
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: CircularProgressIndicator(),
-                ))
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 2,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) => const TaskSkeletonCard(),
+                )
               else if (todayTasks.isEmpty)
                 Container(
                   width: double.infinity,

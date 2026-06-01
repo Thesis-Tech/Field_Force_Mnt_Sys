@@ -4,6 +4,7 @@ import '../providers/task_provider.dart';
 import '../widgets/task_card.dart';
 import '../core/theme/app_theme.dart';
 import 'task_detail_screen.dart';
+import '../widgets/task_skeleton.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -128,7 +129,12 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
             child: RefreshIndicator(
               onRefresh: () async => _fetchTasksForCurrentTab(),
               child: taskProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: 6,
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) => const TaskSkeletonCard(),
+                    )
                   : filteredTasks.isEmpty
                       ? ListView(
                           children: [

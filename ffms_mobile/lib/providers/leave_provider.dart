@@ -41,7 +41,7 @@ class LeaveProvider extends ChangeNotifier {
     try {
       final response = await ApiService.client.get('/leave/balance');
       if (response.data['success'] == true) {
-        final list = response.data['data']['balances'] as List? ?? [];
+        final list = response.data['data'] as List? ?? [];
         _balances = list.map((item) => LeaveBalanceModel.fromJson(item as Map<String, dynamic>)).toList();
       }
     } catch (e) {
@@ -56,20 +56,26 @@ class LeaveProvider extends ChangeNotifier {
     required DateTime startDate,
     required DateTime endDate,
     required String reason,
+    String? attachmentBase64,
   }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final payload = {
+        'type': leaveType,
+        'startDate': startDate.toIso8601String().substring(0, 10),
+        'endDate': endDate.toIso8601String().substring(0, 10),
+        'reason': reason,
+      };
+      if (attachmentBase64 != null) {
+        payload['attachmentBase64'] = attachmentBase64;
+      }
+
       final response = await ApiService.client.post(
         '/leave/apply',
-        data: {
-          'type': leaveType,
-          'startDate': startDate.toIso8601String().substring(0, 10),
-          'endDate': endDate.toIso8601String().substring(0, 10),
-          'reason': reason,
-        },
+        data: payload,
       );
 
       if (response.data['success'] == true) {

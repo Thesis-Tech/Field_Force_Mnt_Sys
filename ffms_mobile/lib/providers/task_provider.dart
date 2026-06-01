@@ -46,11 +46,21 @@ class TaskProvider extends ChangeNotifier {
   }
 
   // Update Assignment Status (e.g. START_TASK, COMPLETE_TASK)
-  Future<bool> updateAssignmentStatus(String taskId, String assignmentId, String status) async {
+  Future<bool> updateAssignmentStatus(
+    String taskId, 
+    String assignmentId, 
+    String status, {
+    String? completionNote,
+    List<String>? completionImages,
+  }) async {
     try {
+      final data = <String, dynamic>{'status': status};
+      if (completionNote != null) data['completionNote'] = completionNote;
+      if (completionImages != null && completionImages.isNotEmpty) data['completionImages'] = completionImages;
+
       final response = await ApiService.client.patch(
         '/tasks/$taskId/assignments/$assignmentId',
-        data: {'status': status},
+        data: data,
       );
 
       if (response.data['success'] == true) {

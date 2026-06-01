@@ -68,7 +68,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     itemBuilder: (context, index) {
                       final log = attendanceProvider.attendanceHistory[index];
                       final dateStr = DateFormat('EEE, dd MMM yyyy').format(log.date);
-                      final checkInStr = DateFormat('hh:mm a').format(log.checkInTime.toLocal());
+                      final checkInStr = log.checkInTime != null
+                          ? DateFormat('hh:mm a').format(log.checkInTime!.toLocal())
+                          : '--:--';
                       final checkOutStr = log.checkOutTime != null
                           ? DateFormat('hh:mm a').format(log.checkOutTime!.toLocal())
                           : '--:--';

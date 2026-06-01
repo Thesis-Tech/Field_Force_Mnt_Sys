@@ -2,6 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/utils/storage_helper.dart';
 
+/// `ApiService` acts as the central HTTP gateway for the mobile app.
+/// It uses `Dio` and implements an advanced token-rotation architecture:
+/// If an access token expires (401), the interceptor silently captures the failure, 
+/// hits the `/auth/refresh` endpoint with the secure refresh token, and replays the 
+/// original request with zero UI interruption.
 class ApiService {
   static late Dio _dio;
   static bool _isInitialized = false;
@@ -34,10 +39,13 @@ class ApiService {
       ),
     );
 
-    // Request/Response/Auth Interceptor
+    // -------------------------------------------------------------
+    // JWT Security Interceptor
+    // -------------------------------------------------------------
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // Dynamically inject the hardware-encrypted JWT into every request
           final accessToken = await StorageHelper.getAccessToken();
           if (accessToken != null) {
             options.headers['Authorization'] = 'Bearer $accessToken';
@@ -45,6 +53,7 @@ class ApiService {
           return handler.next(options);
         },
         onError: (DioException error, handler) async {
+          // Automatic Token Rotation Flow (401 Unauthorized)
           // If token expired (401) and we have a refresh token, try refreshing
           if (error.response?.statusCode == 401 &&
               error.requestOptions.path != '/auth/login' &&

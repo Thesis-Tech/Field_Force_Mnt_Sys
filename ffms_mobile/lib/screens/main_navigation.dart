@@ -5,6 +5,7 @@ import 'map_screen.dart';
 import 'attendance_screen.dart';
 import 'profile_screen.dart';
 import '../core/theme/app_theme.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -47,39 +48,32 @@ class _MainNavigationState extends State<MainNavigation> {
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.outline,
           selectedLabelStyle: const TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
           unselectedLabelStyle: const TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
+              icon: Icon(LucideIcons.home),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.assignment_outlined),
-              activeIcon: Icon(Icons.assignment),
+              icon: Icon(LucideIcons.checkSquare),
               label: 'Tasks',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined),
-              activeIcon: Icon(Icons.map),
+              icon: Icon(LucideIcons.map),
               label: 'Map',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              activeIcon: Icon(Icons.calendar_today),
+              icon: Icon(LucideIcons.calendar),
               label: 'Attendance',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
+              icon: Icon(LucideIcons.user),
               label: 'Profile',
             ),
           ],

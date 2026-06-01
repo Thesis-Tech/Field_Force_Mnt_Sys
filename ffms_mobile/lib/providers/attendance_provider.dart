@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
+import '../services/location_service.dart';
 import '../models/attendance_model.dart';
 
 class AttendanceProvider extends ChangeNotifier {
@@ -35,6 +36,10 @@ class AttendanceProvider extends ChangeNotifier {
       if (response.data['success'] == true) {
         _todayAttendance = AttendanceModel.fromJson(response.data['data']);
         await fetchHistory();
+        
+        // Start background location tracking upon check-in
+        await LocationService().startTracking();
+        
         return true;
       }
     } on DioException catch (e) {
@@ -66,6 +71,10 @@ class AttendanceProvider extends ChangeNotifier {
       if (response.data['success'] == true) {
         _todayAttendance = AttendanceModel.fromJson(response.data['data']);
         await fetchHistory();
+        
+        // Stop location tracking upon check-out
+        await LocationService().stopTracking();
+        
         return true;
       }
     } on DioException catch (e) {
@@ -84,7 +93,7 @@ class AttendanceProvider extends ChangeNotifier {
     try {
       final response = await ApiService.client.get('/attendance');
       if (response.data['success'] == true) {
-        final list = response.data['data']['attendance'] as List? ?? [];
+        final list = response.data['data'] as List? ?? [];
         final todayStr = DateTime.now().toIso8601String().substring(0, 10);
         
         // Find if checkin exists for today
@@ -95,6 +104,11 @@ class AttendanceProvider extends ChangeNotifier {
 
         if (todayLogs.isNotEmpty) {
           _todayAttendance = AttendanceModel.fromJson(todayLogs.first as Map<String, dynamic>);
+          
+          // Auto start location tracking if already checked in
+          if (isCheckedIn) {
+            LocationService().startTracking();
+          }
         } else {
           _todayAttendance = null;
         }
@@ -110,7 +124,7 @@ class AttendanceProvider extends ChangeNotifier {
     try {
       final response = await ApiService.client.get('/attendance');
       if (response.data['success'] == true) {
-        final list = response.data['data']['attendance'] as List? ?? [];
+        final list = response.data['data'] as List? ?? [];
         _attendanceHistory = list
             .map((item) => AttendanceModel.fromJson(item as Map<String, dynamic>))
             .toList();
