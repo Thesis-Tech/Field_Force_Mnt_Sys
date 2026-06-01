@@ -8,7 +8,6 @@ interface Geofence {
   name: string;
   lat: number;
   lng: number;
-  lng: number;
   radius: number;
   polygon?: any;
   isInside?: boolean;
@@ -37,7 +36,6 @@ export default function GeofenceMap({
 }: Props) {
   const mapRef = useRef<any>(null);
   const layersRef = useRef<{
-    markers: any[];
     markers: any[];
     shapes: any[]; // Changed from circles to shapes (polygons or circles)
     activeMarker?: any;

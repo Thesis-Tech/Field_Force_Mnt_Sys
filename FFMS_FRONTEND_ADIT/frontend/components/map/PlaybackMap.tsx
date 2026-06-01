@@ -27,6 +27,7 @@ export default function PlaybackMap({
   const mapRef = useRef<any>(null);
   const layersRef = useRef<{
     polyline?: any;
+    directionPlugin?: any;
     markers: any[];
     activeMarker?: any;
   }>({ markers: [] });
