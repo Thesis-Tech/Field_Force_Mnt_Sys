@@ -39,7 +39,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
@@ -296,7 +296,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
 
               // Submit Button
               CustomButton(
-                text: 'Apply Leave',
+                text: 'Save / Apply Leave',
                 isLoading: _isSubmitting,
                 onPressed: _handleSubmit,
               ),

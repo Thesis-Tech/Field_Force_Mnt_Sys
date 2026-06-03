@@ -74,7 +74,10 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _fetchCurrentLocation() async {
     try {
-      final permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
         Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,

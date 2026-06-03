@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { addNotification } from "@/store/slices/notificationSlice";
@@ -83,7 +83,7 @@ export default function FormsPage() {
   // Leave form modal state
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveForm, setLeaveForm] = useState({
-    employeeName: employees[0]?.name || "",
+    employeeName: employees[0]?.name || currentName,
     leaveType: LEAVE_TYPES[0],
     fromDate: "",
     toDate: "",
@@ -143,7 +143,7 @@ export default function FormsPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = useCallback(async () => {
     try {
       const res = await leaveApi.getAll();
       if (res && (res as any).data) {
@@ -156,20 +156,21 @@ export default function FormsPage() {
           toDate: lf.endDate ? lf.endDate.split("T")[0] : "",
           reason: lf.reason || "N/A",
           submittedOn: lf.createdAt ? lf.createdAt.split("T")[0] : "",
-          status: lf.status === "PENDING" ? "Submitted" : lf.status === "APPROVED" ? "Approved" : "Rejected"
+          status: lf.status === "PENDING" ? "Submitted" : lf.status === "APPROVED" ? "Approved" : "Rejected",
+          attachmentUrl: lf.attachmentUrl || null
         }));
         setLeaveForms(mappedLeaves);
       }
     } catch (err) {
       console.error("Failed to fetch leaves:", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === "forms") {
       fetchLeaves();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchLeaves]);
 
   // Submit leave application
   const handleLeaveSubmit = async (e: React.FormEvent) => {
@@ -180,9 +181,16 @@ export default function FormsPage() {
     }
 
     try {
-      const dbType = leaveForm.leaveType.toUpperCase().replace(" LEAVE", "") as any;
+      const leaveTypeMap: Record<string, string> = {
+        "Casual Leave": "CASUAL",
+        "Sick Leave": "SICK",
+        "Earned Leave": "EARNED",
+        "Emergency Leave": "OTHER",
+        "Comp-Off": "OTHER"
+      };
+      const dbType = leaveTypeMap[leaveForm.leaveType] || "OTHER";
       await leaveApi.create({
-        type: ["SICK", "CASUAL", "EARNED", "UNPAID", "OTHER"].includes(dbType) ? dbType : "OTHER",
+        type: dbType as any,
         startDate: leaveForm.fromDate,
         endDate: leaveForm.toDate,
         reason: leaveForm.reason
@@ -192,14 +200,14 @@ export default function FormsPage() {
       dispatch(addNotification({
         employeeId: "admin",
         employeeName: leaveForm.employeeName,
-        avatar: leaveForm.employeeName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+        avatar: leaveForm.employeeName.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2),
         type: "alert",
         message: `Leave Application: ${leaveForm.employeeName} applied for ${leaveForm.leaveType} from ${leaveForm.fromDate} to ${leaveForm.toDate}. Reason: ${leaveForm.reason}`,
         priority: "normal"
       }));
 
       setShowLeaveModal(false);
-      setLeaveForm({ employeeName: employees[0]?.name || "", leaveType: LEAVE_TYPES[0], fromDate: "", toDate: "", reason: "" });
+      setLeaveForm({ employeeName: employees[0]?.name || currentName, leaveType: LEAVE_TYPES[0], fromDate: "", toDate: "", reason: "" });
       showToast("Leave application submitted successfully!");
       fetchLeaves();
     } catch (err: any) {
@@ -247,7 +255,7 @@ export default function FormsPage() {
       source: "web"
     };
 
-    setFeedbackList(prev => [record, ...prev]);
+    setFeedbackList((prev: FeedbackRecord[]) => [record, ...prev]);
 
     dispatch(addNotification({
       employeeId: "admin",
@@ -333,6 +341,7 @@ export default function FormsPage() {
                     <th>From Date</th>
                     <th>To Date</th>
                     <th>Reason</th>
+                    <th>Attachment</th>
                     <th>Submitted On</th>
                     <th>Status</th>
                     <th style={{ textAlign: "center" }}>Actions</th>
@@ -351,6 +360,28 @@ export default function FormsPage() {
                       <td style={{ fontFamily: "var(--font-jetbrains), monospace", fontSize: "12px" }}>{lf.toDate}</td>
                       <td style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={lf.reason}>
                         {lf.reason}
+                      </td>
+                      <td>
+                        {lf.attachmentUrl ? (
+                          <a 
+                            href={lf.attachmentUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{ 
+                              color: "var(--accent-blue)", 
+                              textDecoration: "underline", 
+                              fontWeight: 600,
+                              fontSize: "12px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                          >
+                            <FileText size={12} /> View File
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>None</span>
+                        )}
                       </td>
                       <td style={{ fontFamily: "var(--font-jetbrains), monospace", fontSize: "12px", color: "var(--text-muted)" }}>{lf.submittedOn}</td>
                       <td>
@@ -384,7 +415,7 @@ export default function FormsPage() {
                   ))}
                   {leaveForms.length === 0 && (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>No applications filed yet.</td>
+                      <td colSpan={9} style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>No applications filed yet.</td>
                     </tr>
                   )}
                 </tbody>
@@ -491,7 +522,7 @@ export default function FormsPage() {
               <div>
                 <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>Employee Name</label>
                 <select className="input" value={leaveForm.employeeName} onChange={e => setLeaveForm(p => ({ ...p, employeeName: e.target.value }))}>
-                  {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+                  {employees.map((emp: any) => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
                   <option value={currentName}>{currentName} (You / Admin)</option>
                 </select>
               </div>
@@ -559,7 +590,7 @@ export default function FormsPage() {
                     onChange={e => setFeedbackForm(p => ({ ...p, employeeName: e.target.value }))}
                   >
                     <option value={currentName}>{currentName} (Admin)</option>
-                    {employees.map(emp => (
+                    {employees.map((emp: any) => (
                       <option key={emp.id} value={emp.name}>{emp.name} — {emp.role}</option>
                     ))}
                   </select>

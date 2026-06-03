@@ -1,18 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store";
 import { io, Socket } from "socket.io-client";
 import { addNotification } from "@/store/slices/notificationSlice";
 import toast from "react-hot-toast";
 
 export function SocketInitializer() {
   const dispatch = useDispatch();
+  const token = useSelector((state: RootState) => state.auth.token);
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) return;
+    if (!token) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+      return;
+    }
 
     const socketUrl = process.env.NEXT_PUBLIC_API_URL 
       ? process.env.NEXT_PUBLIC_API_URL.replace("/api/v1", "")
@@ -91,7 +98,7 @@ export function SocketInitializer() {
     return () => {
       newSocket.disconnect();
     };
-  }, [dispatch]);
+  }, [dispatch, token]);
 
   return null; // Invisible global listener component
 }

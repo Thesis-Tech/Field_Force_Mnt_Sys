@@ -78,11 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!attendanceProvider.isCheckedIn) {
         final battery = Battery();
         final batteryLevel = await battery.batteryLevel;
-        if (batteryLevel < 15) {
+        if (batteryLevel < 50) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Battery must be 15%+ to Check In. Current: $batteryLevel%'),
+                content: Text('Battery must be 50%+ to Check In. Current: $batteryLevel%'),
                 backgroundColor: AppColors.error,
               ),
             );

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma')
 const cloudinary = require('../config/cloudinary')
+const notificationService = require('./notification.service')
 
 // Helper: calculate working days between two dates (excludes weekends)
 const calcWorkingDays = (startDate, endDate) => {
@@ -87,10 +88,23 @@ const approveLeave = async (leaveId, managerId, approvalNote) => {
     const err = new Error('Only pending leaves can be approved'); err.statusCode = 400; throw err
   }
 
-  return prisma.leave.update({
+  const updated = await prisma.leave.update({
     where: { id: leaveId },
     data: { status: 'APPROVED', approvedById: managerId, approvalNote },
   })
+
+  // Notify employee
+  await notificationService.createNotification({
+    userId:      leave.userId,
+    title:       'Leave Approved',
+    body:        `Your leave request for ${leave.totalDays} day(s) starting ${leave.startDate.toISOString().split('T')[0]} has been approved`,
+    type:        'SYSTEM',
+    referenceId: leaveId,
+  }).catch(err => {
+    console.error('Failed to create leave approval notification:', err.message);
+  })
+
+  return updated
 }
 
 // ─── Reject leave ──────────────────────────────────────────────────
@@ -103,10 +117,23 @@ const rejectLeave = async (leaveId, managerId, approvalNote) => {
     const err = new Error('Only pending leaves can be rejected'); err.statusCode = 400; throw err
   }
 
-  return prisma.leave.update({
+  const updated = await prisma.leave.update({
     where: { id: leaveId },
     data: { status: 'REJECTED', approvedById: managerId, approvalNote },
   })
+
+  // Notify employee
+  await notificationService.createNotification({
+    userId:      leave.userId,
+    title:       'Leave Rejected',
+    body:        `Your leave request for ${leave.totalDays} day(s) starting ${leave.startDate.toISOString().split('T')[0]} was rejected. ${approvalNote || ''}`,
+    type:        'SYSTEM',
+    referenceId: leaveId,
+  }).catch(err => {
+    console.error('Failed to create leave rejection notification:', err.message);
+  })
+
+  return updated
 }
 
 // ─── Cancel own leave (only if still PENDING) ─────────────────────

@@ -1,10 +1,13 @@
 "use client";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
-import { useState } from "react";
+
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "@/store";
+import { useState, useEffect } from "react";
 import { getStatusColor } from "@/lib/utils";
 import { MapPin, Users, Navigation } from "lucide-react";
 import dynamic from "next/dynamic";
+import { locationApi } from "@/lib/api-client";
+import { fetchEmployees } from "@/store/slices/employeeSlice";
 
 // Dynamically import map to avoid SSR issues with Leaflet
 const LiveMapInner = dynamic(() => import("@/components/map/LiveMap"), { ssr: false, loading: () => (
@@ -12,8 +15,50 @@ const LiveMapInner = dynamic(() => import("@/components/map/LiveMap"), { ssr: fa
 )});
 
 export default function MapPage() {
-  const employees = useSelector((s: RootState) => s.employees.list);
+  const dispatch = useDispatch<AppDispatch>();
+  const employeesFromRedux = useSelector((s: RootState) => s.employees.list);
   const [selected, setSelected] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  useEffect(() => {
+    dispatch(fetchEmployees());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const fetchLiveLocations = async () => {
+      try {
+        const res = await locationApi.getLive();
+        const liveLocs = (res as any).data || [];
+        const liveLocMap = new Map(liveLocs.map((l: any) => [l.userId, l]));
+
+        const merged = employeesFromRedux.map((emp) => {
+          const live = liveLocMap.get(emp.id);
+          if (live) {
+            return {
+              ...emp,
+              lat: live.latitude || emp.lat,
+              lng: live.longitude || emp.lng,
+              status: "active",
+            };
+          }
+          return emp;
+        });
+        setEmployees(merged);
+      } catch (e) {
+        console.error("Failed to fetch live locations", e);
+        setEmployees(employeesFromRedux);
+      }
+    };
+
+    if (employeesFromRedux.length > 0) {
+      fetchLiveLocations();
+      const interval = setInterval(fetchLiveLocations, 10000);
+      return () => clearInterval(interval);
+    } else {
+      setEmployees(employeesFromRedux);
+    }
+  }, [employeesFromRedux]);
+
   const active = employees.filter(e => e.status === "active");
 
   return (
