@@ -41,27 +41,20 @@ function generatePassword(name: string, email: string, phone: string, role: stri
 }
 
 function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[] }) {
+  const isEditing = Boolean(emp?.id);
   const [form, setForm] = useState<Partial<Employee>>(() => {
     if (emp) {
-      const autoPassword = generatePassword(emp.name || "", emp.email || "", emp.phone || "", emp.role || "");
-      return { ...emp, password: emp.password || autoPassword };
+      // When editing: password starts blank — admin only fills it to change it
+      return { ...emp, password: "" };
     }
     const defaultTerrName = territories.length > 0 ? territories[0].name : "";
     return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: `EMP-${Date.now().toString().slice(-6)}`, managerId: null };
   });
   const set = (k: keyof Employee, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  // Re-generate password whenever name, email, phone, or role changes
+  // Update field without touching the password — password is fully manual
   const handleFieldChange = (k: keyof Employee, v: string) => {
-    setForm(f => {
-      const next = { ...f, [k]: v };
-      if (["name", "email", "phone", "role"].includes(k)) {
-        next.password = generatePassword(
-          next.name || "", next.email || "", next.phone || "", next.role || ""
-        );
-      }
-      return next;
-    });
+    setForm(f => ({ ...f, [k]: v }));
   };
 
   return (
@@ -81,11 +74,12 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
             </div>
           ))}
           
-          {/* Auto-generated Password Field */}
+          {/* Password Field */}
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>
               Password
-              <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Custom password or auto-generated</span>
+              {isEditing && <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Leave blank to keep current password</span>}
+              {!isEditing && <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Required for new employee</span>}
             </label>
             <div style={{ display:"flex",gap:"8px" }}>
               <input 
@@ -93,6 +87,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
                 className="input" 
                 value={form.password || ""} 
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                placeholder={isEditing ? "Enter new password to change" : "Enter password"}
                 style={{ flex:1, fontFamily:"var(--font-jetbrains, monospace)",letterSpacing:"0.08em" }}
               />
               <button
@@ -103,9 +98,9 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
                   const pwd = generatePassword(form.name||"", form.email||"", form.phone||"", form.role||"");
                   setForm(f => ({ ...f, password: pwd }));
                 }}
-                title="Regenerate password from current fields"
+                title="Generate a password from current fields"
               >
-                ↻ Regenerate
+                ↻ Generate
               </button>
             </div>
           </div>
@@ -155,22 +150,30 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
           </div>
           <button className="btn-primary" style={{ width:"100%",justifyContent:"center",marginTop:"6px" }}
             onClick={()=>{
+              // Require password for new employees
+              if (!isEditing && !form.password?.trim()) {
+                alert("Password is required for new employees. Please enter a password or click Generate.");
+                return;
+              }
               const avatarStr = (form.name||"XX").split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2);
-              const finalPassword = form.password || generatePassword(form.name||"", form.email||"", form.phone||"", form.role||"");
               const matchingZone = territories.find((t: any) => t.name === form.territory);
-              onSave({
+              const payload: any = {
                 id: emp?.id,
                 name: form.name||"", email: form.email||"", phone: form.phone||"",
                 role: "FIELD_STAFF",
                 territoryId: matchingZone?.id || null,
                 status: form.status === "inactive" ? "INACTIVE" : "ACTIVE",
                 avatar: avatarStr,
-                password: finalPassword,
                 employeeId: form.employeeId || emp?.employeeId || `EMP-${Date.now().toString().slice(-6)}`,
                 managerId: form.managerId || null,
-              });
+              };
+              // Only include password when the user explicitly typed one
+              if (form.password?.trim()) {
+                payload.password = form.password.trim();
+              }
+              onSave(payload);
             }}>
-            {emp?.id ? "Save Changes" : "Add Employee"}
+            {isEditing ? "Save Changes" : "Add Employee"}
           </button>
         </div>
       </div>
@@ -852,17 +855,21 @@ export default function EmployeesPage() {
         <EmployeeModal emp={modal.emp} onClose={()=>setModal({open:false,emp:null})} territories={dbTerritories} allEmployees={employees}
           onSave={emp => {
             if (modal.emp?.id) {
+              // Build update payload — only include password if provided
+              const updateData: Record<string, unknown> = {
+                name: emp.name,
+                phone: emp.phone,
+                status: emp.status,
+                territoryId: emp.territoryId,
+                employeeId: emp.employeeId,
+                managerId: emp.managerId,
+              };
+              if (emp.password) {
+                updateData.password = emp.password;
+              }
               dispatch(updateEmployeeThunk({
                 id: modal.emp.id,
-                data: {
-                  name: emp.name,
-                  phone: emp.phone,
-                  status: emp.status,
-                  territoryId: emp.territoryId,
-                  employeeId: emp.employeeId,
-                  managerId: emp.managerId,
-                  password: emp.password,
-                }
+                data: updateData,
               }));
             } else {
               dispatch(createEmployee({

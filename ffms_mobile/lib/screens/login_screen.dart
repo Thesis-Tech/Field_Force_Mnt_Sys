@@ -155,31 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : const Text('Sign In', style: TextStyle(fontSize: 16)),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Demo Credentials',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Email: admin@tctc.com\nPassword: password123',
-                          style: theme.textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
+
                 ],
               ),
             ),
