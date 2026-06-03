@@ -142,9 +142,53 @@ export const dashboardApi = {
       liveFieldStaff: unknown[];
       tasksByStatus: { pending: number; inProgress: number; completed: number; cancelled: number; overdue: number };
       attendanceRate: number;
+      totalManagers: number;
+      totalEmployees: number;
+      activeProjects: number;
+      pendingApprovals: number;
+      employeeDistribution: { name: string; value: number; color: string }[];
+      managersList: {
+        id: string;
+        name: string;
+        email: string;
+        department: string;
+        assignedProjects: number;
+        teamSize: number;
+        status: "active" | "inactive";
+        avatar: string;
+        phone: string;
+        joinedDate: string;
+        performanceScore: number;
+      }[];
     }>("GET", "/dashboard/admin"),
   getFieldStaff: () =>
     request("GET", "/dashboard/field-staff"),
+};
+
+// ─── Projects ────────────────────────────────────────
+export interface ApiProject {
+  id: string;
+  name: string;
+  description: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  status: string;
+  managerId: string;
+  manager?: { id: string; name: string; email: string };
+  progress: number;
+  totalTasks: number;
+  completedTasks: number;
+}
+
+export const projectsApi = {
+  list: (query?: Record<string, string | number | undefined>) =>
+    request<ApiProject[]>("GET", "/projects", undefined, query),
+  create: (data: Record<string, unknown>) =>
+    request<ApiProject>("POST", "/projects", data),
+  update: (id: string, data: Record<string, unknown>) =>
+    request<ApiProject>("PATCH", `/projects/${id}`, data),
+  delete: (id: string) =>
+    request("DELETE", `/projects/${id}`),
 };
 
 // ─── Users (Employees) ──────────────────────────────

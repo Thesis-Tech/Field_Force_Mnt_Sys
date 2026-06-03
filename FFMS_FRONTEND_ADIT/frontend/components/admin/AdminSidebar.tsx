@@ -14,6 +14,7 @@ import {
   MapPin,
   Lightbulb,
   Shield,
+  Briefcase,
 } from "lucide-react";
 
 const COLLAPSED_WIDTH = 64;
@@ -73,7 +74,7 @@ export default function AdminSidebar() {
     gap: "12px",
     padding: isExpanded ? "10px 12px" : "10px 0",
     justifyContent: isExpanded ? "flex-start" : "center",
-    background: isActive ? "rgba(139, 92, 246, 0.08)" : "transparent",
+    background: isActive ? "rgba(59, 130, 246, 0.08)" : "transparent",
     borderRadius: "0",
     cursor: "pointer",
     color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
@@ -150,7 +151,7 @@ export default function AdminSidebar() {
               style={{
                 width: "36px",
                 height: "36px",
-                background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                 borderRadius: "0",
                 display: "flex",
                 alignItems: "center",
@@ -178,7 +179,7 @@ export default function AdminSidebar() {
               <div
                 style={{
                   fontSize: "9px",
-                  color: "#8b5cf6",
+                  color: "#3b82f6",
                   fontFamily: "var(--font-jetbrains), monospace",
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
@@ -193,9 +194,9 @@ export default function AdminSidebar() {
 
         {/* Admin badge */}
         {isExpanded && (
-          <div style={{ margin: "12px 12px 0", padding: "6px 12px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 0, display: "flex", alignItems: "center", gap: 6 }}>
-            <Shield size={12} color="#8b5cf6" />
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "#8b5cf6", textTransform: "uppercase", letterSpacing: "0.06em" }}>Super Admin</span>
+          <div style={{ margin: "12px 12px 0", padding: "6px 12px", background: "rgba(59, 130, 246,0.08)", border: "1px solid rgba(59, 130, 246,0.2)", borderRadius: 0, display: "flex", alignItems: "center", gap: 6 }}>
+            <Shield size={12} color="#3b82f6" />
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.06em" }}>Super Admin</span>
           </div>
         )}
 
@@ -250,7 +251,7 @@ export default function AdminSidebar() {
                       overflow: "hidden",
                       whiteSpace: "nowrap",
                       transition: "opacity 0.2s ease 0.05s",
-                      color: isActive ? "#8b5cf6" : "var(--text-secondary)",
+                      color: isActive ? "#3b82f6" : "var(--text-secondary)",
                     }}
                   >
                     {item.label}
@@ -262,7 +263,7 @@ export default function AdminSidebar() {
                         width: 6,
                         height: 6,
                         borderRadius: "50%",
-                        background: "#8b5cf6",
+                        background: "#3b82f6",
                         flexShrink: 0,
                       }}
                     />
@@ -271,6 +272,66 @@ export default function AdminSidebar() {
               </Link>
             );
           })}
+
+          <div
+            style={{
+              fontSize: "11px",
+              color: "var(--text-muted)",
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              padding: isExpanded ? "20px 8px 10px" : "20px 0 10px",
+              textTransform: "uppercase",
+              textAlign: isExpanded ? "left" : "center",
+              opacity: isExpanded ? 1 : 0,
+              height: isExpanded ? "auto" : 0,
+              overflow: "hidden",
+              transition: "opacity 0.2s ease, height 0.2s ease",
+            }}
+          >
+            Manager Functions
+          </div>
+          
+          <Link href="/admin/employees" style={{ textDecoration: "none" }} title="My Team">
+            <div style={getLinkStyle(pathname === "/admin/employees" || pathname === "/employees")} className="sidebar-link">
+              {renderIcon(Users, pathname === "/admin/employees" || pathname === "/employees")}
+              <span style={{ fontSize: "13.5px", fontWeight: (pathname === "/admin/employees" || pathname === "/employees") ? 700 : 500, opacity: isExpanded ? 1 : 0, width: isExpanded ? "auto" : 0, overflow: "hidden", whiteSpace: "nowrap", transition: "opacity 0.2s ease 0.05s", color: (pathname === "/admin/employees" || pathname === "/employees") ? "#3b82f6" : "var(--text-secondary)" }}>My Team</span>
+            </div>
+          </Link>
+
+          <Link href="/admin/tasks" style={{ textDecoration: "none" }} title="Tasks & Attendance">
+            <div style={getLinkStyle(pathname === "/admin/tasks" || pathname === "/tasks" || pathname === "/attendance")} className="sidebar-link">
+              {renderIcon(FolderKanban, pathname === "/admin/tasks" || pathname === "/tasks" || pathname === "/attendance")}
+              <span style={{ fontSize: "13.5px", fontWeight: (pathname === "/admin/tasks" || pathname === "/tasks" || pathname === "/attendance") ? 700 : 500, opacity: isExpanded ? 1 : 0, width: isExpanded ? "auto" : 0, overflow: "hidden", whiteSpace: "nowrap", transition: "opacity 0.2s ease 0.05s", color: (pathname === "/admin/tasks" || pathname === "/tasks" || pathname === "/attendance") ? "#3b82f6" : "var(--text-secondary)" }}>Tasks & Attendance</span>
+            </div>
+          </Link>
+
+          <Link href="/admin/geofencing" style={{ textDecoration: "none" }} title="Activities">
+            <div style={getLinkStyle(pathname === "/admin/geofencing" || pathname === "/geofencing" || pathname.startsWith("/activities") || pathname.startsWith("/admin/activities"))} className="sidebar-link">
+              {renderIcon(Briefcase, pathname === "/admin/geofencing" || pathname === "/geofencing" || pathname.startsWith("/activities") || pathname.startsWith("/admin/activities"))}
+              <span style={{ fontSize: "13.5px", fontWeight: (pathname === "/admin/geofencing" || pathname === "/geofencing" || pathname.startsWith("/activities") || pathname.startsWith("/admin/activities")) ? 700 : 500, opacity: isExpanded ? 1 : 0, width: isExpanded ? "auto" : 0, overflow: "hidden", whiteSpace: "nowrap", transition: "opacity 0.2s ease 0.05s", color: (pathname === "/admin/geofencing" || pathname === "/geofencing" || pathname.startsWith("/activities") || pathname.startsWith("/admin/activities")) ? "#3b82f6" : "var(--text-secondary)" }}>Activities</span>
+            </div>
+          </Link>
+
+          <Link href="/admin/map" style={{ textDecoration: "none" }} title="Insights">
+            <div style={getLinkStyle(pathname === "/admin/map" || pathname === "/map" || pathname === "/playback" || pathname.startsWith("/insights") || pathname.startsWith("/admin/insights"))} className="sidebar-link">
+              {renderIcon(BarChart3, pathname === "/admin/map" || pathname === "/map" || pathname === "/playback" || pathname.startsWith("/insights") || pathname.startsWith("/admin/insights"))}
+              <span style={{ fontSize: "13.5px", fontWeight: (pathname === "/admin/map" || pathname === "/map" || pathname === "/playback" || pathname.startsWith("/insights") || pathname.startsWith("/admin/insights")) ? 700 : 500, opacity: isExpanded ? 1 : 0, width: isExpanded ? "auto" : 0, overflow: "hidden", whiteSpace: "nowrap", transition: "opacity 0.2s ease 0.05s", color: (pathname === "/admin/map" || pathname === "/map" || pathname === "/playback" || pathname.startsWith("/insights") || pathname.startsWith("/admin/insights")) ? "#3b82f6" : "var(--text-secondary)" }}>Insights</span>
+            </div>
+          </Link>
+
+          <Link href="/admin/notifications" style={{ textDecoration: "none" }} title="Notifications">
+            <div style={getLinkStyle(pathname === "/admin/notifications" || pathname === "/notifications")} className="sidebar-link">
+              {renderIcon(FileText, pathname === "/admin/notifications" || pathname === "/notifications")}
+              <span style={{ fontSize: "13.5px", fontWeight: (pathname === "/admin/notifications" || pathname === "/notifications") ? 700 : 500, opacity: isExpanded ? 1 : 0, width: isExpanded ? "auto" : 0, overflow: "hidden", whiteSpace: "nowrap", transition: "opacity 0.2s ease 0.05s", color: (pathname === "/admin/notifications" || pathname === "/notifications") ? "#3b82f6" : "var(--text-secondary)" }}>Notifications</span>
+            </div>
+          </Link>
+
+          <Link href="/admin/settings/user-management" style={{ textDecoration: "none" }} title="Settings">
+            <div style={getLinkStyle(pathname.startsWith("/settings") || pathname.startsWith("/admin/settings"))} className="sidebar-link">
+              {renderIcon(LogOut, pathname.startsWith("/settings") || pathname.startsWith("/admin/settings"))}
+              <span style={{ fontSize: "13.5px", fontWeight: (pathname.startsWith("/settings") || pathname.startsWith("/admin/settings")) ? 700 : 500, opacity: isExpanded ? 1 : 0, width: isExpanded ? "auto" : 0, overflow: "hidden", whiteSpace: "nowrap", transition: "opacity 0.2s ease 0.05s", color: (pathname.startsWith("/settings") || pathname.startsWith("/admin/settings")) ? "#3b82f6" : "var(--text-secondary)" }}>Settings</span>
+            </div>
+          </Link>
         </nav>
 
         {/* Logout */}

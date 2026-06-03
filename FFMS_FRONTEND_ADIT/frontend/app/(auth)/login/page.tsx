@@ -34,17 +34,17 @@ export default function LoginPage() {
       // Register Flow: Allow registering with ANY email and password!
       const displayName = email.split("@")[0];
       const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-      dispatch(login({ token: "dev_fallback_token", user: { name: capitalizedName, email, role: "Super Admin" } }));
+      dispatch(login({ token: "dev_fallback_token", user: { name: capitalizedName, email, role: "ADMIN" } }));
 
       if (typeof window !== "undefined") {
         localStorage.setItem("ff_password", password);
-        // Clear prior setup logs so the wizard starts fresh
         localStorage.removeItem("adminSetupComplete");
         localStorage.removeItem("adminSetupData");
+        setAuthCookies("dev_fallback_token", "ADMIN");
         window.location.href = "/admin-setup";
       }
     } else {
-      // Existing User login
+      // Existing User login — try backend first
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
       try {
@@ -58,56 +58,70 @@ export default function LoginPage() {
           const resData = await response.json();
           const tokenVal = resData.data?.accessToken || resData.data?.token;
           if (resData.success && tokenVal) {
+            const userRole = (resData.data.user.role || "EMPLOYEE").toUpperCase();
             if (typeof window !== "undefined") {
               localStorage.setItem("auth_token", tokenVal);
               localStorage.setItem("adminSetupComplete", "true");
-              
-              // Cache profile name
-              const profile = { firstName: resData.data.user.name, email: resData.data.user.email };
+              const profile = { firstName: resData.data.user.name, email: resData.data.user.email, role: userRole };
               localStorage.setItem("ff_user_profile", JSON.stringify(profile));
+              // Set cookies so middleware can read role at Edge
+              setAuthCookies(tokenVal, userRole);
             }
-            dispatch(login({ 
+            dispatch(login({
               token: tokenVal,
               user: {
-                name: resData.data.user.name, 
-                email: resData.data.user.email, 
-                role: resData.data.user.role 
+                name: resData.data.user.name,
+                email: resData.data.user.email,
+                role: userRole,
               }
             }));
-            router.push("/dashboard");
+            // Role-based redirect
+            const dest = userRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+            router.push(dest);
             return;
           }
         }
       } catch (err) {
-        console.warn("[Login] Secure backend login failed or offline. Falling back to local offline mock authentication.", err);
+        console.warn("[Login] Backend unreachable, falling back to local credentials.", err);
       }
 
-      // Offline/Local Fallback Creds Check
-      const storedEmail = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("ff_user_profile") || "{}").email || "admin@fieldforce.com") : "admin@fieldforce.com";
-      const storedPassword = typeof window !== "undefined" ? (localStorage.getItem("ff_password") || "admin123") : "admin123";
+      // Offline/Local Fallback — check stored credentials
+      const storedProfile = typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("ff_user_profile") || "{}")
+        : {};
+      const storedEmail = storedProfile.email || "admin@fieldforce.com";
+      const storedPassword = typeof window !== "undefined"
+        ? (localStorage.getItem("ff_password") || "admin123")
+        : "admin123";
 
-      // Allow either the default credentials OR the custom registered/updated credentials
-      const isDefaultCreds = email === "admin@fieldforce.com" && password === "admin123";
+      const isDefaultCreds = email === "admin@tctc.com" && password === "password123";
       const isCustomCreds = email === storedEmail && password === storedPassword;
 
       if (isDefaultCreds || isCustomCreds) {
-        const storedProfileName = typeof window !== "undefined" ? (JSON.parse(localStorage.getItem("ff_user_profile") || "{}").firstName || "Admin") : "Admin";
-        dispatch(login({ token: "dev_fallback_token", user: { name: storedProfileName, email, role: "Super Admin" } }));
-        
+        const storedName = storedProfile.firstName || "Admin";
+        const fallbackRole = storedProfile.role || "ADMIN";
+        dispatch(login({ token: "dev_fallback_token", user: { name: storedName, email, role: fallbackRole } }));
+
         if (typeof window !== "undefined") {
           localStorage.setItem("adminSetupComplete", "true");
-          // Add a dummy dev token to localStorage for local fallback map loading
           localStorage.setItem("auth_token", "dev_fallback_token");
-          router.push("/dashboard");
-        } else {
-          router.push("/dashboard");
+          setAuthCookies("dev_fallback_token", fallbackRole);
         }
+        const dest = fallbackRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+        router.push(dest);
       } else {
-        setError("Invalid email or password. Use demo details (admin@fieldforce.com / admin123) or your custom registered credentials.");
+        setError("Invalid credentials. Demo: admin@tctc.com / password123");
         setLoading(false);
       }
     }
   };
+
+  /** Write auth state to cookies so Next.js Edge middleware can read the role. */
+  function setAuthCookies(token: string, role: string) {
+    const maxAge = 60 * 60 * 24 * 7; // 7 days
+    document.cookie = `auth_token=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+    document.cookie = `ff_user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  }
 
   return (
     <div style={{

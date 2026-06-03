@@ -186,9 +186,11 @@ function numberToWords(num: number): string {
 
 export default function EmployeesPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((s: RootState) => s.auth.user);
   const employees = useSelector((s: RootState) => s.employees.list);
   const loading = useSelector((s: RootState) => s.employees.loading);
   const [search, setSearch] = useState("");
+  const [selectedManager, setSelectedManager] = useState("all");
   const [activeTab, setActiveTab] = useState<"roster" | "payroll">("roster");
   const [modal, setModal] = useState<{ open: boolean; emp: Partial<Employee>|null }>({ open:false, emp:null });
   const [deleteId, setDeleteId] = useState<string|null>(null);
@@ -341,11 +343,15 @@ export default function EmployeesPage() {
     };
   };
 
-  const filtered = employees.filter((e: Employee) =>
-    e.name.toLowerCase().includes(search.toLowerCase()) ||
+  const filtered = employees.filter((e: Employee) => {
+    const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
     e.role.toLowerCase().includes(search.toLowerCase()) ||
-    e.territory.toLowerCase().includes(search.toLowerCase())
-  );
+    e.territory.toLowerCase().includes(search.toLowerCase());
+    
+    const matchManager = selectedManager === "all" || e.managerId === selectedManager || e.id === selectedManager;
+
+    return matchSearch && matchManager;
+  });
 
   // Payroll summary metrics
   const totalPayrollCost = activeEmployees.reduce((sum: number, emp: Employee) => sum + calculateSalary(emp.id, emp.role).netPay, 0);
@@ -356,6 +362,9 @@ export default function EmployeesPage() {
   // Get selected employee for payslip
   const payslipEmp = employees.find((e: Employee) => e.id === payslipEmpId);
   const payslipCalc = payslipEmp ? calculateSalary(payslipEmp.id, payslipEmp.role) : null;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <div>
@@ -373,6 +382,19 @@ export default function EmployeesPage() {
         
         {activeTab === "roster" ? (
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {mounted && user?.role === "ADMIN" && (
+              <select 
+                className="input" 
+                style={{ width: 180, height: 36, padding: "0 12px" }}
+                value={selectedManager}
+                onChange={(e) => setSelectedManager(e.target.value)}
+              >
+                <option value="all">All Managers / Teams</option>
+                {employees.filter(e => e.role === "MANAGER").map(m => (
+                  <option key={m.id} value={m.id}>{m.name}'s Team</option>
+                ))}
+              </select>
+            )}
             <button className="btn-primary" onClick={()=>setModal({open:true,emp:null})}>
               <Plus size={16}/> Add Employee
             </button>

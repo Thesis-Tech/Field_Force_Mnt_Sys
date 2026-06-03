@@ -123,6 +123,11 @@ const authSlice = createSlice({
       removeLocalStorageItem("ff_is_logged_in");
       removeLocalStorageItem("ff_user_profile");
       removeLocalStorageItem("auth_token");
+      // Clear auth cookies so Edge middleware stops granting access
+      if (typeof document !== "undefined") {
+        document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+        document.cookie = "ff_user_role=; path=/; max-age=0; SameSite=Lax";
+      }
     },
     updateProfile(state, action: PayloadAction<Partial<UserProfile>>) {
       if (state.user) {

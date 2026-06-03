@@ -77,6 +77,9 @@ export default function FormsPage() {
   const currentUser = useSelector((s: RootState) => s.auth.user);
   const currentName = currentUser ? `${currentUser.firstName} ${currentUser.lastName}`.trim() : "Admin";
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Leave Applications state
   const [leaveForms, setLeaveForms] = useState<any[]>([]);
 
@@ -522,8 +525,8 @@ export default function FormsPage() {
               <div>
                 <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>Employee Name</label>
                 <select className="input" value={leaveForm.employeeName} onChange={e => setLeaveForm(p => ({ ...p, employeeName: e.target.value }))}>
-                  {employees.map((emp: any) => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
-                  <option value={currentName}>{currentName} (You / Admin)</option>
+                  {mounted && employees.map((emp: any) => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+                  {mounted && <option value={currentName}>{currentName} (You / Admin)</option>}
                 </select>
               </div>
 
@@ -589,8 +592,8 @@ export default function FormsPage() {
                     value={feedbackForm.employeeName}
                     onChange={e => setFeedbackForm(p => ({ ...p, employeeName: e.target.value }))}
                   >
-                    <option value={currentName}>{currentName} (Admin)</option>
-                    {employees.map((emp: any) => (
+                    {mounted && <option value={currentName}>{currentName} (Admin)</option>}
+                    {mounted && employees.map((emp: any) => (
                       <option key={emp.id} value={emp.name}>{emp.name} — {emp.role}</option>
                     ))}
                   </select>

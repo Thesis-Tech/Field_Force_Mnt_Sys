@@ -33,7 +33,12 @@ const createUser = async (req, res, next) => {
  */
 const listUsers = async (req, res, next) => {
   try {
-    const { role, status, territoryId, managerId, search, page, limit, sortBy, sortOrder, cursor } = req.query;
+    let { role, status, territoryId, managerId, search, page, limit, sortBy, sortOrder, cursor } = req.query;
+
+    // Security: Managers can only see their own subordinates
+    if (req.user.role === 'MANAGER') {
+      managerId = req.user.id;
+    }
 
     const result = await userService.listUsers({
       organizationId: req.user.organizationId,

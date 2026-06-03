@@ -13,6 +13,7 @@ const expenseRoutes = require('./expense.routes');
 const notificationRoutes = require('./notification.routes');
 const mapRoutes = require('./map.routes');
 const feedbackRoutes = require('./feedback.routes');
+const projectRoutes = require('./project.routes');
 
 const router = express.Router();
 
@@ -30,5 +31,6 @@ router.use('/expenses', expenseRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/map', mapRoutes);
 router.use('/feedback', feedbackRoutes);
+router.use('/projects', projectRoutes);
 
 module.exports = router;

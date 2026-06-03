@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
     "192.168.1.20",
   ],
   outputFileTracingRoot: path.join(__dirname, "../"),
-  // Required for Cloudflare Pages (next-on-pages)
-  output: "export",
+  // output: "export", // Incompatible with middleware.ts
   typescript: {
     ignoreBuildErrors: true,
   },

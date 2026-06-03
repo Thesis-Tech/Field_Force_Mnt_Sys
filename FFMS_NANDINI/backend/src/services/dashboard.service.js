@@ -157,6 +157,97 @@ const getAdminDashboard = async (organizationId) => {
   const totalPossibleDays = totalFieldStaff * 30;
   const attendanceRate = totalPossibleDays > 0 ? (totalAttendancesCount / totalPossibleDays) * 100 : 100;
 
+  // 7. KPI Metrics and Managers (Real-time data)
+  const totalManagers = await prisma.user.count({
+    where: { organizationId, role: 'MANAGER', status: 'ACTIVE' }
+  });
+
+  const activeProjectsCount = await prisma.project.count({
+    where: { organizationId, status: 'ACTIVE' }
+  });
+
+  const pendingLeaves = await prisma.leave.count({
+    where: { status: 'PENDING', user: { organizationId } }
+  });
+
+  const pendingExpenses = await prisma.expense.count({
+    where: { status: 'SUBMITTED', user: { organizationId } }
+  });
+
+  const pendingApprovals = pendingLeaves + pendingExpenses;
+
+  // 8. Employee distribution by territory
+  const territories = await prisma.territory.findMany({
+    where: { organizationId },
+    select: {
+      id: true,
+      name: true,
+      users: {
+        where: { role: 'FIELD_STAFF', status: 'ACTIVE' },
+        select: { id: true }
+      }
+    }
+  });
+
+  const colors = ["#3b82f6", "#22c55e", "#f97316", "#8b5cf6", "#06b6d4", "#ec4899", "#eab308"];
+  const employeeDistribution = territories.map((t, idx) => ({
+    name: t.name,
+    value: t.users.length,
+    color: colors[idx % colors.length]
+  })).filter(t => t.value > 0);
+
+  // Fallback if empty
+  if (employeeDistribution.length === 0) {
+    employeeDistribution.push({ name: "General Operations", value: totalFieldStaff, color: "#3b82f6" });
+  }
+
+  // 9. Managers list & Performance Scores
+  const managers = await prisma.user.findMany({
+    where: { organizationId, role: 'MANAGER' },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      createdAt: true,
+      status: true,
+      subordinates: {
+        select: {
+          id: true,
+          taskAssignments: {
+            where: { status: 'COMPLETED' },
+            select: { id: true, rating: true }
+          }
+        }
+      },
+      projectsManaged: {
+        select: { id: true }
+      }
+    }
+  });
+
+  const managersList = managers.map(mgr => {
+    const allRatings = mgr.subordinates.flatMap(sub => sub.taskAssignments.map(ta => ta.rating).filter(r => r !== null));
+    const avgRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 4.0;
+    const score = Math.round(avgRating * 20);
+    const teamSize = mgr.subordinates.length;
+    const assignedProjects = mgr.projectsManaged.length;
+
+    return {
+      id: mgr.id,
+      name: mgr.name,
+      email: mgr.email,
+      department: "Operations",
+      assignedProjects,
+      teamSize,
+      status: mgr.status === 'ACTIVE' ? 'active' : 'inactive',
+      avatar: mgr.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+      phone: mgr.phone || '',
+      joinedDate: mgr.createdAt.toISOString().split('T')[0],
+      performanceScore: score
+    };
+  });
+
   return {
     todayStats: {
       totalCheckedIn,
@@ -175,7 +266,13 @@ const getAdminDashboard = async (organizationId) => {
       cancelled,
       overdue
     },
-    attendanceRate: parseFloat(attendanceRate.toFixed(2))
+    attendanceRate: parseFloat(attendanceRate.toFixed(2)),
+    totalManagers,
+    totalEmployees: totalFieldStaff,
+    activeProjects: activeProjectsCount,
+    pendingApprovals,
+    employeeDistribution,
+    managersList
   };
 };
 

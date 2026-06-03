@@ -1,12 +1,20 @@
-import AdminSidebar from "@/components/admin/AdminSidebar";
+import Sidebar from "@/components/layout/Sidebar";
 import AdminTopbar from "@/components/admin/AdminTopbar";
 import { MobileSidebarProvider } from "@/components/layout/MobileSidebarContext";
+import AdminRoleGuard from "@/components/AdminRoleGuard";
+import DataInitializer from "@/components/DataInitializer";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <MobileSidebarProvider>
-      <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-primary)" }}>
-        <AdminSidebar />
+      {/* Admin auth & role check — non-ADMIN → /dashboard, unauthed → /login */}
+      <AdminRoleGuard />
+      <DataInitializer />
+      <div
+        data-panel="admin"
+        style={{ display: "flex", minHeight: "100vh", background: "var(--bg-primary)" }}
+      >
+        <Sidebar />
         <div
           className="dashboard-main"
           style={{

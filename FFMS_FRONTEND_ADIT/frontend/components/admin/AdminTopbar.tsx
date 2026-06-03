@@ -171,7 +171,7 @@ export default function AdminTopbar() {
               {info.title}
             </h1>
             {!isMobile && (
-              <span style={{ fontSize: "10px", fontWeight: 700, color: "#8b5cf6", background: "rgba(139,92,246,0.1)", padding: "2px 8px", borderRadius: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <span style={{ fontSize: "10px", fontWeight: 700, color: "#3b82f6", background: "rgba(59, 130, 246,0.1)", padding: "2px 8px", borderRadius: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 Admin
               </span>
             )}
@@ -197,7 +197,7 @@ export default function AdminTopbar() {
                 background: "#f1f5f9", border: "none", borderRadius: "9999px",
                 padding: "10px 16px 10px 40px", color: "var(--text-primary)", fontSize: "13px",
                 outline: "none", width: "280px", fontFamily: "Inter, sans-serif",
-                boxShadow: isFocused ? "0 0 0 2px #8b5cf6" : "none",
+                boxShadow: isFocused ? "0 0 0 2px #3b82f6" : "none",
               }}
             />
             {showDropdown && (
@@ -208,8 +208,8 @@ export default function AdminTopbar() {
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(139,92,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Search size={12} color="#8b5cf6" />
+                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(59, 130, 246,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Search size={12} color="#3b82f6" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>{r.label}</div>
@@ -227,9 +227,9 @@ export default function AdminTopbar() {
 
         {/* Admin Badge */}
         {!isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 0 }}>
-            <Shield size={14} color="#8b5cf6" />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#8b5cf6" }}>Super Admin</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(59, 130, 246,0.08)", border: "1px solid rgba(59, 130, 246,0.2)", borderRadius: 0 }}>
+            <Shield size={14} color="#3b82f6" />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#3b82f6" }}>Super Admin</span>
           </div>
         )}
 
@@ -239,7 +239,7 @@ export default function AdminTopbar() {
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
             style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", padding: "4px", borderRadius: "50%", transition: "all 0.15s ease" }}
           >
-            <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "13px", color: "white", fontFamily: "Inter, sans-serif", overflow: "hidden" }}>
+            <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "13px", color: "white", fontFamily: "Inter, sans-serif", overflow: "hidden" }}>
               {getInitials()}
             </div>
           </div>
@@ -251,7 +251,7 @@ export default function AdminTopbar() {
                   {(currentUser || defaultUser).photoUrl ? <img src={(currentUser || defaultUser).photoUrl!} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <User size={18} color="var(--text-secondary)" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#8b5cf6", textTransform: "uppercase", fontFamily: "var(--font-jetbrains), monospace" }}>Admin</div>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#3b82f6", textTransform: "uppercase", fontFamily: "var(--font-jetbrains), monospace" }}>Admin</div>
                   <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>{(currentUser || defaultUser).email}</div>
                 </div>
               </div>
@@ -288,7 +288,7 @@ export default function AdminTopbar() {
           <div className="modal-box" style={{ maxWidth: "520px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h2 style={{ fontSize: "18px", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px", fontFamily: "var(--font-hanken), sans-serif" }}>
-                <Edit3 size={18} color="#8b5cf6" /> Edit Admin Profile
+                <Edit3 size={18} color="#3b82f6" /> Edit Admin Profile
               </h2>
               <button type="button" onClick={() => setIsEditProfileOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
             </div>
@@ -316,7 +316,7 @@ export default function AdminTopbar() {
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
                 <button type="button" onClick={() => setIsEditProfileOpen(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary" style={{ background: "#8b5cf6" }}>Save Changes</button>
+                <button type="submit" className="btn-primary" style={{ background: "#3b82f6" }}>Save Changes</button>
               </div>
             </form>
           </div>
@@ -329,7 +329,7 @@ export default function AdminTopbar() {
           <div className="modal-box" style={{ maxWidth: "420px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h2 style={{ fontSize: "18px", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px", fontFamily: "var(--font-hanken), sans-serif" }}>
-                <Lock size={18} color="#8b5cf6" /> Change Password
+                <Lock size={18} color="#3b82f6" /> Change Password
               </h2>
               <button type="button" onClick={() => setIsChangePasswordOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X size={18} /></button>
             </div>
@@ -343,7 +343,7 @@ export default function AdminTopbar() {
               ))}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" }}>
                 <button type="button" onClick={() => setIsChangePasswordOpen(false)} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary" style={{ background: "#8b5cf6" }}>Update Password</button>
+                <button type="submit" className="btn-primary" style={{ background: "#3b82f6" }}>Update Password</button>
               </div>
             </form>
           </div>

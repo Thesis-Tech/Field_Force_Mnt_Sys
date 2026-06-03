@@ -580,6 +580,40 @@ export default function NotificationsPage() {
                         marginLeft: "6px"
                       }} />
                     )}
+
+                    {/* Geofence Escalation Button */}
+                    {item.message.includes("Geofence") && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          alert(`Escalation Alert dispatched to Admin and Manager!\nPush notification sent to field staff (${item.employeeName}): "Please return to the workplace immediately."`);
+                          const targetEmp = employees.find(emp => emp.name === item.employeeName);
+                          if (targetEmp) {
+                            try {
+                              await notificationsApi.send({
+                                userId: targetEmp.id,
+                                title: "URGENT: Return to Workplace",
+                                body: "You have breached the assigned geofence boundary. Please return to the workplace immediately.",
+                                type: "alert",
+                                priority: "high",
+                              });
+                              dispatch(fetchNotifications() as any);
+                            } catch (err) {}
+                          }
+                        }}
+                        className="btn-primary"
+                        style={{
+                          fontSize: "10px",
+                          padding: "4px 8px",
+                          height: "26px",
+                          alignSelf: "center",
+                          marginLeft: "12px",
+                          whiteSpace: "nowrap"
+                        }}
+                      >
+                        Escalate Breach
+                      </button>
+                    )}
                   </div>
                 );
               })
