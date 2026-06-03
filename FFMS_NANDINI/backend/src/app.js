@@ -38,6 +38,11 @@ const app = express();
 app.use(helmet());
 
 // CORS Configuration
+// Always-allowed production origins (Cloudflare Pages deployment)
+const PRODUCTION_ORIGINS = [
+  'https://field-force-mnt-sys.pages.dev',
+];
+
 // Read allowed origins from environment variable (comma-separated)
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
@@ -48,6 +53,11 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
+
+// Always include known production origins regardless of env vars
+PRODUCTION_ORIGINS.forEach(origin => {
+  if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+});
 
 // Add local development origins only in non-production (Render sets NODE_ENV=production)
 if (process.env.NODE_ENV !== 'production') {
