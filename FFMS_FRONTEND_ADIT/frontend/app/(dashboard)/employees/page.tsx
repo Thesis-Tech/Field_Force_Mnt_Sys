@@ -11,34 +11,6 @@ import { geofenceApi, attendanceApi, tasksApi } from "@/lib/api-client";
 const ROLES = ["Sales Executive","Delivery Staff","Service Engineer","Surveyor","Marketing Executive","Healthcare Worker"];
 const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi Mumbai","Nashik"];
 
-/**
- * Auto-generate a deterministic password (8-12 chars) from employee fields.
- * Formula: first3Name + phoneLastDigits + roleInitial + hashSuffix
- * Always includes a mix of lowercase, digits, and an uppercase letter.
- */
-function generatePassword(name: string, email: string, phone: string, role: string): string {
-  const clean = (s: string) => s.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-  const namePart = clean(name).slice(0, 3) || "emp";                // e.g. "rah"
-  const phonePart = phone.replace(/\D/g, "").slice(-3) || "000";    // e.g. "210"
-  const rolePart = clean(role).charAt(0).toUpperCase() || "X";      // e.g. "S"
-
-  // Simple hash from email + name for extra entropy
-  let hash = 0;
-  const seed = email + name + phone;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
-  }
-  const hashStr = Math.abs(hash).toString(36).slice(0, 3);          // e.g. "k7f"
-
-  // Assemble: namePart(3) + phonePart(3) + rolePart(1) + hashStr(up to 3) → 8-10 chars
-  let pwd = namePart + phonePart + rolePart + hashStr;
-
-  // Enforce 8-12 character bounds
-  if (pwd.length < 8) pwd = pwd + "0".repeat(8 - pwd.length);
-  if (pwd.length > 12) pwd = pwd.slice(0, 12);
-
-  return pwd;
-}
 
 function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[] }) {
   const isEditing = Boolean(emp?.id);
@@ -74,35 +46,19 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
             </div>
           ))}
           
-          {/* Password Field */}
+          {/* Password */}
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>
               Password
               {isEditing && <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Leave blank to keep current password</span>}
-              {!isEditing && <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Required for new employee</span>}
             </label>
-            <div style={{ display:"flex",gap:"8px" }}>
-              <input 
-                type="text" 
-                className="input" 
-                value={form.password || ""} 
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                placeholder={isEditing ? "Enter new password to change" : "Enter password"}
-                style={{ flex:1, fontFamily:"var(--font-jetbrains, monospace)",letterSpacing:"0.08em" }}
-              />
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ padding:"6px 12px",fontSize:"11px",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:"4px" }}
-                onClick={() => {
-                  const pwd = generatePassword(form.name||"", form.email||"", form.phone||"", form.role||"");
-                  setForm(f => ({ ...f, password: pwd }));
-                }}
-                title="Generate a password from current fields"
-              >
-                ↻ Generate
-              </button>
-            </div>
+            <input 
+              type="text" 
+              className="input" 
+              value={form.password || ""} 
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              placeholder={isEditing ? "Enter new password to change" : "Enter password"}
+            />
           </div>
 
           <div>
