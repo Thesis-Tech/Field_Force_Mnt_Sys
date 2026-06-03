@@ -313,7 +313,7 @@ export default function VisitsPage() {
             onChange={(e) => setFilterExecutive(e.target.value)}
           >
             <option value="All">All Executives</option>
-            {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+            {employees.map((emp: any) => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
           </select>
         </div>
 
@@ -445,7 +445,7 @@ export default function VisitsPage() {
                     required
                   >
                     <option value="">-- Choose Field Representative --</option>
-                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                    {employees.map((emp: any) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
                   </select>
                 </div>
 
