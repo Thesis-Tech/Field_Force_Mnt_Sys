@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/custom_button.dart';
 import '../core/theme/app_theme.dart';
 import 'expenses_screen.dart';
+import 'feedback_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -96,16 +97,32 @@ class ProfileScreen extends StatelessWidget {
             // Navigation shortcuts
             Container(
               color: AppColors.surface,
-              child: ListTile(
-                leading: const Icon(Icons.receipt_long, color: AppColors.primary),
-                title: const Text('Expenses & Travel Allowance Claims', style: TextStyle(fontWeight: FontWeight.w600)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ExpensesScreen()),
-                  );
-                },
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.receipt_long, color: AppColors.primary),
+                    title: const Text('Expenses & Travel Allowance Claims', style: TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ExpensesScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: const Icon(Icons.feedback_outlined, color: AppColors.primary),
+                    title: const Text('Anonymous Feedback', style: TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const FeedbackScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
