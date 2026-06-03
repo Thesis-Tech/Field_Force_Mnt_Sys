@@ -26,7 +26,7 @@ export default function DataInitializer() {
 
     dispatch(fetchEmployees());
     dispatch(fetchTasks({}));
-    dispatch(fetchTodayAttendance());
+    dispatch(fetchTodayAttendance(undefined));
     dispatch(fetchExpenses());
     dispatch(fetchNotifications());
   }, [dispatch]);

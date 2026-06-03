@@ -32,7 +32,7 @@ export default function MapPage() {
         const liveLocMap = new Map(liveLocs.map((l: any) => [l.userId, l]));
 
         const merged = employeesFromRedux.map((emp) => {
-          const live = liveLocMap.get(emp.id);
+          const live = liveLocMap.get(emp.id) as any;
           if (live) {
             return {
               ...emp,

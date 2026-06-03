@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/store";
+import { RootState, AppDispatch } from "@/store";
 import { getStatusColor } from "@/lib/utils";
 import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, FileText } from "lucide-react";
 import { addNotification } from "@/store/slices/notificationSlice";
@@ -19,7 +19,7 @@ import {
 } from "recharts";
 
 export default function AttendancePage() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const attendance = useSelector((s: RootState) => s.attendance.list);
   const loading = useSelector((s: RootState) => s.attendance.loading);
 

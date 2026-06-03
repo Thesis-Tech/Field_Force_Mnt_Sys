@@ -42,7 +42,7 @@ export default function MyTeamHierarchyPage() {
           <h1 style={{ fontSize: "24px", color: "#0ea5e9", fontWeight: 400, margin: 0 }}>My Team</h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#64748b", fontSize: "14px" }}>
-          <span>Hello, {profile?.name || "Admin"}</span>
+          <span>Hello, {profile?.firstName || "Admin"}</span>
           <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #cbd5e1", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <User size={18} color="#94a3b8" />
           </div>
