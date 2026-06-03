@@ -5,6 +5,7 @@ const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
+  password: z.string().optional(),
   employeeId: z.string().min(1, 'Employee ID is required'),
   role: z.nativeEnum(Role).default('FIELD_STAFF'),
   status: z.nativeEnum(UserStatus).default('ACTIVE'),

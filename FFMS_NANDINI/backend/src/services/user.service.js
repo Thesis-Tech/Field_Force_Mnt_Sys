@@ -24,20 +24,23 @@ const createUser = async (userData, organizationId) => {
     throw new ConflictError('User with this email already exists');
   }
 
-  // Generate temporary password
-  const tempPassword = generateTempPassword();
-  const passwordHash = await bcrypt.hash(tempPassword, 12);
+  // Use provided password if exists, otherwise generate temporary one
+  const plainPassword = userData.password || generateTempPassword();
+  const passwordHash = await bcrypt.hash(plainPassword, 12);
+
+  // Extract password from userData before saving to prisma
+  const { password, ...prismaUserData } = userData;
 
   const newUser = await prisma.user.create({
     data: {
-      ...userData,
+      ...prismaUserData,
       passwordHash,
       organizationId
     }
   });
 
   // Send welcome email asynchronously
-  sendWelcomeEmail(newUser, tempPassword).catch((err) => {
+  sendWelcomeEmail(newUser, plainPassword).catch((err) => {
     logger.error('Failed to send welcome email to:', newUser.email, err);
   });
 

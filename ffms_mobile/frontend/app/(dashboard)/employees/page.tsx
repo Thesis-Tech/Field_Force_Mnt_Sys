@@ -80,15 +80,15 @@ function EmployeeModal({ emp, onClose, onSave }: { emp: Partial<Employee> | null
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>
               Password
-              <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Auto-generated (8–12 chars)</span>
+              <span style={{ fontSize:"10px",fontWeight:400,color:"var(--text-muted)",marginLeft:"6px" }}>Custom password or auto-generated</span>
             </label>
             <div style={{ display:"flex",gap:"8px" }}>
               <input 
                 type="text" 
                 className="input" 
                 value={form.password || ""} 
-                readOnly
-                style={{ flex:1, fontFamily:"var(--font-jetbrains, monospace)",letterSpacing:"0.08em",background:"var(--bg-secondary)" }}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                style={{ flex:1, fontFamily:"var(--font-jetbrains, monospace)",letterSpacing:"0.08em" }}
               />
               <button
                 type="button"
