@@ -55,30 +55,65 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url.toString(), {
+  let res = await fetch(url.toString(), {
     method,
     headers,
     credentials: "include",
     ...(body && method !== "GET" ? { body: JSON.stringify(body) } : {}),
   });
 
-  const json: ApiResponse<T> = await res.json();
+  let json: ApiResponse<T> = await res.json();
 
   if (!res.ok || !json.success) {
-    if (res.status === 401 && !path.includes("/auth/login")) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("ff_is_logged_in");
-        localStorage.removeItem("ff_user_profile");
-        window.location.href = "/login";
+    if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
+      try {
+        // Attempt to refresh the token using the HTTP-Only cookie
+        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.success && refreshData.data?.accessToken) {
+            // Save new token
+            localStorage.setItem("auth_token", refreshData.data.accessToken);
+            
+            // Retry original request with new token
+            headers["Authorization"] = `Bearer ${refreshData.data.accessToken}`;
+            res = await fetch(url.toString(), {
+              method,
+              headers,
+              credentials: "include",
+              ...(body && method !== "GET" ? { body: JSON.stringify(body) } : {}),
+            });
+            json = await res.json();
+          } else {
+            throw new Error("Refresh failed");
+          }
+        } else {
+          throw new Error("Refresh failed");
+        }
+      } catch (err) {
+        // If refresh fails, log the user out
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("ff_is_logged_in");
+          localStorage.removeItem("ff_user_profile");
+          window.location.href = "/login";
+        }
       }
     }
-    throw new ApiError(
-      res.status,
-      json.error?.code || "UNKNOWN",
-      json.error?.message || `Request failed with status ${res.status}`,
-      json.error?.details
-    );
+
+    if (!res.ok || !json.success) {
+      throw new ApiError(
+        res.status,
+        json.error?.code || "UNKNOWN",
+        json.error?.message || `Request failed with status ${res.status}`,
+        json.error?.details
+      );
+    }
   }
 
   return json;
@@ -140,6 +175,8 @@ export const usersApi = {
     request<ApiUser>("PATCH", `/users/${id}`, data),
   delete: (id: string) =>
     request("DELETE", `/users/${id}`),
+  getHierarchy: (id: string) =>
+    request("GET", `/users/${id}/hierarchy`),
 };
 
 // ─── Attendance ──────────────────────────────────────

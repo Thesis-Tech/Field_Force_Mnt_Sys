@@ -189,6 +189,20 @@ const getUserPerformance = async (req, res, next) => {
   }
 };
 
+/**
+ * Get User Hierarchy
+ */
+const getHierarchy = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const hierarchy = await userService.getHierarchy(id, req.user.organizationId);
+    
+    return successResponse(res, hierarchy);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createUser,
   listUsers,
@@ -197,5 +211,6 @@ module.exports = {
   deleteUser,
   assignTerritory,
   forceResetPassword,
-  getUserPerformance
+  getUserPerformance,
+  getHierarchy
 };

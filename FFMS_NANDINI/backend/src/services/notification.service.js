@@ -1,16 +1,31 @@
 const prisma = require('../config/prisma')
+const { emitToUser } = require('../config/socket')
 
 // ─── Create a notification record ─────────────────────────────────
 const createNotification = async ({ userId, title, body, type, referenceId }) => {
-  return prisma.notification.create({
+  const notif = await prisma.notification.create({
     data: { userId, title, body, type, referenceId }
   })
+  
+  // Real-time broadcast
+  emitToUser(userId, 'notification:new', notif)
+  
+  return notif
 }
 
 // ─── Create notification for multiple users at once ───────────────
 const createBulkNotifications = async (userIds, { title, body, type, referenceId }) => {
   const data = userIds.map(userId => ({ userId, title, body, type, referenceId }))
-  return prisma.notification.createMany({ data })
+  const res = await prisma.notification.createMany({ data })
+
+  // Real-time broadcast
+  userIds.forEach(userId => {
+    emitToUser(userId, 'notification:new', {
+      title, body, type, referenceId, createdAt: new Date()
+    })
+  })
+
+  return res
 }
 
 // ─── Get my notifications ──────────────────────────────────────────
@@ -29,9 +44,13 @@ const getMyNotifications = async (userId, { page = 1, limit = 20 } = {}) => {
 }
 
 // ─── Get all notifications (Admin) ─────────────────────────────────
-const getAllNotifications = async ({ page = 1, limit = 50 } = {}) => {
+const getAllNotifications = async (organizationId, { page = 1, limit = 50 } = {}) => {
+  const where = {
+    user: { organizationId }
+  }
   const [notifications, total] = await Promise.all([
     prisma.notification.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       skip:    (page - 1) * limit,
       take:    limit,
@@ -39,7 +58,7 @@ const getAllNotifications = async ({ page = 1, limit = 50 } = {}) => {
         user: { select: { id: true, name: true, employeeId: true } }
       }
     }),
-    prisma.notification.count(),
+    prisma.notification.count({ where }),
   ])
   return { notifications, total, page, limit }
 }

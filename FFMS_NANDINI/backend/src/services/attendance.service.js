@@ -208,7 +208,21 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const isEarlyLogout = currentMinutes < endMinutes;
 
-  // 4. Update record
+  // 4. Determine Status based on working hours business rules
+  // < 4 hours (240 mins) = ABSENT
+  // 4 to 7 hours (420 mins) = HALF_DAY
+  // > 7 hours = PRESENT (or LATE if check-in was late)
+  let calculatedStatus = attendance.status;
+  if (workingMinutes < 240) {
+    calculatedStatus = 'ABSENT';
+  } else if (workingMinutes < 420) {
+    calculatedStatus = 'HALF_DAY';
+  } else {
+    // If working > 7 hours, maintain 'LATE' if they were late, otherwise 'PRESENT'
+    calculatedStatus = attendance.isLate ? 'LATE' : 'PRESENT';
+  }
+
+  // 5. Update record
   const updatedAttendance = await prisma.attendance.update({
     where: { id: attendance.id },
     data: {
@@ -217,8 +231,7 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
       checkOutLongitude: longitude,
       workingMinutes,
       isEarlyLogout,
-      // If late, status is LATE, otherwise PRESENT
-      status: attendance.status === 'LATE' ? 'LATE' : (isEarlyLogout ? 'HALF_DAY' : 'PRESENT')
+      status: calculatedStatus
     }
   });
 

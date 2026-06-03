@@ -42,8 +42,13 @@ const exportAttendance = async (req, res, next) => {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=attendance_report_${startDate}_to_${endDate}.pdf`);
       return doc.pipe(res);
+    } else if (format === 'csv') {
+      const csvData = exporter.exportAttendanceCSV(records);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=attendance_report_${startDate}_to_${endDate}.csv`);
+      return res.send(csvData);
     } else {
-      throw new BadRequestError('Invalid export format. Allowed formats: excel, pdf');
+      throw new BadRequestError('Invalid export format. Allowed formats: excel, pdf, csv');
     }
   } catch (err) {
     next(err);
@@ -90,8 +95,13 @@ const exportVisits = async (req, res, next) => {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=visits_report_${startDate}_to_${endDate}.pdf`);
       return doc.pipe(res);
+    } else if (format === 'csv') {
+      const csvData = exporter.exportVisitsCSV(records);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=visits_report_${startDate}_to_${endDate}.csv`);
+      return res.send(csvData);
     } else {
-      throw new BadRequestError('Invalid export format. Allowed formats: excel, pdf');
+      throw new BadRequestError('Invalid export format. Allowed formats: excel, pdf, csv');
     }
   } catch (err) {
     next(err);

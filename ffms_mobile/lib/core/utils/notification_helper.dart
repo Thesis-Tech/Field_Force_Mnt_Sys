@@ -41,4 +41,23 @@ class NotificationHelper {
       payload: 'photo_prompt',
     );
   }
+
+  static Future<void> showNewNotification(String title, String body) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'general_notif_channel',
+      'General Notifications',
+      channelDescription: 'General app alerts and updates',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+    await _notificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      platformChannelSpecifics,
+    );
+  }
 }

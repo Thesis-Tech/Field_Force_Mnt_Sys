@@ -2,8 +2,8 @@ const rateLimit = require('express-rate-limit');
 const { errorResponse } = require('../utils/response');
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  windowMs: 30 * 60 * 1000, // 15 minutes
+  max: 12, // Limit each IP to 5 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
   validate: false,

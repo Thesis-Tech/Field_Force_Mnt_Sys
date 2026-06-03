@@ -56,11 +56,19 @@ export default function PlaybackPage() {
         const historyData = (res as any).data;
         const logs = historyData?.logs || [];
         
-        const mappedRoute = logs.map((log: any) => ({
+        const uniqueLogs = new Map();
+        logs.forEach((log: any) => {
+          const timeKey = new Date(log.recordedAt).toLocaleTimeString();
+          if (!uniqueLogs.has(timeKey)) {
+            uniqueLogs.set(timeKey, log);
+          }
+        });
+
+        const mappedRoute = Array.from(uniqueLogs.values()).map((log: any) => ({
           lat: log.latitude,
           lng: log.longitude,
           time: new Date(log.recordedAt).toLocaleTimeString(),
-          speed: log.speed ? `${log.speed} km/h` : "0 km/h",
+          speed: log.speed ? `${Number(log.speed).toFixed(1)} km/h` : "0.0 km/h",
           status: log.isMoving ? "Moving" : "Idle"
         }));
 
@@ -189,7 +197,7 @@ export default function PlaybackPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "20px", flex: 1, minHeight: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "350px 1fr", gap: "20px", flex: 1, minHeight: 0 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "100%" }}>
           <div className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", flex: "0 0 40%", minHeight: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", flexShrink: 0 }}>
@@ -256,12 +264,12 @@ export default function PlaybackPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "100%" }}>
-          <div className="card" style={{ padding: "0", overflow: "hidden", flex: 1, minHeight: 0, border: "1px solid var(--border)", position: "relative" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "100%", minWidth: 0 }}>
+          <div className="card" style={{ padding: "0", overflow: "hidden", flex: 1, maxHeight: "40vh", minHeight: "250px", border: "1px solid var(--border)", position: "relative" }}>
             <PlaybackMap selectedEmployeeName={selectedAgent?.name || ""} route={route} activePointIndex={activePointIndex} />
           </div>
 
-          <div className="card" style={{ padding: "20px", flexShrink: 0 }}>
+          <div className="card" style={{ padding: "20px", flex: "0 0 auto", display: "flex", flexDirection: "column", gap: "16px", minHeight: 0 }}>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <button className="btn-primary" onClick={() => setIsPlaying(!isPlaying)} disabled={route.length <= 1}

@@ -15,6 +15,7 @@ export interface Employee {
   employeeId?: string;
   password?: string;
   territoryId?: string | null;
+  managerId?: string | null;
 }
 
 interface EmployeeState {
@@ -49,12 +50,13 @@ function mapApiUserToEmployee(u: ApiUser): Employee {
     lng: 0,
     employeeId: u.employeeId,
     territoryId: u.territoryId,
+    managerId: u.managerId,
   };
 }
 
 export const fetchEmployees = createAsyncThunk(
   "employees/fetchAll",
-  async (_, { rejectWithValue }) => {
+  async (_: void, { rejectWithValue }: any) => {
     try {
       const res = await usersApi.list({ limit: 100 });
       return res.data.map(mapApiUserToEmployee);
@@ -67,7 +69,7 @@ export const fetchEmployees = createAsyncThunk(
 
 export const createEmployee = createAsyncThunk(
   "employees/create",
-  async (data: Record<string, unknown>, { rejectWithValue }) => {
+  async (data: Record<string, unknown>, { rejectWithValue }: any) => {
     try {
       const res = await usersApi.create(data);
       return mapApiUserToEmployee(res.data);
@@ -80,7 +82,7 @@ export const createEmployee = createAsyncThunk(
 
 export const removeEmployee = createAsyncThunk(
   "employees/delete",
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }: any) => {
     try {
       await usersApi.delete(id);
       return id;
@@ -93,7 +95,7 @@ export const removeEmployee = createAsyncThunk(
 
 export const updateEmployeeThunk = createAsyncThunk(
   "employees/update",
-  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }) => {
+  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }: any) => {
     try {
       const res = await usersApi.update(id, data);
       return mapApiUserToEmployee(res.data);
@@ -108,42 +110,42 @@ const employeeSlice = createSlice({
   name: "employees",
   initialState,
   reducers: {
-    addEmployee(state, action: PayloadAction<Employee>) {
+    addEmployee(state: EmployeeState, action: { payload: Employee }) {
       state.list.push(action.payload);
     },
-    updateEmployee(state, action: PayloadAction<Employee>) {
+    updateEmployee(state: EmployeeState, action: { payload: Employee }) {
       const idx = state.list.findIndex((e) => e.id === action.payload.id);
       if (idx !== -1) state.list[idx] = action.payload;
     },
-    deleteEmployee(state, action: PayloadAction<string>) {
+    deleteEmployee(state: EmployeeState, action: { payload: string }) {
       state.list = state.list.filter((e) => e.id !== action.payload);
     },
-    clearError(state) {
+    clearError(state: EmployeeState) {
       state.error = null;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: (builder: any) => {
     builder
-      .addCase(fetchEmployees.pending, (state) => {
+      .addCase(fetchEmployees.pending, (state: EmployeeState) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchEmployees.fulfilled, (state, action) => {
+      .addCase(fetchEmployees.fulfilled, (state: EmployeeState, action: { payload: Employee[] }) => {
         state.loading = false;
         state.list = action.payload;
       })
-      .addCase(fetchEmployees.rejected, (state, action) => {
+      .addCase(fetchEmployees.rejected, (state: EmployeeState, action: { payload: unknown }) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(createEmployee.fulfilled, (state, action) => {
+      .addCase(createEmployee.fulfilled, (state: EmployeeState, action: { payload: Employee }) => {
         state.list.push(action.payload);
       })
-      .addCase(updateEmployeeThunk.fulfilled, (state, action) => {
+      .addCase(updateEmployeeThunk.fulfilled, (state: EmployeeState, action: { payload: Employee }) => {
         const idx = state.list.findIndex((e) => e.id === action.payload.id);
         if (idx !== -1) state.list[idx] = action.payload;
       })
-      .addCase(removeEmployee.fulfilled, (state, action) => {
+      .addCase(removeEmployee.fulfilled, (state: EmployeeState, action: { payload: string }) => {
         state.list = state.list.filter((e) => e.id !== action.payload);
       });
   },

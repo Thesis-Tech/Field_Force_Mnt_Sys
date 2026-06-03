@@ -14,6 +14,7 @@ router.get('/my',             controller.getMy)
 // ── Manager + Admin ───────────────────────────────────────────────
 router.get('/team',           authorize('MANAGER', 'ADMIN'), controller.getTeam)
 router.get('/all',            authorize('ADMIN'),             controller.getAll)
+router.get('/summary',        authorize('ADMIN', 'MANAGER'), controller.getSummary)
 
 // ── Param routes last ─────────────────────────────────────────────
 router.put('/:id',            validate(updateExpenseSchema),  controller.update)

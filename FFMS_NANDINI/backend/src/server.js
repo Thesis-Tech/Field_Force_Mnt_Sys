@@ -1,6 +1,8 @@
 require('dotenv').config();
 // Start background job workers
-require('./jobs/geofenceAlert.job')
+require('./jobs/geofenceAlert.job');
+const { initPayrollCron } = require('./jobs/payrollCron.job');
+
 const http = require('http');
 const app = require('./app');
 const { initSocket } = require('./config/socket');
@@ -16,9 +18,12 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   logger.info(`Swagger API Docs available at http://localhost:${PORT}/api/v1/docs`);
+  
+  // Initialize scheduled jobs
+  await initPayrollCron();
 });
 
 // Unhandled Promise Rejections handler

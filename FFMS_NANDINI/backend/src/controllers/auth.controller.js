@@ -3,6 +3,7 @@ const { successResponse } = require('../utils/response');
 const { loginSchema, forgotPasswordSchema, verifyOtpSchema, resetPasswordSchema } = require('../validations/auth.validation');
 const { BadRequestError } = require('../utils/errors');
 
+
 /**
  * Login
  */
@@ -37,6 +38,40 @@ const login = async (req, res, next) => {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Register
+ */
+const register = async (req, res, next) => {
+  try {
+    const result = await authService.register(req.body);
+    
+    // Write audit log
+    if (req.logAudit) {
+      await req.logAudit({
+        action: 'REGISTER',
+        resource: 'User',
+        resourceId: result.user.id,
+        newValues: { email: req.body.email }
+      });
+    }
+    // Set refresh token in httpOnly cookie
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+
+    return successResponse(res, {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken
+    }, 201);
   } catch (err) {
     next(err);
   }
@@ -171,5 +206,6 @@ module.exports = {
   forgotPassword,
   verifyOtp,
   resetPassword,
-  me
+  me,
+  register
 };

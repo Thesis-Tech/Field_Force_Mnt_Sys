@@ -48,7 +48,7 @@ export default function Topbar() {
   const dispatch = useDispatch();
   const currentUser = useSelector((s: RootState) => s.auth.user);
   const notifications = useSelector((s: RootState) => s.notifications.list);
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: { read: any; }) => !n.read).length;
   const { toggleMobileSidebar } = useMobileSidebar();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -471,7 +471,15 @@ export default function Topbar() {
               fontFamily: "Inter, sans-serif",
               overflow: "hidden",
             }}>
-              {getInitials()}
+              {(mounted && (currentUser || defaultUser).photoUrl) ? (
+                <img 
+                  src={(currentUser || defaultUser).photoUrl!} 
+                  alt="Profile" 
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                />
+              ) : (
+                getInitials()
+              )}
             </div>
             {!isMobile && (
             <div style={{ display: "none" }}>

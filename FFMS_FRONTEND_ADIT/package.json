@@ -4,7 +4,7 @@
   "description": "Field Force Management System root workspace",
   "scripts": {
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "npm run dev --prefix backend",
+    "dev:backend": "npm run dev --prefix ../FFMS_NANDINI/backend",
     "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
   }
 }

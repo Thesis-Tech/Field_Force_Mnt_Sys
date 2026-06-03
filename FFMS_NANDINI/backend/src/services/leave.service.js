@@ -221,6 +221,58 @@ const getLeaveBalance = async (userId) => {
   return balance
 }
 
+// ─── Consolidated Leave Report (Admin) ──────────────────────────────
+const getConsolidatedReport = async (organizationId) => {
+  const yearStart = new Date(new Date().getFullYear(), 0, 1)
+  const yearEnd   = new Date(new Date().getFullYear(), 11, 31)
+
+  // Fetch all users in the organization
+  const users = await prisma.user.findMany({
+    where: { organizationId, status: 'ACTIVE' },
+    select: { id: true, name: true, employeeId: true, role: true }
+  })
+
+  // Fetch all approved leaves this year
+  const approvedLeaves = await prisma.leave.findMany({
+    where: {
+      user: { organizationId },
+      status: 'APPROVED',
+      startDate: { gte: yearStart },
+      endDate:   { lte: yearEnd },
+    },
+    select: { userId: true, type: true, totalDays: true },
+  })
+
+  const report = users.map(user => {
+    const userLeaves = approvedLeaves.filter(l => l.userId === user.id)
+    
+    const used = {}
+    for (const l of userLeaves) {
+      used[l.type] = (used[l.type] || 0) + l.totalDays
+    }
+
+    const balances = Object.entries(LEAVE_QUOTA).map(([type, quota]) => ({
+      type,
+      allocated: quota,
+      used: used[type] || 0,
+      remaining: quota - (used[type] || 0),
+    }))
+
+    const totalUsed = Object.values(used).reduce((a, b) => a + b, 0)
+
+    return {
+      userId: user.id,
+      name: user.name,
+      employeeId: user.employeeId,
+      role: user.role,
+      balances,
+      totalUsed
+    }
+  })
+
+  return report
+}
+
 module.exports = {
   applyLeave,
   approveLeave,
@@ -230,4 +282,5 @@ module.exports = {
   getTeamLeaves,
   getAllLeaves,
   getLeaveBalance,
+  getConsolidatedReport,
 }

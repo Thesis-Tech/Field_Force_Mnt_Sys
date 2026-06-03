@@ -203,8 +203,44 @@ const getAllExpenses = async (orgId, { page = 1, limit = 10, status, userId } = 
   return { expenses, total, page, limit }
 }
 
+// ─── Get expense summary (admin) ──────────────────────────────────
+const getExpenseSummary = async (orgId) => {
+  const where = { user: { organizationId: orgId } }
+  
+  const totalClaims = await prisma.expense.count({ where })
+  const approvedClaims = await prisma.expense.count({ where: { ...where, status: 'APPROVED' } })
+  const pendingClaims = await prisma.expense.count({ where: { ...where, status: 'SUBMITTED' } })
+  const rejectedClaims = await prisma.expense.count({ where: { ...where, status: 'REJECTED' } })
+
+  const approvedSumAgg = await prisma.expense.aggregate({
+    where: { ...where, status: 'APPROVED' },
+    _sum: { amount: true }
+  })
+  
+  const pendingSumAgg = await prisma.expense.aggregate({
+    where: { ...where, status: 'SUBMITTED' },
+    _sum: { amount: true }
+  })
+
+  const categoryGroups = await prisma.expense.groupBy({
+    by: ['category'],
+    where,
+    _sum: { amount: true }
+  })
+
+  return {
+    totalClaims,
+    approvedClaims,
+    pendingClaims,
+    rejectedClaims,
+    totalExpenseBurn: approvedSumAgg._sum.amount || 0,
+    pendingSum: pendingSumAgg._sum.amount || 0,
+    categorySums: categoryGroups.map(g => ({ name: g.category, amount: g._sum.amount || 0 }))
+  }
+}
+
 module.exports = {
   createExpense, updateExpense, submitExpense,
   approveExpense, rejectExpense, deleteExpense,
-  getMyExpenses, getTeamExpenses, getAllExpenses,
+  getMyExpenses, getTeamExpenses, getAllExpenses, getExpenseSummary
 }

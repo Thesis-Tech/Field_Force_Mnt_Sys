@@ -68,4 +68,11 @@ const balance = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { apply, approve, reject, cancel, myLeaves, teamLeaves, allLeaves, balance }
+const consolidatedReport = async (req, res, next) => {
+  try {
+    const data = await leaveService.getConsolidatedReport(req.user.organizationId)
+    return successResponse(res, data)
+  } catch (err) { next(err) }
+}
+
+module.exports = { apply, approve, reject, cancel, myLeaves, teamLeaves, allLeaves, balance, consolidatedReport }

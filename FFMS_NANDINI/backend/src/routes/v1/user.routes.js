@@ -22,5 +22,8 @@ router.post('/:id/reset-password', authorize('ADMIN'), userController.forceReset
 // Performance stats
 router.get('/:id/performance', authorize('ADMIN', 'MANAGER'), userController.getUserPerformance);
 
+// Organization Hierarchy
+router.get('/:id/hierarchy', authorize('ADMIN', 'MANAGER'), userController.getHierarchy);
+
 
 module.exports = router;

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/notification_model.dart';
+import '../services/socket_service.dart';
+import '../core/utils/notification_helper.dart';
 
 class NotificationProvider extends ChangeNotifier {
   List<NotificationModel> _notifications = [];
@@ -10,6 +12,27 @@ class NotificationProvider extends ChangeNotifier {
   List<NotificationModel> get notifications => _notifications;
   int get unreadCount => _unreadCount;
   bool get isLoading => _isLoading;
+
+  NotificationProvider() {
+    _initSocketListener();
+  }
+
+  void _initSocketListener() {
+    SocketService.onNewNotification = (data) {
+      if (data != null) {
+        final newNotif = NotificationModel.fromJson(data as Map<String, dynamic>);
+        _notifications.insert(0, newNotif);
+        _unreadCount++;
+        
+        NotificationHelper.showNewNotification(
+          newNotif.title ?? 'New Notification', 
+          newNotif.body ?? ''
+        );
+        
+        notifyListeners();
+      }
+    };
+  }
 
   // Fetch my notifications
   Future<void> fetchNotifications() async {

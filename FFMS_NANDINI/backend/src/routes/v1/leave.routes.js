@@ -15,6 +15,7 @@ router.get('/balance',                                   controller.balance)
 // ── Manager + Admin ───────────────────────────────────────────────
 router.get('/team',        authorize('MANAGER', 'ADMIN'), controller.teamLeaves)
 router.get('/all',         authorize('ADMIN'),             controller.allLeaves)
+router.get('/report',      authorize('ADMIN', 'MANAGER'),  controller.consolidatedReport)
 
 // ── Param routes last (always) ────────────────────────────────────
 router.put('/:id/approve', authorize('MANAGER', 'ADMIN'), validate(approveRejectSchema), controller.approve)

@@ -48,10 +48,10 @@ const login = async (email, password) => {
   const accessToken = signAccessToken(user.id, user.role, user.organizationId);
   const refreshToken = signRefreshToken(user.id);
 
-  
+
   // Let's continue writing auth.service assuming `refreshToken` is on User.
   const hashedRefreshToken = hashToken(refreshToken);
-  
+
   // We'll update the User's refreshToken field in database
   await prisma.user.update({
     where: { id: user.id },
@@ -65,6 +65,66 @@ const login = async (email, password) => {
   const { passwordHash: _, ...userWithoutPassword } = user;
 
   return {
+    user: userWithoutPassword,
+    accessToken,
+    refreshToken
+  };
+};
+
+/*Register Service*/
+const register = async (data) => {
+  const existingUser = await prisma.user.findUnique({
+    where: { email: data.email }
+  });
+
+  if (existingUser) {
+    throw new BadRequestError('Email already exists');
+  }
+
+  const passwordHash = await bcrypt.hash(data.password, 12);
+
+  // Auto-generate organization if not provided
+  let orgId = data.organizationId;
+  if (!orgId) {
+    const slug = data.companyName ? data.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now() : 'org-' + Date.now();
+    const org = await prisma.organization.create({
+      data: {
+        name: data.companyName || `${data.name}'s Organization`,
+        slug: slug,
+        isActive: true
+      }
+    });
+    orgId = org.id;
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      name: data.name,
+      employeeId: data.employeeId || 'EMP-ADMIN-' + Date.now(),
+      email: data.email,
+      passwordHash,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      organization: {
+        connect: {
+          id: orgId
+        }
+      }
+    }
+  });
+
+  const { passwordHash: _, ...userWithoutPassword } = user;
+
+  const accessToken = signAccessToken(user.id, user.role, user.organizationId);
+  const refreshToken = signRefreshToken(user.id);
+  const hashedRefreshToken = hashToken(refreshToken);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { deviceToken: hashedRefreshToken }
+  });
+
+  return { 
     user: userWithoutPassword,
     accessToken,
     refreshToken
@@ -147,7 +207,7 @@ const forgotPassword = async (email) => {
   // Rate Limiting: 3 OTP requests per hour using Redis
   const rateLimitKey = `otp_limit:${email}`;
   const requestCount = await redis.get(rateLimitKey);
-  
+
   if (requestCount && parseInt(requestCount) >= 3) {
     throw new BadRequestError('Too many OTP requests. Maximum 3 per hour allowed.');
   }
@@ -193,7 +253,7 @@ const verifyOtp = async (email, otp) => {
   // Generate short-lived reset token (5 minutes)
   const resetToken = crypto.randomBytes(32).toString('hex');
   const resetTokenKey = `reset_token:${resetToken}`;
-  
+
   // Store reset token associated with the email in Redis for 5 minutes (300 seconds)
   await redis.set(resetTokenKey, email, 'EX', 300);
 
@@ -246,5 +306,6 @@ module.exports = {
   logout,
   forgotPassword,
   verifyOtp,
-  resetPassword
+  resetPassword,
+  register
 };

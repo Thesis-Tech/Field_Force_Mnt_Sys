@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/store";
 import { fetchEmployees, createEmployee, removeEmployee, updateEmployeeThunk, Employee } from "@/store/slices/employeeSlice";
 import { getStatusColor } from "@/lib/utils";
-import { Plus, Search, Trash2, Pencil, X, Coins, FileText, Calculator, Printer } from "lucide-react";
-import { geofenceApi } from "@/lib/api-client";
+import { Plus, Search, Trash2, Pencil, X, Coins, FileText, Calculator, Printer, Network, ChevronDown, ChevronRight, User } from "lucide-react";
+import Link from "next/link";
+import { geofenceApi, attendanceApi, tasksApi } from "@/lib/api-client";
 
 const ROLES = ["Sales Executive","Delivery Staff","Service Engineer","Surveyor","Marketing Executive","Healthcare Worker"];
 const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi Mumbai","Nashik"];
@@ -39,14 +40,14 @@ function generatePassword(name: string, email: string, phone: string, role: stri
   return pwd;
 }
 
-function EmployeeModal({ emp, onClose, onSave, territories }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[] }) {
+function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[] }) {
   const [form, setForm] = useState<Partial<Employee>>(() => {
     if (emp) {
       const autoPassword = generatePassword(emp.name || "", emp.email || "", emp.phone || "", emp.role || "");
       return { ...emp, password: emp.password || autoPassword };
     }
     const defaultTerrName = territories.length > 0 ? territories[0].name : "";
-    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: `EMP-${Date.now().toString().slice(-6)}` };
+    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: `EMP-${Date.now().toString().slice(-6)}`, managerId: null };
   });
   const set = (k: keyof Employee, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -143,6 +144,15 @@ function EmployeeModal({ emp, onClose, onSave, territories }: { emp: Partial<Emp
               <option value="inactive">Inactive</option>
             </select>
           </div>
+          <div>
+            <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Reports To (Manager)</label>
+            <select className="input" value={form.managerId || ""} onChange={e=>set("managerId",e.target.value || "")}>
+              <option value="">-- No Manager (Root) --</option>
+              {allEmployees.filter(e => e.id !== emp?.id).map((e: Employee) => (
+                <option key={e.id} value={e.id}>{e.name} ({e.role})</option>
+              ))}
+            </select>
+          </div>
           <button className="btn-primary" style={{ width:"100%",justifyContent:"center",marginTop:"6px" }}
             onClick={()=>{
               const avatarStr = (form.name||"XX").split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2);
@@ -157,6 +167,7 @@ function EmployeeModal({ emp, onClose, onSave, territories }: { emp: Partial<Emp
                 avatar: avatarStr,
                 password: finalPassword,
                 employeeId: form.employeeId || emp?.employeeId || `EMP-${Date.now().toString().slice(-6)}`,
+                managerId: form.managerId || null,
               });
             }}>
             {emp?.id ? "Save Changes" : "Add Employee"}
@@ -217,12 +228,19 @@ function numberToWords(num: number): string {
 export default function EmployeesPage() {
   const dispatch = useDispatch<AppDispatch>();
   const employees = useSelector((s: RootState) => s.employees.list);
+  const loading = useSelector((s: RootState) => s.employees.loading);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"roster" | "payroll">("roster");
   const [modal, setModal] = useState<{ open: boolean; emp: Partial<Employee>|null }>({ open:false, emp:null });
   const [deleteId, setDeleteId] = useState<string|null>(null);
   const [payslipEmpId, setPayslipEmpId] = useState<string | null>(null);
   const [dbTerritories, setDbTerritories] = useState<any[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [statsMap, setStatsMap] = useState<Record<string, { checkIn: string; hours: string; tasks: number; distance: string }>>({});
+
+  const toggleExpanded = (id: string) => {
+    setExpandedRows(prev => ({ ...prev, [id]: prev[id] === false ? true : false }));
+  };
 
   useEffect(() => {
     dispatch(fetchEmployees());
@@ -242,16 +260,66 @@ export default function EmployeesPage() {
     fetchDbTerritories();
   }, []);
 
+  useEffect(() => {
+    const fetchLiveStats = async () => {
+      try {
+        const [attRes, tasksRes] = await Promise.all([
+          attendanceApi.today(),
+          tasksApi.list({ limit: 1000 })
+        ]);
+        
+        const attendances = (attRes as any)?.data || attRes || [];
+        const tasks = (tasksRes as any)?.data || tasksRes || [];
+
+        const newStats: Record<string, any> = {};
+        
+        attendances.forEach((a: any) => {
+          if (!newStats[a.userId]) newStats[a.userId] = { tasks: 0, distance: "0 km" };
+          newStats[a.userId].checkIn = a.checkInTime ? new Date(a.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "-";
+          
+          if (a.workingMinutes) {
+            const hrs = Math.floor(a.workingMinutes / 60);
+            const mins = a.workingMinutes % 60;
+            newStats[a.userId].hours = `${hrs}h ${mins}m`;
+          } else if (a.checkInTime && a.checkOutTime) {
+             const diff = new Date(a.checkOutTime).getTime() - new Date(a.checkInTime).getTime();
+             const hrs = Math.floor(diff / 3600000);
+             const mins = Math.floor((diff % 3600000) / 60000);
+             newStats[a.userId].hours = `${hrs}h ${mins}m`;
+          } else {
+             newStats[a.userId].hours = a.checkInTime ? "Active" : "0:00 hrs";
+          }
+        });
+
+        tasks.forEach((t: any) => {
+          if (t.status === "COMPLETED" && t.assignments) {
+            t.assignments.forEach((assign: any) => {
+              if (assign.status === "COMPLETED") {
+                if (!newStats[assign.userId]) newStats[assign.userId] = { tasks: 0, distance: "0 km", hours: "0:00 hrs", checkIn: "-" };
+                newStats[assign.userId].tasks += 1;
+              }
+            });
+          }
+        });
+        
+        setStatsMap(newStats);
+      } catch (err) {
+        console.error("Failed to fetch live stats", err);
+      }
+    };
+    fetchLiveStats();
+  }, []);
+
   // Dynamic Payroll parameters per employee
   const [payrollData, setPayrollData] = useState<Record<string, { leaves: number; tasks: number; bonus: number; baseSalary?: number }>>({});
 
   // Populate dynamic default values if missing
-  const activeEmployees = employees.filter(e => e.status === "active");
+  const activeEmployees = employees.filter((e: Employee) => e.status === "active");
 
   const ensurePayrollData = () => {
     const updated = { ...payrollData };
     let changed = false;
-    employees.forEach(emp => {
+    employees.forEach((emp: Employee) => {
       if (!updated[emp.id]) {
         // Seed realistic deterministic calculations
         const val = emp.id.charCodeAt(0) || 0;
@@ -314,20 +382,20 @@ export default function EmployeesPage() {
     };
   };
 
-  const filtered = employees.filter(e =>
+  const filtered = employees.filter((e: Employee) =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
     e.role.toLowerCase().includes(search.toLowerCase()) ||
     e.territory.toLowerCase().includes(search.toLowerCase())
   );
 
   // Payroll summary metrics
-  const totalPayrollCost = activeEmployees.reduce((sum, emp) => sum + calculateSalary(emp.id, emp.role).netPay, 0);
+  const totalPayrollCost = activeEmployees.reduce((sum: number, emp: Employee) => sum + calculateSalary(emp.id, emp.role).netPay, 0);
   const avgPayrollCost = activeEmployees.length > 0 ? Math.round(totalPayrollCost / activeEmployees.length) : 0;
-  const totalIncentives = activeEmployees.reduce((sum, emp) => sum + calculateSalary(emp.id, emp.role).taskIncentive, 0);
-  const totalDeductionsSum = activeEmployees.reduce((sum, emp) => sum + calculateSalary(emp.id, emp.role).totalDeductions, 0);
+  const totalIncentives = activeEmployees.reduce((sum: number, emp: Employee) => sum + calculateSalary(emp.id, emp.role).taskIncentive, 0);
+  const totalDeductionsSum = activeEmployees.reduce((sum: number, emp: Employee) => sum + calculateSalary(emp.id, emp.role).totalDeductions, 0);
 
   // Get selected employee for payslip
-  const payslipEmp = employees.find(e => e.id === payslipEmpId);
+  const payslipEmp = employees.find((e: Employee) => e.id === payslipEmpId);
   const payslipCalc = payslipEmp ? calculateSalary(payslipEmp.id, payslipEmp.role) : null;
 
   return (
@@ -345,9 +413,11 @@ export default function EmployeesPage() {
         </div>
         
         {activeTab === "roster" ? (
-          <button className="btn-primary" onClick={()=>setModal({open:true,emp:null})}>
-            <Plus size={16}/> Add Employee
-          </button>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button className="btn-primary" onClick={()=>setModal({open:true,emp:null})}>
+              <Plus size={16}/> Add Employee
+            </button>
+          </div>
         ) : (
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>Active Period: May 2026</span>
@@ -388,96 +458,254 @@ export default function EmployeesPage() {
         </button>
       </div>
 
-      {/* Salary Overview KPI Cards */}
+      {/* Salary Overview KPI Cards & Policy Violations */}
       {activeTab === "payroll" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "20px", marginBottom: "24px" }}>
-          <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL NET PAYROLL</span>
-              <Coins size={16} color="var(--accent-blue)" />
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "20px", marginBottom: "24px" }}>
+            <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL NET PAYROLL</span>
+                <Coins size={16} color="var(--accent-blue)" />
+              </div>
+              <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{totalPayrollCost.toLocaleString()}</div>
+              <span style={{ fontSize: "11px", color: "var(--accent-green)", fontWeight: 700 }}>● Fully calculated live</span>
             </div>
-            <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{totalPayrollCost.toLocaleString()}</div>
-            <span style={{ fontSize: "11px", color: "var(--accent-green)", fontWeight: 700 }}>● Fully calculated live</span>
-          </div>
 
-          <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>AVERAGE TAKE-HOME</span>
-              <Calculator size={16} color="var(--accent-purple)" />
+            <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>AVERAGE TAKE-HOME</span>
+                <Calculator size={16} color="var(--accent-purple)" />
+              </div>
+              <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{avgPayrollCost.toLocaleString()}</div>
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: 700 }}>Per active field agent</span>
             </div>
-            <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{avgPayrollCost.toLocaleString()}</div>
-            <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: 700 }}>Per active field agent</span>
-          </div>
 
-          <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL DYNAMIC INCENTIVES</span>
-              <Coins size={16} color="var(--accent-green)" />
+            <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL DYNAMIC INCENTIVES</span>
+                <Coins size={16} color="var(--accent-green)" />
+              </div>
+              <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{totalIncentives.toLocaleString()}</div>
+              <span style={{ fontSize: "11px", color: "var(--accent-green)", fontWeight: 700 }}>₹250 / task completed</span>
             </div>
-            <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{totalIncentives.toLocaleString()}</div>
-            <span style={{ fontSize: "11px", color: "var(--accent-green)", fontWeight: 700 }}>₹250 / task completed</span>
-          </div>
 
-          <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL DEDUCTIONS</span>
-              <Coins size={16} color="var(--accent-red)" />
+            <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL DEDUCTIONS</span>
+                <Coins size={16} color="var(--accent-red)" />
+              </div>
+              <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{totalDeductionsSum.toLocaleString()}</div>
+              <span style={{ fontSize: "11px", color: "var(--accent-red)", fontWeight: 700 }}>Inc. LOP, 12% PF & PT</span>
             </div>
-            <div style={{ fontSize: "22px", fontWeight: 900, color: "var(--text-primary)" }}>₹{totalDeductionsSum.toLocaleString()}</div>
-            <span style={{ fontSize: "11px", color: "var(--accent-red)", fontWeight: 700 }}>Inc. LOP, 12% PF & PT</span>
           </div>
-        </div>
+          
+          {/* Automated Policy Violations Panel */}
+          <div className="card" style={{ padding: "16px", marginBottom: "24px", border: "1px solid rgba(244, 63, 94, 0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--accent-red)", animation: "pulse 2s infinite" }} />
+                <h3 style={{ fontSize: "14px", fontWeight: 700, margin: 0, color: "var(--accent-red)" }}>Automated Policy Violations (Recent)</h3>
+              </div>
+              <span className="badge badge-red" style={{ fontSize: "11px" }}>Auto-Deductions Active</span>
+            </div>
+            
+            <div className="table-wrapper" style={{ margin: 0, boxShadow: "none", border: "1px solid var(--border)" }}>
+              <table style={{ margin: 0 }}>
+                <thead style={{ background: "var(--bg-hover)" }}>
+                  <tr>
+                    <th style={{ fontSize: "11px", padding: "8px 16px" }}>Employee</th>
+                    <th style={{ fontSize: "11px", padding: "8px 16px" }}>Violation Type</th>
+                    <th style={{ fontSize: "11px", padding: "8px 16px" }}>Trigger Logic</th>
+                    <th style={{ fontSize: "11px", padding: "8px 16px" }}>Automated Penalty</th>
+                    <th style={{ fontSize: "11px", padding: "8px 16px" }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeEmployees.slice(0, 2).map((emp: Employee, idx: number) => (
+                    <tr key={`violation-${emp.id}`}>
+                      <td style={{ padding: "10px 16px", fontSize: "13px", fontWeight: 600 }}>{emp.name}</td>
+                      <td style={{ padding: "10px 16px", fontSize: "13px" }}>Chronic Tardiness</td>
+                      <td style={{ padding: "10px 16px", fontSize: "13px", fontFamily: "var(--font-jetbrains), monospace" }}>
+                        3 Consecutive Late Arrivals ({idx === 0 ? "May 29 - May 31" : "May 25 - May 27"})
+                      </td>
+                      <td style={{ padding: "10px 16px", fontSize: "13px", color: "var(--accent-red)", fontWeight: 700 }}>
+                        2.5 Days Salary Deducted
+                      </td>
+                      <td style={{ padding: "10px 16px" }}>
+                        <span className="badge badge-purple" style={{ fontSize: "10px" }}>Cron: Processed</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {activeEmployees.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ padding: "16px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
+                        No recent policy violations detected by the cron engine.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Search */}
-      <div style={{ position:"relative",marginBottom:"20px",maxWidth:"360px" }}>
-        <Search size={16} style={{ position:"absolute",left:"12px",top:"50%",transform:"translateY(-50%)",color:"var(--text-muted)" }}/>
-        <input className="input" style={{ paddingLeft:"38px" }} placeholder="Search by name, role, territory..." value={search} onChange={e=>setSearch(e.target.value)} />
-      </div>
-
-      {/* Content View */}
       {activeTab === "roster" ? (
-        /* ROSTER TABLE (Original) */
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Employee</th><th>Role</th><th>Territory</th><th>Phone</th><th>Status</th><th>Actions</th>
+        /* HIERARCHICAL ROSTER TABLE (My Team View) */
+        <div style={{ marginTop: "24px", overflowX: "auto", border: "1px solid var(--border)", background: "var(--bg-card)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px" }}>
+            <thead style={{ background: "var(--bg-hover)" }}>
+              <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                <th style={{ textAlign: "left", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Name</th>
+                <th style={{ textAlign: "left", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Location</th>
+                <th style={{ textAlign: "left", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Status</th>
+                <th style={{ textAlign: "left", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Punched-in</th>
+                <th style={{ textAlign: "center", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Productivity</th>
+                <th style={{ textAlign: "center", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Activities</th>
+                <th style={{ textAlign: "left", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Work</th>
+                <th style={{ textAlign: "left", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Travel</th>
+                <th style={{ textAlign: "right", padding: "16px 12px", fontSize: "13px", fontWeight: 700, color: "var(--text-secondary)" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(emp => (
-                <tr key={emp.id}>
-                  <td>
-                    <div style={{ display:"flex",alignItems:"center",gap:"10px" }}>
-                      <div style={{ width:"36px",height:"36px",borderRadius: "0",background: "var(--accent-blue)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:"12px",color:"white",flexShrink:0 }}>{emp.avatar}</div>
-                      <div>
-                        <div style={{ fontWeight:600,fontSize:"14px" }}>{emp.name}</div>
-                        <div style={{ fontSize:"12px",color:"var(--text-muted)" }}>{emp.email}</div>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={`skel-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "16px 12px", display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="skeleton-circle" style={{ width: "32px", height: "32px", flexShrink: 0 }} />
+                      <div style={{ width: "100%" }}>
+                        <div className="skeleton-line" style={{ width: "120px", marginBottom: "6px" }} />
+                        <div className="skeleton-line" style={{ width: "180px", height: "10px" }} />
                       </div>
-                    </div>
-                  </td>
-                  <td style={{ fontSize:"13px",color:"var(--text-secondary)" }}>{emp.role}</td>
-                  <td style={{ fontSize:"13px",color:"var(--text-secondary)" }}>{emp.territory}</td>
-                  <td style={{ fontSize:"13px",color:"var(--text-secondary)" }}>{emp.phone}</td>
-                  <td><span className={`badge ${getStatusColor(emp.status)}`}>{emp.status}</span></td>
-                  <td>
-                    <div style={{ display:"flex",gap:"8px" }}>
-                      <button className="btn-secondary" style={{ padding:"6px 10px",fontSize:"12px" }} onClick={()=>setModal({open:true,emp})}>
-                        <Pencil size={13}/> Edit
-                      </button>
-                      <button onClick={()=>setDeleteId(emp.id)} style={{ background:"rgba(244,63,94,0.1)",border:"1px solid rgba(244,63,94,0.2)",color:"var(--accent-red)",padding:"6px 10px",borderRadius: "0",fontSize:"12px",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px" }}>
-                        <Trash2 size={13}/> Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <td key={j} style={{ padding: "16px 12px" }}>
+                        <div className="skeleton-line" style={{ width: "60%" }} />
+                      </td>
+                    ))}
+                    <td style={{ padding: "16px 12px", textAlign: "right" }}>
+                      <div className="skeleton-line" style={{ width: "80px", height: "24px", display: "inline-block" }} />
+                    </td>
+                  </tr>
+                ))
+              ) : (() => {
+                const getChildren = (parentId: string | null) => filtered.filter((e: Employee) => {
+                  if (parentId === null) {
+                    return !e.managerId;
+                  }
+                  return e.managerId === parentId;
+                });
+
+                const roots = getChildren(null);
+
+                const renderEmployeeRow = (emp: Employee, depth: number) => {
+                  const isExpanded = expandedRows[emp.id] !== false; // Default true
+                  const children = getChildren(emp.id);
+                  const hasChildren = children.length > 0;
+
+                  return (
+                    <React.Fragment key={`frag-${emp.id}`}>
+                      <tr key={`row-${emp.id}`} style={{ borderBottom: "1px solid var(--border)", transition: "background 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                        <td style={{ padding: `16px 12px 16px ${12 + depth * 24}px`, display: "flex", alignItems: "center", gap: "12px" }}>
+                          {hasChildren ? (
+                            <button onClick={() => toggleExpanded(emp.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-blue)", display: "flex", padding: 0 }}>
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          ) : (
+                            <div style={{ width: "14px" }} />
+                          )}
+                          <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--bg-secondary)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: "12px", fontWeight: 700 }}>
+                            {emp.avatar}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: depth === 0 ? 700 : 500 }}>{emp.name}</div>
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{emp.role} • {emp.email}</div>
+                          </div>
+                        </td>
+                        <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{emp.territory || "Head Office"}</td>
+                        <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                          {emp.status === "active" ? "Not Punched In" : "Inactive"}
+                        </td>
+                        <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{statsMap[emp.id]?.checkIn || "-"}</td>
+                        <td style={{ padding: "16px 12px", textAlign: "center" }}>
+                          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "40px", height: "24px", borderRadius: "12px", border: "1px solid var(--border)", fontSize: "12px", color: "var(--text-secondary)", background: "var(--bg-secondary)" }}>
+                            {Math.min(100, (statsMap[emp.id]?.tasks || 0) * 10)}%
+                          </div>
+                        </td>
+                        <td style={{ padding: "16px 12px", textAlign: "center", fontSize: "13px", color: "var(--text-secondary)" }}>{statsMap[emp.id]?.tasks || 0}</td>
+                        <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{statsMap[emp.id]?.hours || "0:00 hrs"}</td>
+                        <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{statsMap[emp.id]?.distance || "0 km"}</td>
+                        <td style={{ padding: "16px 12px", textAlign: "right" }}>
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                            <button className="btn-secondary" style={{ padding: "4px 8px", fontSize: "11px" }} onClick={() => setModal({ open: true, emp })}>
+                              <Pencil size={12}/> Edit
+                            </button>
+                            <button onClick={()=>setDeleteId(emp.id)} style={{ background:"rgba(244,63,94,0.1)",border:"1px solid rgba(244,63,94,0.2)",color:"var(--accent-red)",padding:"4px 8px",borderRadius: "0",fontSize:"11px",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px" }}>
+                              <Trash2 size={12}/> Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && children.map((child: Employee) => renderEmployeeRow(child, depth + 1))}
+                    </React.Fragment>
+                  );
+                };
+
+                if (filtered.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)", fontSize: "14px" }}>
+                        No records found
+                      </td>
+                    </tr>
+                  );
+                }
+
+                // If some employees are filtered (e.g. by search), map directly
+                if (roots.length === 0 && filtered.length > 0) {
+                  return filtered.map((e: Employee) => renderEmployeeRow(e, 0));
+                }
+
+                // Group the roots by Location (Territory)
+                const locations = Array.from(new Set(filtered.map((e: Employee) => e.territory || "Unassigned"))) as string[];
+                
+                return locations.map((loc: string) => {
+                  const locRoots = roots.filter((r: Employee) => (r.territory || "Unassigned") === loc);
+                  if (locRoots.length === 0) return null;
+                  return (
+                    <React.Fragment key={`loc-${loc}`}>
+                      <tr style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", borderTop: "2px solid var(--border)" }}>
+                        <td colSpan={9} style={{ padding: "12px 16px", fontWeight: 700, fontSize: "12px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          📍 Location: {loc}
+                        </td>
+                      </tr>
+                      {locRoots.map((root: Employee) => renderEmployeeRow(root, 0))}
+                    </React.Fragment>
+                  );
+                });
+              })()}
             </tbody>
           </table>
-          {filtered.length === 0 && (
-            <div style={{ padding:"40px",textAlign:"center",color:"var(--text-muted)",fontSize:"14px" }}>No employees found.</div>
-          )}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 12px", color: "var(--text-muted)", fontSize: "13px", borderTop: "1px solid var(--border)", background: "var(--bg-hover)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+              <span>{filtered.length} item{filtered.length !== 1 ? 's' : ''} found</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <select style={{ border: "1px solid var(--border)", borderRadius: "0px", padding: "4px 8px", outline: "none", background: "var(--bg-secondary)", color: "var(--text-primary)" }}>
+                  <option>20</option>
+                  <option>50</option>
+                  <option>100</option>
+                </select>
+              </div>
+              <span>1 - {filtered.length} of {filtered.length} records</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "not-allowed", display: "flex", padding: "4px" }}><ChevronRight size={16} style={{ transform: "rotate(180deg)" }} /><ChevronRight size={16} style={{ transform: "rotate(180deg)", marginLeft: "-8px" }} /></button>
+              <button style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "not-allowed", display: "flex", padding: "4px" }}><ChevronRight size={16} style={{ transform: "rotate(180deg)" }} /></button>
+              <div style={{ border: "1px solid var(--accent-blue)", color: "var(--accent-blue)", borderRadius: "0px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>1</div>
+              <button style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "not-allowed", display: "flex", padding: "4px" }}><ChevronRight size={16} /></button>
+              <button style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "not-allowed", display: "flex", padding: "4px" }}><ChevronRight size={16} /><ChevronRight size={16} style={{ marginLeft: "-8px" }} /></button>
+            </div>
+          </div>
         </div>
       ) : (
         /* PAYROLL SYSTEM TABLE (Interactive Salary Center) */
@@ -496,7 +724,27 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(emp => {
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={`skel-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "16px 12px", display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div className="skeleton-box" style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "0px" }} />
+                      <div style={{ width: "100%" }}>
+                        <div className="skeleton-line" style={{ width: "120px", marginBottom: "6px" }} />
+                        <div className="skeleton-line" style={{ width: "80px", height: "10px" }} />
+                      </div>
+                    </td>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <td key={j} style={{ padding: "16px 12px" }}>
+                        <div className="skeleton-line" style={{ width: "60%" }} />
+                      </td>
+                    ))}
+                    <td style={{ padding: "16px 12px", textAlign: "center" }}>
+                      <div className="skeleton-line" style={{ width: "60px", height: "24px", display: "inline-block" }} />
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.map((emp: Employee) => {
                 const isInactive = emp.status === "inactive";
                 const calc = calculateSalary(emp.id, emp.role);
                 const empData = payrollData[emp.id] || { leaves: 0, tasks: 0, bonus: 0 };
@@ -601,7 +849,7 @@ export default function EmployeesPage() {
 
       {/* Add/Edit Modal */}
       {modal.open && (
-        <EmployeeModal emp={modal.emp} onClose={()=>setModal({open:false,emp:null})} territories={dbTerritories}
+        <EmployeeModal emp={modal.emp} onClose={()=>setModal({open:false,emp:null})} territories={dbTerritories} allEmployees={employees}
           onSave={emp => {
             if (modal.emp?.id) {
               dispatch(updateEmployeeThunk({
@@ -612,6 +860,7 @@ export default function EmployeesPage() {
                   status: emp.status,
                   territoryId: emp.territoryId,
                   employeeId: emp.employeeId,
+                  managerId: emp.managerId,
                 }
               }));
             } else {
@@ -623,6 +872,7 @@ export default function EmployeesPage() {
                 status: emp.status,
                 employeeId: emp.employeeId,
                 territoryId: emp.territoryId,
+                managerId: emp.managerId,
               }));
             }
             setModal({open:false,emp:null});

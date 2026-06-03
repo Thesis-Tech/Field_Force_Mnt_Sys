@@ -218,9 +218,52 @@ const exportVisitsPDF = async (records, startDate, endDate) => {
   return doc;
 };
 
+/**
+ * Generate CSV string for Attendance data (Fast Streaming)
+ */
+const exportAttendanceCSV = (records) => {
+  const header = ['Employee ID', 'Name', 'Date', 'Check In Time', 'Check Out Time', 'Working Minutes', 'Status', 'Late', 'Early Logout'].join(',');
+  const rows = records.map(rec => {
+    return [
+      `"${rec.user.employeeId}"`,
+      `"${rec.user.name}"`,
+      `"${rec.date.toISOString().split('T')[0]}"`,
+      `"${rec.checkInTime ? new Date(rec.checkInTime).toLocaleTimeString() : '-'}"`,
+      `"${rec.checkOutTime ? new Date(rec.checkOutTime).toLocaleTimeString() : '-'}"`,
+      rec.workingMinutes || 0,
+      `"${rec.status}"`,
+      `"${rec.isLate ? 'YES' : 'NO'}"`,
+      `"${rec.isEarlyLogout ? 'YES' : 'NO'}"`
+    ].join(',');
+  });
+  return [header, ...rows].join('\n');
+};
+
+/**
+ * Generate CSV string for Visit reports data (Fast Streaming)
+ */
+const exportVisitsCSV = (records) => {
+  const header = ['Staff Member', 'Customer Name', 'Phone', 'Address', 'Visit Type', 'Status', 'Notes', 'Date'].join(',');
+  const rows = records.map(rec => {
+    return [
+      `"${rec.user.name}"`,
+      `"${rec.customerName?.replace(/"/g, '""')}"`,
+      `"${rec.customerPhone || '-'}"`,
+      `"${rec.customerAddress?.replace(/"/g, '""') || '-'}"`,
+      `"${rec.visitType}"`,
+      `"${rec.visitStatus}"`,
+      `"${rec.notes?.replace(/"/g, '""') || '-'}"`,
+      `"${new Date(rec.createdAt).toLocaleString()}"`
+    ].join(',');
+  });
+  return [header, ...rows].join('\n');
+};
+
 module.exports = {
   exportAttendanceExcel,
   exportAttendancePDF,
+  exportAttendanceCSV,
   exportVisitsExcel,
-  exportVisitsPDF
+  exportVisitsPDF,
+  exportVisitsCSV
 };

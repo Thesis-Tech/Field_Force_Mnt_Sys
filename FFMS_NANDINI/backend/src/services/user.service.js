@@ -349,6 +349,75 @@ const getUserPerformance = async (userId, organizationId) => {
   };
 };
 
+/**
+ * Get User Hierarchy (Recursive CTE)
+ */
+const getHierarchy = async (rootUserId, organizationId) => {
+  // Verify the root user exists and belongs to the org
+  const rootUser = await prisma.user.findFirst({
+    where: { id: rootUserId, organizationId }
+  });
+
+  if (!rootUser) {
+    throw new NotFoundError('User not found in organization');
+  }
+
+  // Execute recursive CTE
+  const result = await prisma.$queryRaw`
+    WITH RECURSIVE EmployeeTree AS (
+      SELECT 
+        id, 
+        name, 
+        role, 
+        "employeeId", 
+        "managerId", 
+        0 AS level
+      FROM "User"
+      WHERE id = ${rootUserId} AND "organizationId" = ${organizationId}
+      
+      UNION ALL
+      
+      SELECT 
+        u.id, 
+        u.name, 
+        u.role, 
+        u."employeeId", 
+        u."managerId", 
+        et.level + 1
+      FROM "User" u
+      INNER JOIN EmployeeTree et ON u."managerId" = et.id
+      WHERE u."organizationId" = ${organizationId}
+    )
+    SELECT * FROM EmployeeTree ORDER BY level, name;
+  `;
+
+  // Helper to build tree
+  const buildTree = (nodes, parentId) => {
+    return nodes
+      .filter(n => n.managerId === parentId || (!parentId && !n.managerId))
+      .map(n => ({
+        ...n,
+        // recursive CTE returns BigInt for count/level in some drivers, cast to Number
+        level: Number(n.level),
+        subordinates: buildTree(nodes, n.id)
+      }));
+  };
+
+  // The CTE returns the root user with managerId = actual manager, 
+  // but for building the tree from this root, we treat its managerId as null internally 
+  // or we just find the root node directly.
+  const rootNode = result.find(n => n.id === rootUserId);
+  if (!rootNode) return null;
+  
+  const tree = {
+    ...rootNode,
+    level: Number(rootNode.level),
+    subordinates: buildTree(result, rootUserId)
+  };
+
+  return tree;
+};
+
 module.exports = {
   createUser,
   listUsers,
@@ -357,5 +426,6 @@ module.exports = {
   deleteUser,
   assignTerritory,
   forceResetPassword,
-  getUserPerformance
+  getUserPerformance,
+  getHierarchy
 };

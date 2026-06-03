@@ -41,7 +41,7 @@ export default function ReportsPage() {
   const attendance = useSelector((s: RootState) => s.attendance.list);
 
   // Filter Attendance Logs
-  const filteredAttendance = attendance.filter((att) => {
+  const filteredAttendance = attendance.filter((att: any) => {
     const matchesSearch = att.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           att.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === "all" || att.status === selectedStatus;
@@ -49,28 +49,63 @@ export default function ReportsPage() {
   });
 
   // Filter Task Logs
-  const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = tasks.filter((task: any) => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           task.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === "all" || task.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
-  // Simulated export trigger
-  const handleExport = (type: "csv" | "excel") => {
-    setIsExporting(type === "csv" ? true : false);
-    alert(`Generating export for ${activeTab} data as ${type.toUpperCase()}... File download will begin shortly.`);
-    setTimeout(() => {
+  // Export trigger using real backend data stream
+  const handleExport = async (type: "csv" | "excel" | "pdf") => {
+    if (activeTab === "analytics") {
+      alert("Analytics cannot be exported directly. Please select Attendance or Tasks.");
+      return;
+    }
+    
+    setIsExporting(true);
+    try {
+      const today = new Date();
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+      
+      const startDate = lastMonth.toISOString().split("T")[0];
+      const endDate = today.toISOString().split("T")[0];
+      
+      // We map "tasks" tab to the backend "visits" export for compliance logging
+      const endpoint = activeTab === "attendance" ? "attendance" : "visits";
+      
+      const token = localStorage.getItem("auth_token");
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+      
+      const res = await fetch(`${API_BASE}/export/${endpoint}?format=${type}&startDate=${startDate}&endDate=${endDate}`, {
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+      
+      if (!res.ok) throw new Error(`Failed to export ${activeTab}`);
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${activeTab}_report_${startDate}_to_${endDate}.${type === "excel" ? "xlsx" : type}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || "Failed to download export.");
+    } finally {
       setIsExporting(false);
-    }, 1500);
+    }
   };
 
   // KPI Calculations
-  const presentCount = attendance.filter(a => a.status === "present" || a.status === "late").length;
+  const presentCount = attendance.filter((a: any) => a.status === "present" || a.status === "late").length;
   const attendanceRate = attendance.length > 0 ? ((presentCount / attendance.length) * 100).toFixed(0) : "0";
-  const completedTasks = tasks.filter(t => t.status === "completed").length;
+  const completedTasks = tasks.filter((t: any) => t.status === "completed").length;
   const taskSuccessRate = tasks.length > 0 ? ((completedTasks / tasks.length) * 100).toFixed(0) : "0";
-  const lateCount = attendance.filter(a => a.status === "late").length;
+  const lateCount = attendance.filter((a: any) => a.status === "late").length;
 
   return (
     <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -90,7 +125,7 @@ export default function ReportsPage() {
           </button>
           <button 
             className="btn-primary" 
-            onClick={() => handleExport("excel")}
+            onClick={() => handleExport("pdf")}
             style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", fontSize: "13px" }}
           >
             <Download size={16} /> Download PDF
@@ -240,7 +275,7 @@ export default function ReportsPage() {
             </thead>
             <tbody>
               {filteredAttendance.length > 0 ? (
-                filteredAttendance.map((log) => (
+                filteredAttendance.map((log: any) => (
                   <tr key={log.id}>
                     <td style={{ fontWeight: 600 }}>{log.name}</td>
                     <td>{log.checkIn}</td>
@@ -288,7 +323,7 @@ export default function ReportsPage() {
             </thead>
             <tbody>
               {filteredTasks.length > 0 ? (
-                filteredTasks.map((task) => (
+                filteredTasks.map((task: any) => (
                   <tr key={task.id}>
                     <td style={{ fontWeight: 600 }}>{task.title}</td>
                     <td>{task.assignedTo}</td>
@@ -343,7 +378,7 @@ export default function ReportsPage() {
             </div>
             <div style={{ height: "260px" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={tasks.map((t, i) => ({ day: `T${i+1}`, tasks: 1, present: t.status === 'completed' ? 1 : 0 }))} barSize={16}>
+                <BarChart data={tasks.map((t: any, i: number) => ({ day: `T${i+1}`, tasks: 1, present: t.status === 'completed' ? 1 : 0 }))} barSize={16}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
                   <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
@@ -366,7 +401,7 @@ export default function ReportsPage() {
             </div>
             <div style={{ height: "260px" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={attendance.reduce((acc: {day: string, absent: number}[], a) => { const existing = acc.find(x => x.day === a.date); if (existing) { if (a.status === 'absent') existing.absent++; } else { acc.push({ day: a.date, absent: a.status === 'absent' ? 1 : 0 }); } return acc; }, [])}>
+                <LineChart data={attendance.reduce((acc: {day: string, absent: number}[], a: any) => { const existing = acc.find(x => x.day === a.date); if (existing) { if (a.status === 'absent') existing.absent++; } else { acc.push({ day: a.date, absent: a.status === 'absent' ? 1 : 0 }); } return acc; }, [])}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
                   <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} />

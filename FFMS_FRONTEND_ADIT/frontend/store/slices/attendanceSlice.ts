@@ -43,6 +43,18 @@ function calcHours(checkIn: string | null, checkOut: string | null): string {
 function mapApiToRecord(a: ApiAttendance | any): AttendanceRecord {
   const isTodayFormat = a.checkedIn !== undefined;
   
+  let formattedHours = calcHours(a.checkInTime, a.checkOutTime);
+  // If backend provides pre-calculated workingMinutes, use them directly
+  if (a.workingMinutes !== undefined && a.workingMinutes !== null) {
+    if (!a.checkOutTime) {
+      formattedHours = "Active";
+    } else {
+      const hrs = Math.floor(a.workingMinutes / 60);
+      const mins = a.workingMinutes % 60;
+      formattedHours = `${hrs}h ${mins}m`;
+    }
+  }
+  
   return {
     id: a.id || a.userId || Math.random().toString(),
     employeeId: a.userId,
@@ -50,7 +62,7 @@ function mapApiToRecord(a: ApiAttendance | any): AttendanceRecord {
     date: a.date ? new Date(a.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     checkIn: formatTime(a.checkInTime),
     checkOut: formatTime(a.checkOutTime),
-    hours: calcHours(a.checkInTime, a.checkOutTime),
+    hours: formattedHours,
     status: a.status?.toLowerCase() || (isTodayFormat && !a.checkedIn ? "absent" : "present"),
     location: "",
   };
@@ -58,7 +70,7 @@ function mapApiToRecord(a: ApiAttendance | any): AttendanceRecord {
 
 export const fetchAttendance = createAsyncThunk(
   "attendance/fetchAll",
-  async (query: Record<string, string | number | undefined> | undefined, { rejectWithValue }) => {
+  async (query: Record<string, string | number | undefined> | undefined, { rejectWithValue }: any) => {
     try {
       const res = await attendanceApi.list({ limit: 100, ...query });
       return res.data.map(mapApiToRecord);
@@ -71,7 +83,7 @@ export const fetchAttendance = createAsyncThunk(
 
 export const fetchTodayAttendance = createAsyncThunk(
   "attendance/fetchToday",
-  async (_, { rejectWithValue }) => {
+  async (_: any, { rejectWithValue }: any) => {
     try {
       const res = await attendanceApi.today();
       return res.data.map(mapApiToRecord);
@@ -86,29 +98,29 @@ const attendanceSlice = createSlice({
   name: "attendance",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: (builder: any) => {
     builder
-      .addCase(fetchAttendance.pending, (state) => {
+      .addCase(fetchAttendance.pending, (state: any) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAttendance.fulfilled, (state, action) => {
+      .addCase(fetchAttendance.fulfilled, (state: any, action: any) => {
         state.loading = false;
         state.list = action.payload;
       })
-      .addCase(fetchAttendance.rejected, (state, action) => {
+      .addCase(fetchAttendance.rejected, (state: any, action: any) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchTodayAttendance.pending, (state) => {
+      .addCase(fetchTodayAttendance.pending, (state: any) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchTodayAttendance.fulfilled, (state, action) => {
+      .addCase(fetchTodayAttendance.fulfilled, (state: any, action: any) => {
         state.loading = false;
         state.list = action.payload;
       })
-      .addCase(fetchTodayAttendance.rejected, (state, action) => {
+      .addCase(fetchTodayAttendance.rejected, (state: any, action: any) => {
         state.loading = false;
         state.error = action.payload as string;
       });

@@ -92,66 +92,77 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
-    // Simulate setup configuration writing to localStorage
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
     const fullName = `${firstName} ${lastName}`.trim();
     
-    // Save details to LocalStorage to mock database persistent changes
-    const setupData = {
-      adminProfile: {
-        firstName,
-        lastName,
-        email,
-        mobileNo: `${countryCode} ${mobileNo}`,
-        designation,
-        plan: selectedPlan,
-        billingCycle
-      },
-      setupTimestamp: new Date().toISOString()
-    };
-    
-    localStorage.setItem("adminSetupData", JSON.stringify(setupData));
-    localStorage.setItem("ff_password", password);
-    localStorage.setItem("adminSetupComplete", "true");
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          password,
+          employeeId: "EMP-" + Date.now(),
+          companyName: "FieldForce Org", // Can be extended if you add a company name field
+          plan: selectedPlan.toUpperCase()
+        }),
+      });
 
-    // Login using Redux store
-    dispatch(login({
-      token: "dev_fallback_token",
-      user: {
-        name: fullName,
-        email: email,
-        role: designation
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error?.message || "Failed to register on backend");
       }
-    }));
 
-    // Trigger router push to dashboard
-    setLoading(false);
-    router.push("/dashboard");
+      // Save details to LocalStorage to mock database persistent changes
+      const setupData = {
+        adminProfile: {
+          firstName,
+          lastName,
+          email,
+          mobileNo: `${countryCode} ${mobileNo}`,
+          designation,
+          plan: selectedPlan,
+          billingCycle
+        },
+        setupTimestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem("adminSetupData", JSON.stringify(setupData));
+      localStorage.setItem("ff_password", password);
+      localStorage.setItem("adminSetupComplete", "true");
+
+      const tokenVal = resData.data?.accessToken || resData.data?.token;
+      if (tokenVal) {
+        localStorage.setItem("auth_token", tokenVal);
+      }
+      
+      // Cache profile name
+      const profile = { firstName: firstName, email: email };
+      localStorage.setItem("ff_user_profile", JSON.stringify(profile));
+
+      // Login using Redux store
+      dispatch(login({
+        token: tokenVal || "dev_fallback_token",
+        user: {
+          name: fullName,
+          email: email,
+          role: "ADMIN"
+        }
+      }));
+
+      // Trigger router push to dashboard
+      setLoading(false);
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc", fontFamily: "'Inter', sans-serif" }}>
-      {/* Blue Header Top Bar */}
-      <header style={{
-        background: "linear-gradient(135deg, #0099ff 0%, #0077ee 100%)",
-        color: "#ffffff",
-        padding: "14px 48px",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        boxShadow: "0 2px 10px rgba(0, 82, 255, 0.15)",
-        zIndex: 50
-      }}>
-        <div style={{
-          width: "28px", height: "28px", background: "white", borderRadius: "4px",
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}>
-          <MapPin size={16} color="#0077ee" />
-        </div>
-        <span style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "-0.5px" }}>FieldSense</span>
-      </header>
-
       {/* Main Container */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px" }}>
         
@@ -161,7 +172,7 @@ export default function RegisterPage() {
             Alright, let's set this up!
           </h2>
           <p style={{ fontSize: "14.5px", color: "#475569", lineHeight: 1.6, margin: 0 }}>
-            As a business application, FieldSense requires some information about you to create your admin account. Let's begin now.
+            As a business application, FieldForce requires some information about you to create your admin account. Let's begin now.
           </p>
         </div>
 
@@ -587,7 +598,7 @@ export default function RegisterPage() {
         background: "#f1f5f9", borderTop: "1px solid #e2e8f0",
         padding: "12px 24px", textAlign: "center", fontSize: "11px", color: "#64748b"
       }}>
-        Copyright © QuantumLink Communications Pvt Ltd. All Rights Reserved.
+        Copyright ©  Thesis Eduventures Private Limited. All Rights Reserved.
       </footer>
 
       {/* Inline styles for spinner animation */}

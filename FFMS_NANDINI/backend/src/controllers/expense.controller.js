@@ -73,4 +73,11 @@ const getAll = async (req, res, next) => {
   } catch (err) { next(err) }
 }
 
-module.exports = { create, update, submit, approve, reject, remove, getMy, getTeam, getAll }
+const getSummary = async (req, res, next) => {
+  try {
+    const data = await expenseService.getExpenseSummary(req.user.organizationId)
+    return successResponse(res, data)
+  } catch (err) { next(err) }
+}
+
+module.exports = { create, update, submit, approve, reject, remove, getMy, getTeam, getAll, getSummary }

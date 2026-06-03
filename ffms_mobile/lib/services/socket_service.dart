@@ -4,6 +4,9 @@ import '../core/utils/storage_helper.dart';
 
 class SocketService {
   static io.Socket? _socket;
+  
+  // Callbacks
+  static void Function(dynamic)? onNewNotification;
 
   static io.Socket? get socket => _socket;
 
@@ -31,6 +34,11 @@ class SocketService {
 
     _socket!.onConnect((_) {
       // Socket connected
+      _socket!.on('notification:new', (data) {
+        if (onNewNotification != null) {
+          onNewNotification!(data);
+        }
+      });
     });
 
     _socket!.onDisconnect((_) {

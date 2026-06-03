@@ -131,6 +131,7 @@ model Organization {
   territories Territory[]
   projects    Project[]
   tasks       Task[]
+  feedbacks   EmployeeFeedback[]
 }
 
 model User {
@@ -176,6 +177,7 @@ model User {
   travelLogs     TravelLog[]
   expenses         Expense[]  @relation("UserExpenses")
   expensesApproved Expense[]  @relation("ApprovedExpenses")
+  payrollDeductions PayrollDeduction[]
 
   @@unique([organizationId, employeeId])
   @@index([organizationId])
@@ -511,4 +513,37 @@ model Expense {
 
   @@index([userId])
   @@index([approvedById])
+}
+
+enum FeedbackCategory {
+  WORK_ENVIRONMENT
+  MANAGEMENT
+  TOOLS_AND_EQUIPMENT
+  COMPENSATION
+  OTHER
+}
+
+model EmployeeFeedback {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       FeedbackCategory @default(OTHER)
+  content        String
+  rating         Int?             // 1-5 optional
+  createdAt      DateTime         @default(now())
+
+  // Note: NO userId relation intentionally for TRUE anonymity
+  @@index([organizationId])
+}
+
+model PayrollDeduction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   @default("LATE_ARRIVAL_STREAK")
+  amountDays  Float    @default(0) // How many days of salary to deduct
+  reason      String
+  dateApplied DateTime @default(now())
+  
+  @@index([userId])
 }

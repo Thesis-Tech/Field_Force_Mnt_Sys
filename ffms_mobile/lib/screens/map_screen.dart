@@ -235,7 +235,6 @@ class _MapScreenState extends State<MapScreen> {
       return Polygon(
         points: points,
         color: AppColors.primaryContainer.withOpacity(0.15),
-        isFilled: true,
         borderColor: AppColors.primary,
         borderStrokeWidth: 1.5,
       );

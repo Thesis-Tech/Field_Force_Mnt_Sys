@@ -3,6 +3,9 @@ import { Inter, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import StoreProvider from "@/components/StoreProvider";
+import AuthProvider from "@/components/AuthProvider";
+import { SocketInitializer } from "@/components/SocketInitializer";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 const hankenGrotesk = Hanken_Grotesk({ subsets: ["latin"], display: "swap", variable: '--font-hanken' });
@@ -15,9 +18,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.className} ${hankenGrotesk.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${inter.className} ${hankenGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className={inter.className}>
-        <StoreProvider>{children}</StoreProvider>
+        <AuthProvider>
+          <StoreProvider>
+            <SocketInitializer />
+            <Toaster position="top-right" />
+            {children}
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );
