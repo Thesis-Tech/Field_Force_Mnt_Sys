@@ -50,7 +50,7 @@ class AuthService {
     try {
       final response = await ApiService.client.get('/auth/me');
       if (response.data['success'] == true) {
-        final userJson = response.data['data'] as Map<String, dynamic>;
+        final userJson = response.data['data']['user'] as Map<String, dynamic>;
         final user = UserModel.fromJson(userJson);
         await StorageHelper.saveUserInfo(
           id: user.id,

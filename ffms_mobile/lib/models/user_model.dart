@@ -49,11 +49,11 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      status: json['status'] as String,
+      id: (json['id'] ?? '') as String,
+      name: (json['name'] ?? '') as String,
+      email: (json['email'] ?? '') as String,
+      role: (json['role'] ?? '') as String,
+      status: (json['status'] ?? 'ACTIVE') as String,
       organization: json['organization'] != null
           ? Organization.fromJson(json['organization'] as Map<String, dynamic>)
           : null,
