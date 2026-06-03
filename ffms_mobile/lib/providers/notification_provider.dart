@@ -25,8 +25,8 @@ class NotificationProvider extends ChangeNotifier {
         _unreadCount++;
         
         NotificationHelper.showNewNotification(
-          newNotif.title ?? 'New Notification', 
-          newNotif.body ?? ''
+          newNotif.title, 
+          newNotif.message
         );
         
         notifyListeners();
