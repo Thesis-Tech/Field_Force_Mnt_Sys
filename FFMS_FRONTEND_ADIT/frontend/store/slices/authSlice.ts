@@ -14,6 +14,7 @@ interface AuthState {
   isLoggedIn: boolean;
   user: UserProfile | null;
   token: string | null;
+  passwordHash?: string;
 }
 
 // Safe helper for localStorage
@@ -79,6 +80,7 @@ const initialState: AuthState = {
   isLoggedIn: getInitialIsLoggedIn(),
   user: getInitialUser(),
   token: getInitialToken(),
+  passwordHash: "password123", // default mock hash for AdminTopbar
 };
 
 const authSlice = createSlice({
@@ -130,8 +132,11 @@ const authSlice = createSlice({
         setLocalStorageItem("ff_user_profile", JSON.stringify(state.user));
       }
     },
+    changePassword(state, action: PayloadAction<string>) {
+      state.passwordHash = action.payload;
+    },
   },
 });
 
-export const { login, logout, updateProfile } = authSlice.actions;
+export const { login, logout, updateProfile, changePassword } = authSlice.actions;
 export default authSlice.reducer;
