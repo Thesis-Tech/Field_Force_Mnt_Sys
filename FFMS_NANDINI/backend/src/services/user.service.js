@@ -192,9 +192,15 @@ const updateUser = async (id, updateData, organizationId) => {
     throw new NotFoundError('User not found');
   }
 
+  const dataToUpdate = { ...updateData };
+  if (dataToUpdate.password) {
+    dataToUpdate.passwordHash = await bcrypt.hash(dataToUpdate.password, 12);
+    delete dataToUpdate.password;
+  }
+
   const updatedUser = await prisma.user.update({
     where: { id },
-    data: updateData
+    data: dataToUpdate
   });
 
   const { passwordHash: _, ...userWithoutPassword } = updatedUser;

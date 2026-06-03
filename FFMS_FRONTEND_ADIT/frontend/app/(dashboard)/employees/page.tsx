@@ -861,6 +861,7 @@ export default function EmployeesPage() {
                   territoryId: emp.territoryId,
                   employeeId: emp.employeeId,
                   managerId: emp.managerId,
+                  password: emp.password,
                 }
               }));
             } else {
@@ -870,6 +871,7 @@ export default function EmployeesPage() {
                 phone: emp.phone,
                 role: "FIELD_STAFF",
                 status: emp.status,
+                password: emp.password,
                 employeeId: emp.employeeId,
                 territoryId: emp.territoryId,
                 managerId: emp.managerId,
