@@ -60,6 +60,7 @@ html, body {
   border: 1px solid var(--border);
   border-radius: 8px; /* Slightly round for modern feel */
   padding: 20px;
+  color: var(--text-primary);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .card:hover { 
@@ -186,6 +187,7 @@ select.input { cursor: pointer; }
   max-width: 480px;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
+  color: var(--text-primary);
   animation: fadeIn 0.3s ease;
 }
 
