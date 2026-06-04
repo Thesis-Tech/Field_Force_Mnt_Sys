@@ -12,12 +12,12 @@ router.use(checkOrgAccess);
 router.post('/', authorize('ADMIN','MANAGER'), userController.createUser);
 router.get('/', authorize('ADMIN', 'MANAGER'), userController.listUsers);
 router.get('/:id', authorize('ADMIN', 'MANAGER'), userController.getUserById);
-router.patch('/:id', authorize('ADMIN'), userController.updateUser);
-router.delete('/:id', authorize('ADMIN'), userController.deleteUser);
+router.patch('/:id', authorize('ADMIN', 'MANAGER'), userController.updateUser);
+router.delete('/:id', authorize('ADMIN', 'MANAGER'), userController.deleteUser);
 
 // Territory and Password Operations
-router.post('/:id/assign-territory', authorize('ADMIN'), userController.assignTerritory);
-router.post('/:id/reset-password', authorize('ADMIN'), userController.forceResetPassword);
+router.post('/:id/assign-territory', authorize('ADMIN', 'MANAGER'), userController.assignTerritory);
+router.post('/:id/reset-password', authorize('ADMIN', 'MANAGER'), userController.forceResetPassword);
 
 // Performance stats
 router.get('/:id/performance', authorize('ADMIN', 'MANAGER'), userController.getUserPerformance);

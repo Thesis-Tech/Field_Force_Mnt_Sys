@@ -69,13 +69,13 @@ const authenticate = async (req, res, next) => {
  * Checks if the authenticated `req.user.role` exists in the allowedRoles array.
  * @param {...string} allowedRoles (e.g. 'ADMIN', 'MANAGER', 'FIELD_STAFF')
  */
-const authorize = (...allowedRoles) => {
+const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return next(new UnauthorizedError('Authentication required'));
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       return next(new ForbiddenError('You do not have permission to perform this action'));
     }
 
