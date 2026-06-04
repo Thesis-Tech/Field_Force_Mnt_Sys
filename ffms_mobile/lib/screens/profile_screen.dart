@@ -100,6 +100,15 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 children: [
                   ListTile(
+                    leading: const Icon(Icons.time_to_leave, color: AppColors.primary),
+                    title: const Text('My Leave History', style: TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/leave-status');
+                    },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
                     leading: const Icon(Icons.receipt_long, color: AppColors.primary),
                     title: const Text('Expenses & Travel Allowance Claims', style: TextStyle(fontWeight: FontWeight.w600)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),

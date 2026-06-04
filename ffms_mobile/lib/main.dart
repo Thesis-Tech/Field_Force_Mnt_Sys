@@ -13,6 +13,7 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/leave_status_screen.dart';
 import 'core/utils/notification_helper.dart';
 
 void main() async {
@@ -53,6 +54,7 @@ class FFMSApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainNavigation(),
         '/notifications': (context) => const NotificationsScreen(),
+        '/leave-status': (context) => const LeaveStatusScreen(),
       },
     );
   }
