@@ -228,7 +228,7 @@ const getAdminDashboard = async (organizationId) => {
 
   const managersList = managers.map(mgr => {
     const allRatings = mgr.subordinates.flatMap(sub => sub.taskAssignments.map(ta => ta.rating).filter(r => r !== null));
-    const avgRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 4.0;
+    const avgRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
     const score = Math.round(avgRating * 20);
     const teamSize = mgr.subordinates.length;
     const assignedProjects = mgr.projectsManaged.length;

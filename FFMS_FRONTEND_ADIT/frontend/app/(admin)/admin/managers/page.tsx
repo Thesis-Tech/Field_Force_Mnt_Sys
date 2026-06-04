@@ -35,7 +35,7 @@ export default function AdminManagersPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "", email: "", department: "Operations", phone: "", teamSize: 0,
+    name: "", email: "", password: "", department: "Operations", phone: "",
   });
 
   const showToast = (message: string, type: "success" | "error") => {
@@ -84,6 +84,7 @@ export default function AdminManagersPage() {
     const res = await usersApi.create({
       name: formData.name,
       email: formData.email,
+      password: formData.password,
       phone: formData.phone || undefined,
       employeeId,
       role: "MANAGER",
@@ -93,7 +94,7 @@ export default function AdminManagersPage() {
     if (res.success) {
       loadData();
       setShowAddModal(false);
-      setFormData({ name: "", email: "", department: "Operations", phone: "", teamSize: 0 });
+      setFormData({ name: "", email: "", password: "", department: "Operations", phone: "" });
       showToast(`${res.data.name} added as a manager successfully!`, "success");
     } else {
       showToast(res.error?.message || "Failed to add manager", "error");
@@ -119,7 +120,7 @@ export default function AdminManagersPage() {
   };
 
   const openEdit = (m: Manager) => {
-    setFormData({ name: m.name, email: m.email, department: m.department, phone: m.phone, teamSize: m.teamSize });
+    setFormData({ name: m.name, email: m.email, password: "", department: m.department, phone: m.phone });
     setEditingManager(m);
   };
 
@@ -232,7 +233,7 @@ export default function AdminManagersPage() {
               <option value="inactive">Inactive</option>
             </select>
             {/* Add Manager */}
-            <button id="add-manager-btn" onClick={() => { setFormData({ name: "", email: "", department: "Operations", phone: "", teamSize: 0 }); setShowAddModal(true); }}
+            <button id="add-manager-btn" onClick={() => { setFormData({ name: "", email: "", password: "", department: "Operations", phone: "" }); setShowAddModal(true); }}
               className="btn-primary">
               <UserPlus size={16} /> Add Manager
             </button>
@@ -329,18 +330,19 @@ export default function AdminManagersPage() {
 
 function ManagerFormModal({ title, formData, setFormData, onSubmit, onClose, submitLabel }: {
   title: string;
-  formData: { name: string; email: string; department: string; phone: string; teamSize: number };
-  setFormData: React.Dispatch<React.SetStateAction<{ name: string; email: string; department: string; phone: string; teamSize: number }>>;
+  formData: { name: string; email: string; password: string; department: string; phone: string; };
+  setFormData: React.Dispatch<React.SetStateAction<{ name: string; email: string; password: string; department: string; phone: string; }>>;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
   submitLabel: string;
 }) {
+  const isAdd = title.includes("Add");
   return (
     <div className="modal-overlay">
       <div className="modal-box" style={{ maxWidth: 520 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: "#1e293b" }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><X size={18} /></button>
+          <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><X size={18} /></button>
         </div>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", gap: 12 }}>
@@ -355,7 +357,12 @@ function ManagerFormModal({ title, formData, setFormData, onSubmit, onClose, sub
             </div>
             <div style={{ flex: 1 }}><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Phone</label><input type="text" className="input" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 00001" /></div>
           </div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Team Size</label><input type="number" min={0} className="input" value={formData.teamSize} onChange={(e) => setFormData((p) => ({ ...p, teamSize: Number(e.target.value) }))} /></div>
+          {isAdd && (
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Password *</label>
+              <input type="password" required className="input" value={formData.password || ""} onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))} placeholder="Enter a secure password" />
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary" style={{ background: "#3b82f6" }}>{submitLabel}</button>
