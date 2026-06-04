@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Tailwind Indigo-600
-  static const Color primary = Color(0xFF4F46E5);
+  // Admin Panel Blue
+  static const Color primary = Color(0xFF3B82F6);
   static const Color onPrimary = Colors.white;
-  static const Color primaryContainer = Color(0xFFE0E7FF); // Indigo-100
-  static const Color onPrimaryContainer = Color(0xFF312E81); // Indigo-900
+  static const Color primaryContainer = Color(0xFFEFF6FF); // Blue-50
+  static const Color onPrimaryContainer = Color(0xFF1E3A8A); // Blue-900
   
-  // Tailwind Emerald-600
-  static const Color secondary = Color(0xFF059669);
+  // Admin Panel Green
+  static const Color secondary = Color(0xFF22C55E);
   static const Color onSecondary = Colors.white;
-  static const Color secondaryContainer = Color(0xFFD1FAE5); // Emerald-100
-  static const Color onSecondaryContainer = Color(0xFF064E3B); // Emerald-900
+  static const Color secondaryContainer = Color(0xFFDCFCE7); // Green-50
+  static const Color onSecondaryContainer = Color(0xFF14532D); // Green-900
   
   static const Color tertiary = Color(0xFF0F172A); // Slate-900 (Used for AppBars like Web sidebar)
   static const Color onTertiary = Colors.white;
   
-  static const Color error = Color(0xFFDC2626); // Red-600
+  static const Color error = Color(0xFFEF4444); // Red-500
   static const Color onError = Colors.white;
   static const Color errorContainer = Color(0xFFFEE2E2); // Red-100
   static const Color onErrorContainer = Color(0xFF7F1D1D); // Red-900

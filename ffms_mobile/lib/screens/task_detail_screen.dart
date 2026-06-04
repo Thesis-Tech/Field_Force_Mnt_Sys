@@ -88,7 +88,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   Future<void> _showCompletionDialog(String assignmentId) async {
     final noteController = TextEditingController();
-    String? base64Image;
+    String? base64TaskImage;
+    String? base64SelfieImage;
     bool isPicking = false;
     
     await showDialog(
@@ -108,43 +109,79 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       maxLines: 3,
                     ),
                     const SizedBox(height: 16),
-                    if (base64Image != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.memory(base64Decode(base64Image!), height: 100, fit: BoxFit.cover),
-                      )
-                    else
-                      const Text('Proof of completion is MANDATORY', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      icon: isPicking ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.camera_alt),
-                      label: const Text('Take Photo'),
-                      onPressed: isPicking ? null : () async {
-                        setState(() => isPicking = true);
-                        try {
-                          final picker = ImagePicker();
-                          final XFile? image = await picker.pickImage(
-                            source: ImageSource.camera, 
-                            imageQuality: 30, // Extremely compressed to save Cloudinary storage
-                            maxWidth: 800,
-                            maxHeight: 800,
-                          );
-                          if (image != null) {
-                            final bytes = await image.readAsBytes();
-                            setState(() => base64Image = base64Encode(bytes));
-                          }
-                        } finally {
-                          setState(() => isPicking = false);
-                        }
-                      },
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            if (base64TaskImage != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(base64Decode(base64TaskImage!), height: 60, width: 60, fit: BoxFit.cover),
+                              )
+                            else
+                              const Icon(Icons.image, size: 40, color: Colors.grey),
+                            const SizedBox(height: 4),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.camera_alt, size: 14),
+                              label: const Text('Task Proof', style: TextStyle(fontSize: 10)),
+                              onPressed: isPicking ? null : () async {
+                                setState(() => isPicking = true);
+                                try {
+                                  final picker = ImagePicker();
+                                  final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 30, maxWidth: 800, maxHeight: 800);
+                                  if (image != null) {
+                                    final bytes = await image.readAsBytes();
+                                    setState(() => base64TaskImage = base64Encode(bytes));
+                                  }
+                                } finally {
+                                  setState(() => isPicking = false);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            if (base64SelfieImage != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(base64Decode(base64SelfieImage!), height: 60, width: 60, fit: BoxFit.cover),
+                              )
+                            else
+                              const Icon(Icons.face, size: 40, color: Colors.grey),
+                            const SizedBox(height: 4),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.camera_front, size: 14),
+                              label: const Text('Selfie', style: TextStyle(fontSize: 10)),
+                              onPressed: isPicking ? null : () async {
+                                setState(() => isPicking = true);
+                                try {
+                                  final picker = ImagePicker();
+                                  final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 30, maxWidth: 800, maxHeight: 800);
+                                  if (image != null) {
+                                    final bytes = await image.readAsBytes();
+                                    setState(() => base64SelfieImage = base64Encode(bytes));
+                                  }
+                                } finally {
+                                  setState(() => isPicking = false);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+                    if (base64TaskImage == null || base64SelfieImage == null)
+                      const Text('Both Task Proof and Selfie are MANDATORY', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 11)),
                   ],
                 ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                 ElevatedButton(
-                  onPressed: base64Image == null ? null : () {
+                  onPressed: (base64TaskImage == null || base64SelfieImage == null) ? null : () {
                     Navigator.pop(ctx, true);
                   },
                   child: const Text('Submit'),
@@ -160,7 +197,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           assignmentId, 
           'COMPLETED',
           completionNote: noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
-          completionImages: base64Image != null ? [base64Image!] : null,
+          completionImages: [base64TaskImage!, base64SelfieImage!],
         );
       }
     });

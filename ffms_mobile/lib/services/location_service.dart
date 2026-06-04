@@ -67,23 +67,24 @@ class LocationService {
 
     _isTracking = true;
 
-    // Start 15-minute periodic timer for photo prompt
-    _photoPromptTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
-      NotificationHelper.showPeriodicPhotoPrompt();
+    // Start 2-minute periodic timer for forced ping
+    _photoPromptTimer = Timer.periodic(const Duration(minutes: 2), (timer) async {
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
+      _pingServer(position);
     });
 
     LocationSettings locationSettings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 5, // 5 meters for higher precision route path
+      accuracy: LocationAccuracy.best,
+      distanceFilter: 5,
     );
 
     if (!kIsWeb) {
       if (Platform.isAndroid) {
         locationSettings = AndroidSettings(
-            accuracy: LocationAccuracy.high,
+            accuracy: LocationAccuracy.best,
             distanceFilter: 10,
             forceLocationManager: true,
-            intervalDuration: const Duration(seconds: 10),
+            intervalDuration: const Duration(minutes: 2),
             foregroundNotificationConfig: const ForegroundNotificationConfig(
                 notificationText:
                 "Tracking your location in background for territory management.",
@@ -93,7 +94,7 @@ class LocationService {
         );
       } else if (Platform.isIOS || Platform.isMacOS) {
         locationSettings = AppleSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.best,
           activityType: ActivityType.fitness,
           distanceFilter: 5,
           pauseLocationUpdatesAutomatically: false,
@@ -102,11 +103,6 @@ class LocationService {
       }
     }
 
-    // -------------------------------------------------------------
-    // Core Tracking Subscription
-    // -------------------------------------------------------------
-    // Listens to native GPS hardware changes based on distanceFilter (5m).
-    // Automatically yields new points when the user physically moves.
     _positionStreamSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen((Position position) {
@@ -119,7 +115,6 @@ class LocationService {
       if (position.speed < 0.5) {
         if (_stopTimer == null || !_stopTimer!.isActive) {
           _stopTimer = Timer(const Duration(seconds: 30), () {
-            // User has been stopped for 30s, send stop pin point
             _pingServer(position, isStopPoint: true);
           });
         }

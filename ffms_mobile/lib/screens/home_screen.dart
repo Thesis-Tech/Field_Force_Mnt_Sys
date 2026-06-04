@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:battery_plus/battery_plus.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/auth_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/attendance_provider.dart';
@@ -78,13 +79,25 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!attendanceProvider.isCheckedIn) {
         final battery = Battery();
         final batteryLevel = await battery.batteryLevel;
-        if (batteryLevel < 50) {
+        if (batteryLevel < 40) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Battery must be 50%+ to Check In. Current: $batteryLevel%'),
+                content: Text('Battery must be 40%+ to Check In. Current: $batteryLevel%'),
                 backgroundColor: AppColors.error,
               ),
+            );
+          }
+          return;
+        }
+
+        // Add photo requirement
+        final picker = ImagePicker();
+        final photo = await picker.pickImage(source: ImageSource.camera);
+        if (photo == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Selfie photo is required to Check In.')),
             );
           }
           return;
