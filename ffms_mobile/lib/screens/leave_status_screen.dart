@@ -64,7 +64,7 @@ class _LeaveStatusScreenState extends State<LeaveStatusScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    leave.type,
+                                    leave.leaveType,
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                   ),
                                   StatusBadge(status: leave.status),
