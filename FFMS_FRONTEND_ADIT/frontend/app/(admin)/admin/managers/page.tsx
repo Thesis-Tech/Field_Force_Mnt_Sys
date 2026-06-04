@@ -107,7 +107,8 @@ export default function AdminManagersPage() {
     const res = await usersApi.update(editingManager.id, {
       name: formData.name,
       email: formData.email,
-      phone: formData.phone || undefined
+      phone: formData.phone || undefined,
+      ...(formData.password ? { password: formData.password } : {})
     });
 
     if (res.success) {
@@ -347,7 +348,7 @@ function ManagerFormModal({ title, formData, setFormData, onSubmit, onClose, sub
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 1 }}><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Full Name *</label><input type="text" required className="input" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Ravi Kumar" /></div>
-            <div style={{ flex: 1 }}><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Email *</label><input type="email" required className="input" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} placeholder="manager@company.com" /></div>
+            <div style={{ flex: 1 }}><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Email *</label><input type="email" required autoComplete="off" className="input" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} placeholder="manager@company.com" /></div>
           </div>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 1 }}><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Department *</label>
@@ -357,12 +358,10 @@ function ManagerFormModal({ title, formData, setFormData, onSubmit, onClose, sub
             </div>
             <div style={{ flex: 1 }}><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Phone</label><input type="text" className="input" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 00001" /></div>
           </div>
-          {isAdd && (
-            <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Password *</label>
-              <input type="password" required className="input" value={formData.password || ""} onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))} placeholder="Enter a secure password" />
-            </div>
-          )}
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>{isAdd ? "Password *" : "New Password (Optional)"}</label>
+            <input type="text" required={isAdd} autoComplete="new-password" className="input" value={formData.password || ""} onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))} placeholder={isAdd ? "Enter a secure password" : "Leave blank to keep current password"} />
+          </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary" style={{ background: "#3b82f6" }}>{submitLabel}</button>
