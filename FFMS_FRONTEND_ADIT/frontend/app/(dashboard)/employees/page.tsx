@@ -12,15 +12,22 @@ const ROLES = ["Sales Executive","Delivery Staff","Service Engineer","Surveyor",
 const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi Mumbai","Nashik"];
 
 
-function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[] }) {
+function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, currentUser }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[]; currentUser: any }) {
   const isEditing = Boolean(emp?.id);
   const [form, setForm] = useState<Partial<Employee>>(() => {
     if (emp) {
       // When editing: password starts blank — admin only fills it to change it
       return { ...emp, password: "" };
     }
-    const defaultTerrName = territories.length > 0 ? territories[0].name : "";
-    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: `EMP-${Date.now().toString().slice(-6)}`, managerId: null };
+    let defaultTerrName = "";
+    if (currentUser?.role === "MANAGER" && currentUser.territoryId) {
+      const managerTerr = territories.find((t: any) => t.id === currentUser.territoryId);
+      if (managerTerr) defaultTerrName = managerTerr.name;
+    }
+    if (!defaultTerrName && territories.length > 0) {
+      defaultTerrName = territories[0].name;
+    }
+    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: `EMP-${Date.now().toString().slice(-6)}`, managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
   });
   const set = (k: keyof Employee, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -69,10 +76,10 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
           </div>
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Territory</label>
-            <select className="input" value={form.territory||""} onChange={e=>set("territory",e.target.value)}>
+            <select className="input" value={form.territory||""} onChange={e=>set("territory",e.target.value)} disabled={currentUser?.role === "MANAGER"}>
               {territories.length > 0 ? (
                 <>
-                  <option value="">-- Select Territory --</option>
+                  {currentUser?.role !== "MANAGER" && <option value="">-- Select Territory --</option>}
                   {territories.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
                 </>
               ) : (
@@ -98,8 +105,9 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees }: { em
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Reports To (Manager)</label>
             <select className="input" value={form.managerId || ""} onChange={e=>set("managerId",e.target.value || "")}>
-              <option value="">-- No Manager (Root) --</option>
-              {allEmployees.filter(e => e.id !== emp?.id).map((e: Employee) => (
+              {currentUser?.role !== "MANAGER" && <option value="">-- No Manager (Root) --</option>}
+              {currentUser?.role === "MANAGER" && <option value={currentUser.id}>{currentUser.name} (You)</option>}
+              {allEmployees.filter(e => e.id !== emp?.id && (e.role === 'MANAGER' || e.role === 'ADMIN')).map((e: Employee) => (
                 <option key={e.id} value={e.id}>{e.name} ({e.role})</option>
               ))}
             </select>
@@ -830,7 +838,7 @@ export default function EmployeesPage() {
 
       {/* Add/Edit Modal */}
       {modal.open && (
-        <EmployeeModal emp={modal.emp} onClose={()=>setModal({open:false,emp:null})} territories={dbTerritories} allEmployees={employees}
+        <EmployeeModal emp={modal.emp} onClose={()=>setModal({open:false,emp:null})} territories={dbTerritories} allEmployees={employees} currentUser={user}
           onSave={emp => {
             if (modal.emp?.id) {
               // Build update payload — only include password if provided

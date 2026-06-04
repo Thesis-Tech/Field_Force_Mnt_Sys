@@ -62,7 +62,7 @@ export default function LoginPage() {
             if (typeof window !== "undefined") {
               localStorage.setItem("auth_token", tokenVal);
               localStorage.setItem("adminSetupComplete", "true");
-              const profile = { firstName: resData.data.user.name, email: resData.data.user.email, role: userRole };
+              const profile = { firstName: resData.data.user.name, email: resData.data.user.email, role: userRole, id: resData.data.user.id, territoryId: resData.data.user.territoryId };
               localStorage.setItem("ff_user_profile", JSON.stringify(profile));
               // Set cookies so middleware can read role at Edge
               setAuthCookies(tokenVal, userRole);
@@ -73,6 +73,8 @@ export default function LoginPage() {
                 name: resData.data.user.name,
                 email: resData.data.user.email,
                 role: userRole,
+                id: resData.data.user.id,
+                territoryId: resData.data.user.territoryId,
               }
             }));
             // Role-based redirect

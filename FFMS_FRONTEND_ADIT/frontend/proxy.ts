@@ -24,7 +24,7 @@ const PROTECTED_PREFIXES = [
   "/forms", "/feedback", "/reports", "/notifications", "/settings",
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Static assets, Next.js internals — always pass through

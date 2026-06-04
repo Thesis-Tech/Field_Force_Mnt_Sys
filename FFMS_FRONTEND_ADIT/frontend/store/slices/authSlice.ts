@@ -9,6 +9,8 @@ export interface UserProfile {
   email: string;
   mobileNo: string;
   role: string;
+  id?: string;
+  territoryId?: string | null;
 }
 
 interface AuthState {
@@ -59,6 +61,7 @@ const getInitialUser = (): UserProfile | null => {
         email: "",
         mobileNo: "",
         role: "ADMIN",
+        id: "mock-admin-id",
       };
     }
     return null;
@@ -92,7 +95,7 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{
         token: string;
-        user: { name?: string; email: string; role?: string; id?: string };
+        user: { name?: string; email: string; role?: string; id?: string; territoryId?: string | null };
       }>
     ) {
       state.isLoggedIn = true;
@@ -110,6 +113,8 @@ const authSlice = createSlice({
         email: action.payload.user.email,
         mobileNo: "",
         role: action.payload.user.role || "ADMIN",
+        id: action.payload.user.id,
+        territoryId: action.payload.user.territoryId,
       };
 
       setLocalStorageItem("ff_is_logged_in", "true");
