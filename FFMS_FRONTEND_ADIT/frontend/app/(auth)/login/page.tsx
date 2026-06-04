@@ -64,7 +64,6 @@ export default function LoginPage() {
               localStorage.setItem("adminSetupComplete", "true");
               const profile = { firstName: resData.data.user.name, email: resData.data.user.email, role: userRole, id: resData.data.user.id, territoryId: resData.data.user.territoryId };
               localStorage.setItem("ff_user_profile", JSON.stringify(profile));
-              // Set cookies so middleware can read role at Edge
               setAuthCookies(tokenVal, userRole);
             }
             dispatch(login({
@@ -77,11 +76,16 @@ export default function LoginPage() {
                 territoryId: resData.data.user.territoryId,
               }
             }));
-            // Role-based redirect
             const dest = userRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
             router.push(dest);
             return;
           }
+        } else {
+          // Backend returned an error response (e.g. 400 or 401)
+          const errData = await response.json();
+          setError(errData.error?.message || "Invalid credentials. Please check your email and password.");
+          setLoading(false);
+          return;
         }
       } catch (err) {
         console.warn("[Login] Backend unreachable, falling back to local credentials.", err);
