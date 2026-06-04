@@ -38,7 +38,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final feedbackProvider = Provider.of<FeedbackProvider>(context, listen: false);
     
-    final orgId = authProvider.currentUser?.organizationId;
+    final orgId = authProvider.currentUser?.organization?.id;
     if (orgId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: No Organization ID found')),

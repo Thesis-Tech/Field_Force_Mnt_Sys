@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
@@ -8,8 +7,6 @@ const nextConfig: NextConfig = {
     "192.168.1.17",
     "192.168.1.20",
   ],
-  outputFileTracingRoot: path.join(__dirname, "../"),
-  // output: "export", // Incompatible with middleware.ts
   typescript: {
     ignoreBuildErrors: true,
   },

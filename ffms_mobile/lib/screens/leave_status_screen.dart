@@ -107,7 +107,7 @@ class _LeaveStatusScreenState extends State<LeaveStatusScreen> {
                                   style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
                                 ),
                               ],
-                              if (leave.adminRemark != null && leave.adminRemark!.isNotEmpty) ...[
+                              if (leave.approvalNote != null && leave.approvalNote!.isNotEmpty) ...[
                                 const SizedBox(height: 12),
                                 Container(
                                   padding: const EdgeInsets.all(8),
@@ -127,7 +127,7 @@ class _LeaveStatusScreenState extends State<LeaveStatusScreen> {
                                             const Text('Admin Remark', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary)),
                                             const SizedBox(height: 2),
                                             Text(
-                                              leave.adminRemark!,
+                                              leave.approvalNote!,
                                               style: const TextStyle(fontSize: 12, color: AppColors.onPrimaryContainer),
                                             ),
                                           ],
