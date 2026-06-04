@@ -37,8 +37,15 @@ export default function RoleGuard() {
       document.cookie = `ff_user_role=${role}; path=/; max-age=${maxAge}; SameSite=Lax`;
     }
 
-    // We no longer redirect ADMIN out of the dashboard,
-    // because ADMIN has access to all routes (Super Admin + Manager features).
+    // If the user is ADMIN and they are in the (dashboard) layout (which this guard covers),
+    // they should be redirected to the /admin/* equivalent route.
+    // Since Cloudflare static export doesn't run middleware, this client-side redirect is necessary.
+    if (role === "ADMIN") {
+      const pathname = window.location.pathname;
+      if (!pathname.startsWith("/admin")) {
+        router.replace(`/admin${pathname === "/" ? "/dashboard" : pathname}`);
+      }
+    }
   }, [isLoggedIn, token, user, router]);
 
   // This component renders nothing — it's a pure side-effect guard
