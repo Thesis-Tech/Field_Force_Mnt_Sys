@@ -217,7 +217,7 @@ export default function Sidebar() {
                 fontFamily: "var(--font-hanken), sans-serif",
               }}
             >
-              FieldSense
+              TR@NSForce
             </div>
             <div
               style={{
