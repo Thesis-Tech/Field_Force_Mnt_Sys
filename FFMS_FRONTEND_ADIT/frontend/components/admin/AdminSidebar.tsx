@@ -145,50 +145,27 @@ export default function AdminSidebar() {
             transition: "padding 0.25s ease",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* Logo with admin purple accent */}
-            <div
+          {/* Logo image */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isExpanded ? "flex-start" : "center",
+            width: "100%",
+            height: "40px",
+            overflow: "hidden",
+            transition: "all 0.25s ease",
+          }}>
+            <img 
+              src="/logo.png" 
+              alt="TR@NSForce" 
               style={{
-                width: "36px",
-                height: "36px",
-                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                borderRadius: "0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
-                flexShrink: 0,
-              }}
-            >
-              <MapPin size={18} color="white" style={{ position: "absolute", top: "6px" }} />
-              <Lightbulb size={9} color="white" style={{ position: "absolute", top: "10px", zIndex: 2 }} />
-            </div>
-            {/* Brand text */}
-            <div
-              style={{
-                opacity: isExpanded ? 1 : 0,
-                width: isExpanded ? "auto" : 0,
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-                transition: "opacity 0.2s ease 0.05s, width 0.25s ease",
-              }}
-            >
-              <div style={{ fontWeight: 700, fontSize: "16px", color: "var(--text-primary)", fontFamily: "var(--font-hanken), sans-serif" }}>
-                TR@NSForce
-              </div>
-              <div
-                style={{
-                  fontSize: "9px",
-                  color: "#3b82f6",
-                  fontFamily: "var(--font-jetbrains), monospace",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  fontWeight: 700,
-                }}
-              >
-                Admin Control Panel
-              </div>
-            </div>
+                height: "100%",
+                width: isExpanded ? "auto" : "200px",
+                objectFit: "contain",
+                objectPosition: "left center",
+                maxWidth: "200px"
+              }} 
+            />
           </div>
         </div>
 
