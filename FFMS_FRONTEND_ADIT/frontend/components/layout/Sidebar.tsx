@@ -183,55 +183,28 @@ export default function Sidebar() {
         minHeight: "85px",
         transition: "padding 0.25s ease",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {/* Logo icon */}
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              background: "var(--accent-blue)",
-              borderRadius: "0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-              flexShrink: 0,
-            }}
-          >
-            <MapPin size={18} color="white" style={{ position: "absolute", top: "6px" }} />
-            <Lightbulb size={9} color="white" style={{ position: "absolute", top: "10px", zIndex: 2 }} />
-          </div>
-          {/* Brand text - only visible when expanded */}
+          {/* Logo image */}
           <div style={{
-            opacity: isExpanded ? 1 : 0,
-            width: isExpanded ? "auto" : 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isExpanded ? "flex-start" : "center",
+            width: "100%",
+            height: "40px",
             overflow: "hidden",
-            whiteSpace: "nowrap",
-            transition: "opacity 0.2s ease 0.05s, width 0.25s ease",
+            transition: "all 0.25s ease",
           }}>
-            <div
+            <img 
+              src="/logo.png" 
+              alt="TR@NSForce" 
               style={{
-                fontWeight: 700,
-                fontSize: "16px",
-                color: "var(--text-primary)",
-                fontFamily: "var(--font-hanken), sans-serif",
-              }}
-            >
-              TR@NSForce
-            </div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                fontFamily: "var(--font-jetbrains), monospace",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Precision Operations
-            </div>
+                height: "100%",
+                width: isExpanded ? "auto" : "200px",
+                objectFit: "contain",
+                objectPosition: "left center",
+                maxWidth: "200px"
+              }} 
+            />
           </div>
-        </div>
       </div>
 
       {/* Accordion Navigation */}

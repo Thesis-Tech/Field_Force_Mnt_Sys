@@ -38,39 +38,28 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.explore,
-              size: 100,
-              color: Colors.white,
+            Image.asset(
+              'assets/images/logo.png',
+              height: 100,
+              fit: BoxFit.contain,
             ),
-            SizedBox(height: 16),
-            Text(
-              'FieldTrack',
-              style: TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: -0.5,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Smart Workforce Tracking',
               style: TextStyle(
                 fontFamily: 'Plus Jakarta Sans',
                 fontSize: 14,
-                color: Colors.white70,
+                color: AppColors.onSurfaceVariant,
               ),
             ),
             SizedBox(height: 48),
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ],
         ),

@@ -133,17 +133,17 @@ export default function LoginPage() {
 
       <div style={{ width: "100%", maxWidth: "410px", animation: "fadeIn 0.5s ease", position: "relative", zIndex: 2 }}>
         {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "16px" }}>
-          <div style={{
-            width: "50px", height: "50px", borderRadius: "10px",
-            background: "linear-gradient(135deg, #0052ff 0%, #0041cc 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 10px",
-            boxShadow: "0 6px 20px rgba(0, 82, 255, 0.2)"
-          }}>
-            <Zap size={24} color="white" />
-          </div>
-          <h1 style={{ fontSize: "23px", fontWeight: 900, color: "var(--text-primary)", margin: "0 0 2px" }}>FieldForce Admin</h1>
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <img 
+            src="/logo.png" 
+            alt="TR@NSForce" 
+            style={{
+              height: "60px",
+              margin: "0 auto 12px",
+              objectFit: "contain"
+            }} 
+          />
+          <h1 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)", margin: "0 0 2px" }}>TR@NSForce Admin</h1>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 500 }}>Sign in to your dashboard</p>
         </div>
 
