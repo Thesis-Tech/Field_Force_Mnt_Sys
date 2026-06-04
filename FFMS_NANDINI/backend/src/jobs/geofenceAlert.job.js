@@ -34,7 +34,14 @@ const worker = new Worker('geofence-alerts', async (job) => {
   // 3. TODO: send FCM push via notification.js util when ready
   console.log(`[GeofenceAlert] User ${userId} left zone ${territory?.name}`)
 
-}, { connection })
+}, { 
+  connection,
+  settings: {
+    stalledInterval: 30000,
+    guardInterval: 5000,
+    retryProcessDelay: 5000,
+  }
+})
 
 worker.on('failed', (job, err) => {
   console.error(`[GeofenceAlert] Job ${job.id} failed:`, err.message)
