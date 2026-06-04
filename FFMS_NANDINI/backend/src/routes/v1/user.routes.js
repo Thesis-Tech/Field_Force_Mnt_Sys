@@ -9,7 +9,7 @@ router.use(authenticate);
 router.use(checkOrgAccess);
 
 // Routes
-router.post('/', authorize('ADMIN'), userController.createUser);
+router.post('/', authorize('ADMIN','MANAGER'), userController.createUser);
 router.get('/', authorize('ADMIN', 'MANAGER'), userController.listUsers);
 router.get('/:id', authorize('ADMIN', 'MANAGER'), userController.getUserById);
 router.patch('/:id', authorize('ADMIN'), userController.updateUser);
