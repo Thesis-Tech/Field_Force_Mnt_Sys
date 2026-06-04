@@ -256,7 +256,7 @@ export default function AdminProjectsPage() {
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6", fontWeight: 700, fontSize: 10, flexShrink: 0 }}>
-                          {managerName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          {managerName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                         </div>
                         <span style={{ fontSize: 13, color: "#334155" }}>{managerName}</span>
                       </div>

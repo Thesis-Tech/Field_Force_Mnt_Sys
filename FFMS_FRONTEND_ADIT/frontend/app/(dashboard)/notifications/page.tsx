@@ -62,7 +62,7 @@ export default function NotificationsPage() {
   const [emailAlertOffline, setEmailAlertOffline] = useState(true);
   const [emailAlertGeofence, setEmailAlertGeofence] = useState(true);
   const [emailAlertLate, setEmailAlertLate] = useState(true);
-  const filteredList = notifications.filter((n) => {
+  const filteredList = notifications.filter((n: any) => {
     const matchesSearch = n.message.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           n.employeeName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedFilter === "all" || n.type === selectedFilter;
@@ -71,8 +71,8 @@ export default function NotificationsPage() {
 
   // Summary Metrics
   const totalNotifs = notifications.length;
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const highPriorityCount = notifications.filter((n) => n.priority === "high" && !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
+  const highPriorityCount = notifications.filter((n: any) => n.priority === "high" && !n.read).length;
 
   // Mark all read
   const handleMarkAllRead = () => {
@@ -91,7 +91,7 @@ export default function NotificationsPage() {
   // Inject a new mock notification (Simulator)
   const handleInjectNotification = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emp = employees.find((e) => e.id === simEmployeeId) || employees[0];
+    const emp = employees.find((e: any) => e.id === simEmployeeId) || employees[0];
 
     let message = "";
     let type: "attendance" | "task" | "alert" | "system" = "system";
@@ -100,7 +100,7 @@ export default function NotificationsPage() {
       message = `${emp.name} logged in from active coordinates near ${emp.territory}`;
       type = "attendance";
     } else if (simEventType === "task") {
-      const t = tasks.find((tk) => tk.assignedTo === emp.name) || { title: "Scheduled Client Visit" };
+      const t = tasks.find((tk: any) => tk.assignedTo === emp.name) || { title: "Scheduled Client Visit" };
       message = `${emp.name} submitted task update: Completed '${t.title}'`;
       type = "task";
     } else if (simEventType === "late") {
@@ -136,7 +136,7 @@ export default function NotificationsPage() {
   // Send outgoing broadcast to a particular employee
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emp = employees.find((e) => e.id === broadcastEmpId) || employees[0];
+    const emp = employees.find((e: any) => e.id === broadcastEmpId) || employees[0];
 
     let messageContent = broadcastMessage;
     if (broadcastTemplate !== "custom") {
@@ -299,7 +299,7 @@ export default function NotificationsPage() {
                 className="input"
                 style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
               >
-                {employees.map((emp) => (
+                {employees.map((emp: any) => (
                   <option key={emp.id} value={emp.id}>{emp.name}</option>
                 ))}
               </select>
@@ -372,7 +372,7 @@ export default function NotificationsPage() {
                 className="input"
                 style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
               >
-                {employees.map((emp) => (
+                {employees.map((emp: any) => (
                   <option key={emp.id} value={emp.id}>{emp.name}</option>
                 ))}
               </select>
@@ -478,7 +478,7 @@ export default function NotificationsPage() {
           {/* List display */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {filteredList.length > 0 ? (
-              filteredList.map((item) => {
+              filteredList.map((item: any) => {
                 const isCritical = item.priority === "high";
                 return (
                   <div
@@ -587,7 +587,7 @@ export default function NotificationsPage() {
                         onClick={async (e) => {
                           e.stopPropagation();
                           alert(`Escalation Alert dispatched to Admin and Manager!\nPush notification sent to field staff (${item.employeeName}): "Please return to the workplace immediately."`);
-                          const targetEmp = employees.find(emp => emp.name === item.employeeName);
+                          const targetEmp = employees.find((emp: any) => emp.name === item.employeeName);
                           if (targetEmp) {
                             try {
                               await notificationsApi.send({
