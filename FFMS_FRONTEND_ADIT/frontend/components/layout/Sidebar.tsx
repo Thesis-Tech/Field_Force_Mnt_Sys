@@ -731,6 +731,19 @@ export default function Sidebar() {
                   ➔ Security & Access
                 </span>
               </Link>
+              <Link href={`${basePath}/settings/inactive-persons`} style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === `${basePath}/settings/inactive-persons` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    fontWeight: pathname === `${basePath}/settings/inactive-persons` ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Inactive Persons
+                </span>
+              </Link>
             </div>
           )}
         </div>

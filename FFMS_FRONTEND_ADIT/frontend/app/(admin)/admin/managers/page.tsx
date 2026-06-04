@@ -69,54 +69,52 @@ export default function AdminManagersPage() {
     const mgr = managers.find((m) => m.id === id);
     if (!mgr) return;
     const newStatus = mgr.status === "active" ? "INACTIVE" : "ACTIVE";
-    const res = await usersApi.update(id, { status: newStatus });
-    if (res.success) {
+    try {
+      const res = await usersApi.update(id, { status: newStatus });
       setManagers((prev) => prev.map((m) => m.id === id ? { ...m, status: newStatus === "ACTIVE" ? "active" : "inactive" } : m));
       showToast(`${mgr.name} ${newStatus === "ACTIVE" ? "activated" : "deactivated"} successfully.`, "success");
-    } else {
-      showToast("Failed to update status", "error");
+    } catch (err: any) {
+      showToast(err.message || "Failed to update status", "error");
     }
   };
 
   const handleAddManager = async (e: React.FormEvent) => {
     e.preventDefault();
     const employeeId = `MGR-${Math.floor(1000 + Math.random() * 9000)}`;
-    const res = await usersApi.create({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-      phone: formData.phone || undefined,
-      employeeId,
-      role: "MANAGER",
-      status: "ACTIVE"
-    });
-
-    if (res.success) {
+    try {
+      const res = await usersApi.create({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone || undefined,
+        employeeId,
+        role: "MANAGER",
+        status: "ACTIVE"
+      });
       loadData();
       setShowAddModal(false);
       setFormData({ name: "", email: "", password: "", department: "Operations", phone: "" });
       showToast(`${res.data.name} added as a manager successfully!`, "success");
-    } else {
-      showToast(res.error?.message || "Failed to add manager", "error");
+    } catch (err: any) {
+      showToast(err.message || "Failed to add manager", "error");
     }
   };
 
   const handleEditManager = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingManager) return;
-    const res = await usersApi.update(editingManager.id, {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone || undefined,
-      ...(formData.password ? { password: formData.password } : {})
-    });
-
-    if (res.success) {
+    try {
+      await usersApi.update(editingManager.id, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        ...(formData.password ? { password: formData.password } : {})
+      });
       loadData();
       setEditingManager(null);
       showToast("Manager details updated successfully!", "success");
-    } else {
-      showToast(res.error?.message || "Failed to update manager", "error");
+    } catch (err: any) {
+      showToast(err.message || "Failed to update manager", "error");
     }
   };
 

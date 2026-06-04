@@ -352,6 +352,8 @@ export default function EmployeesPage() {
   };
 
   const filtered = employees.filter((e: Employee) => {
+    if (e.status !== "active") return false;
+
     const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
     e.role.toLowerCase().includes(search.toLowerCase()) ||
     e.territory.toLowerCase().includes(search.toLowerCase());
