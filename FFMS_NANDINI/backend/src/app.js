@@ -12,11 +12,11 @@ const { apiLimiter } = require('./middleware/rateLimit.middleware');
 const v1Router = require('./routes/v1');
 
 const app = express();
-
 app.use(helmet());
 
 const PRODUCTION_ORIGINS = [
   'https://field-force-mnt-sys.pages.dev',
+  'https://field-force-mnt-sys.vercel.app',
 ];
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -53,7 +53,17 @@ app.use(cors({
   origin: (origin, callback) => {
     const isLocalhostCom = origin && /https?:\/\/(localhost\.com)(:\d+)?$/.test(origin);
     const isCloudflarePagesPreview = origin && /https:\/\/[a-z0-9-]+\.field-force-mnt-sys\.pages\.dev$/.test(origin);
-    if (!origin || allowedOrigins.includes(origin) || isLocalhostCom || isCloudflarePagesPreview) {
+    const isVercelPreview = origin && /https:\/\/field-force-mnt-[a-z0-9-]+\.vercel\.app$/.test(origin);
+    const isVercelProject = origin && /https:\/\/[a-z0-9-]+-rahul-kumar0012223552s-projects\.vercel\.app$/.test(origin);
+
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      isLocalhostCom ||
+      isCloudflarePagesPreview ||
+      isVercelPreview ||
+      isVercelProject
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -65,25 +75,20 @@ app.use(cors({
 app.use(morgan('combined', {
   stream: { write: (message) => logger.info(message.trim()) }
 }));
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(auditLogger);
 app.use('/api/', apiLimiter);
-
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/api/v1/docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
-
 app.use('/api/v1', v1Router);
-
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
-
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
@@ -93,7 +98,5 @@ app.use((req, res, next) => {
     }
   });
 });
-
 app.use(errorHandler);
-
 module.exports = app;
