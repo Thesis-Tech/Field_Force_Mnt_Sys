@@ -321,7 +321,9 @@ export default function Topbar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    router.push("/login");
+    document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "ff_user_role=; path=/; max-age=0; SameSite=Lax";
+    window.location.href = "/login";
   };
   return (
     <header style={{

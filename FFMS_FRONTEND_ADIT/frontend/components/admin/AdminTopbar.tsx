@@ -117,7 +117,12 @@ export default function AdminTopbar() {
   const results = getResults();
   const showDropdown = isFocused && query.trim().length > 0;
 
-  const handleLogout = () => { dispatch(logout()); router.push("/login"); };
+  const handleLogout = () => { 
+    dispatch(logout()); 
+    document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "ff_user_role=; path=/; max-age=0; SameSite=Lax";
+    window.location.href = "/login"; 
+  };
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(updateProfile({ firstName: profileForm.firstName, lastName: profileForm.lastName, designation: profileForm.designation, photoUrl: profileForm.photoUrl, email: profileForm.email, mobileNo: profileForm.mobileNo }));
