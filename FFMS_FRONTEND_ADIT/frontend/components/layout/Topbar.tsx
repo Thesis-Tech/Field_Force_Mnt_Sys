@@ -75,11 +75,18 @@ interface SearchResult {
 export default function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const info = pageTitles[pathname] || { title: "Field Force", subtitle: "" };
+  
+  const currentUser = useSelector((s: RootState) => s.auth.user);
+
+  const info = { ...(pageTitles[pathname] || { title: "Field Force", subtitle: "" }) };
+  if (pathname === "/dashboard") {
+    const role = currentUser?.role || currentUser?.designation || "Admin";
+    const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+    info.subtitle = `Welcome back, ${roleDisplay} 👋`;
+  }
 
   const employees = useSelector((s: RootState) => s.employees.list);
   const dispatch = useDispatch();
-  const currentUser = useSelector((s: RootState) => s.auth.user);
   const notifications = useSelector((s: RootState) => s.notifications.list);
   const unreadCount = notifications.filter((n: { read: any; }) => !n.read).length;
   const { toggleMobileSidebar } = useMobileSidebar();

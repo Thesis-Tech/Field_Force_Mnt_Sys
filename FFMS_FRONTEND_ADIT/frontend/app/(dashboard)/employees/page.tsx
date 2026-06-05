@@ -279,8 +279,11 @@ export default function EmployeesPage() {
   // Dynamic Payroll parameters per employee
   const [payrollData, setPayrollData] = useState<Record<string, { leaves: number; tasks: number; bonus: number; baseSalary?: number }>>({});
 
-  // Populate dynamic default values if missing
-  const activeEmployees = employees.filter((e: Employee) => e.status === "active");
+  const activeEmployees = employees.filter((e: Employee) => {
+    if (e.status !== "active") return false;
+    if (user?.role === "MANAGER") return e.managerId === user.id;
+    return true;
+  });
 
   const ensurePayrollData = () => {
     const updated = { ...payrollData };
@@ -355,7 +358,12 @@ export default function EmployeesPage() {
     e.role.toLowerCase().includes(search.toLowerCase()) ||
     e.territory.toLowerCase().includes(search.toLowerCase());
     
-    const matchManager = selectedManager === "all" || e.managerId === selectedManager || e.id === selectedManager;
+    let matchManager = true;
+    if (user?.role === "MANAGER") {
+      matchManager = e.managerId === user.id;
+    } else {
+      matchManager = selectedManager === "all" || e.managerId === selectedManager || e.id === selectedManager;
+    }
 
     return matchSearch && matchManager;
   });
@@ -414,37 +422,39 @@ export default function EmployeesPage() {
       </div>
 
       {/* Tabs Switcher */}
-      <div style={{ display: "flex", gap: "4px", background: "var(--bg-hover)", padding: "4px", borderRadius: "0px", border: "1px solid var(--border)", width: "fit-content", marginBottom: "20px" }}>
-        <button
-          onClick={() => setActiveTab("roster")}
-          style={{
-            padding: "8px 16px", borderRadius: "0px", fontSize: "13px", fontWeight: 700, cursor: "pointer",
-            background: activeTab === "roster" ? "var(--bg-secondary)" : "transparent",
-            color: activeTab === "roster" ? "var(--accent-blue)" : "var(--text-secondary)",
-            boxShadow: activeTab === "roster" ? "0 2px 8px rgba(48,117,228,0.08)" : "none",
-            border: activeTab === "roster" ? "1px solid var(--border)" : "1px solid transparent",
-            transition: "all 0.2s"
-          }}
-        >
-          👤 Employee Roster
-        </button>
-        <button
-          onClick={() => {
-            ensurePayrollData();
-            setActiveTab("payroll");
-          }}
-          style={{
-            padding: "8px 16px", borderRadius: "0px", fontSize: "13px", fontWeight: 700, cursor: "pointer",
-            background: activeTab === "payroll" ? "var(--bg-secondary)" : "transparent",
-            color: activeTab === "payroll" ? "var(--accent-blue)" : "var(--text-secondary)",
-            boxShadow: activeTab === "payroll" ? "0 2px 8px rgba(48,117,228,0.08)" : "none",
-            border: activeTab === "payroll" ? "1px solid var(--border)" : "1px solid transparent",
-            transition: "all 0.2s"
-          }}
-        >
-          🪙 Payroll & Salary Center
-        </button>
-      </div>
+      {mounted && user?.role === "ADMIN" && (
+        <div style={{ display: "flex", gap: "4px", background: "var(--bg-hover)", padding: "4px", borderRadius: "0px", border: "1px solid var(--border)", width: "fit-content", marginBottom: "20px" }}>
+          <button
+            onClick={() => setActiveTab("roster")}
+            style={{
+              padding: "8px 16px", borderRadius: "0px", fontSize: "13px", fontWeight: 700, cursor: "pointer",
+              background: activeTab === "roster" ? "var(--bg-secondary)" : "transparent",
+              color: activeTab === "roster" ? "var(--accent-blue)" : "var(--text-secondary)",
+              boxShadow: activeTab === "roster" ? "0 2px 8px rgba(48,117,228,0.08)" : "none",
+              border: activeTab === "roster" ? "1px solid var(--border)" : "1px solid transparent",
+              transition: "all 0.2s"
+            }}
+          >
+            👤 Employee Roster
+          </button>
+          <button
+            onClick={() => {
+              ensurePayrollData();
+              setActiveTab("payroll");
+            }}
+            style={{
+              padding: "8px 16px", borderRadius: "0px", fontSize: "13px", fontWeight: 700, cursor: "pointer",
+              background: activeTab === "payroll" ? "var(--bg-secondary)" : "transparent",
+              color: activeTab === "payroll" ? "var(--accent-blue)" : "var(--text-secondary)",
+              boxShadow: activeTab === "payroll" ? "0 2px 8px rgba(48,117,228,0.08)" : "none",
+              border: activeTab === "payroll" ? "1px solid var(--border)" : "1px solid transparent",
+              transition: "all 0.2s"
+            }}
+          >
+            🪙 Payroll & Salary Center
+          </button>
+        </div>
+      )}
 
       {/* Salary Overview KPI Cards & Policy Violations */}
       {activeTab === "payroll" && (
@@ -579,6 +589,9 @@ export default function EmployeesPage() {
               ) : (() => {
                 const getChildren = (parentId: string | null) => filtered.filter((e: Employee) => {
                   if (parentId === null) {
+                    if (user?.role === "MANAGER") {
+                      return e.managerId === user.id;
+                    }
                     return !e.managerId;
                   }
                   return e.managerId === parentId;
