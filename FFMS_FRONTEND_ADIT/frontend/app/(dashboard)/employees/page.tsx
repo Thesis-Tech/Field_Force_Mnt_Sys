@@ -381,6 +381,8 @@ export default function EmployeesPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const isAdmin = mounted && user?.role?.toUpperCase() === "ADMIN";
+
   return (
     <div>
       {/* Header */}
@@ -397,7 +399,7 @@ export default function EmployeesPage() {
         
         {activeTab === "roster" ? (
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            {mounted && user?.role === "ADMIN" && (
+            {isAdmin && (
               <select 
                 className="input" 
                 style={{ width: 180, height: 36, padding: "0 12px" }}
@@ -422,7 +424,7 @@ export default function EmployeesPage() {
       </div>
 
       {/* Tabs Switcher */}
-      {mounted && user?.role === "ADMIN" && (
+      {isAdmin && (
         <div style={{ display: "flex", gap: "4px", background: "var(--bg-hover)", padding: "4px", borderRadius: "0px", border: "1px solid var(--border)", width: "fit-content", marginBottom: "20px" }}>
           <button
             onClick={() => setActiveTab("roster")}
@@ -457,7 +459,7 @@ export default function EmployeesPage() {
       )}
 
       {/* Salary Overview KPI Cards & Policy Violations */}
-      {activeTab === "payroll" && (
+      {isAdmin && activeTab === "payroll" && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "20px", marginBottom: "24px" }}>
             <div style={{ background: "var(--bg-card)", border: "1px solid #92b3f1ff", boxShadow: "0 2px 12px rgba(48, 117, 228, 0.08)", padding: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -708,7 +710,7 @@ export default function EmployeesPage() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : isAdmin ? (
         /* PAYROLL SYSTEM TABLE (Interactive Salary Center) */
         <div className="table-wrapper">
           <table>
@@ -846,7 +848,7 @@ export default function EmployeesPage() {
             <div style={{ padding:"40px",textAlign:"center",color:"var(--text-muted)",fontSize:"14px" }}>No active payroll files found.</div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Add/Edit Modal */}
       {modal.open && (
