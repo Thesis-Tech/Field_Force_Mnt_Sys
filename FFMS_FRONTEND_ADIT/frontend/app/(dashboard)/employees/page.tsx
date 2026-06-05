@@ -88,10 +88,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
             </select>
             {territories.length === 0 && (
               <div style={{ fontSize: "11px", marginTop: "6px", color: "var(--accent-red)", lineHeight: "1.4" }}>
-                You don't have a territory set.{" "}
-                <a href="/settings/territory-setup" style={{ color: "var(--accent-blue)", textDecoration: "underline", fontWeight: 700 }}>
-                  Set it in Settings &gt; Company Setup &gt; Territory
-                </a>
+                No territories are available. Please contact the Admin to set up territories.
               </div>
             )}
           </div>

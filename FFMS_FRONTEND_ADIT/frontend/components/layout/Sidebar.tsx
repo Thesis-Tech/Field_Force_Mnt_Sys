@@ -636,7 +636,7 @@ export default function Sidebar() {
           </div>
         </Link>
 
-        {mounted && !isManager && (<>
+        {mounted && isAdmin && (<>
         {/* 10. Settings Accordion */}
         <div>
           <div
