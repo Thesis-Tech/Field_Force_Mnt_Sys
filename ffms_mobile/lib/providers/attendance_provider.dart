@@ -19,7 +19,7 @@ class AttendanceProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   bool get isCheckedIn => _todayAttendance != null && _todayAttendance!.checkOutTime == null;
-  bool get isDayComplete => _todaySessions.length >= 2 && _todaySessions.every((m) => m.checkOutTime != null);
+  bool get isDayComplete => _todaySessions.length >= 10 && _todaySessions.every((m) => m.checkOutTime != null);
 
   // Check In handler
   Future<bool> checkIn(Position position) async {
