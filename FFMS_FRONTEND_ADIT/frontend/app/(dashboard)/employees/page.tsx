@@ -909,7 +909,15 @@ export default function EmployeesPage() {
               dispatch(updateEmployeeThunk({
                 id: modal.emp.id,
                 data: updateData,
-              })).then(() => dispatch(fetchEmployees()));
+              }))
+                .unwrap()
+                .then(() => {
+                  dispatch(fetchEmployees());
+                  setModal({open:false,emp:null});
+                })
+                .catch((err) => {
+                  alert(err || "Failed to update employee");
+                });
             } else {
               dispatch(createEmployee({
                 name: emp.name,
@@ -921,9 +929,16 @@ export default function EmployeesPage() {
                 employeeId: emp.employeeId,
                 territoryId: emp.territoryId,
                 managerId: emp.managerId,
-              })).then(() => dispatch(fetchEmployees()));
+              }))
+                .unwrap()
+                .then(() => {
+                  dispatch(fetchEmployees());
+                  setModal({open:false,emp:null});
+                })
+                .catch((err) => {
+                  alert(err || "Failed to create employee");
+                });
             }
-            setModal({open:false,emp:null});
           }} />
       )}
 

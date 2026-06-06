@@ -9,8 +9,8 @@ const createUserSchema = z.object({
   employeeId: z.string().min(1, 'Employee ID is required'),
   role: z.nativeEnum(Role).default('FIELD_STAFF'),
   status: z.nativeEnum(UserStatus).default('ACTIVE'),
-  managerId: z.string().uuid().nullable().optional(),
-  territoryId: z.string().cuid().nullable().optional(),
+  managerId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
+  territoryId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
   profileImage: z.string().optional()
 });
 
@@ -21,8 +21,8 @@ const updateUserSchema = z.object({
   employeeId: z.string().optional(),
   role: z.nativeEnum(Role).optional(),
   status: z.nativeEnum(UserStatus).optional(),
-  managerId: z.string().uuid().nullable().optional(),
-  territoryId: z.string().cuid().nullable().optional(),
+  managerId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
+  territoryId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
   profileImage: z.string().optional()
 });
 
