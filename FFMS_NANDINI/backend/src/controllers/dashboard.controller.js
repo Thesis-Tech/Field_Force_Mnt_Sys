@@ -6,7 +6,7 @@ const { successResponse } = require('../utils/response');
  */
 const getAdminDashboard = async (req, res, next) => {
   try {
-    const stats = await dashboardService.getAdminDashboard(req.user.organizationId);
+    const stats = await dashboardService.getAdminDashboard(req.user.organizationId, req.user.role, req.user.id);
     return successResponse(res, stats);
   } catch (err) {
     next(err);

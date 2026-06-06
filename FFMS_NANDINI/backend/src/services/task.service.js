@@ -132,13 +132,31 @@ const listTasks = async ({
         userId: requestingUserId
       }
     };
-  } else if (assigneeId) {
-    // Manager+ filtering by specific staff
-    where.assignments = {
-      some: {
-        userId: assigneeId
-      }
+  } else if (role === 'MANAGER') {
+    if (assigneeId) {
+      where.assignments = {
+        some: {
+          userId: assigneeId
+        }
+      };
+      where.createdById = requestingUserId;
+    } else {
+      where.OR = [
+        { createdById: requestingUserId },
+        { assignments: { some: { userId: requestingUserId } } }
+      ];
+    }
+  } else if (role === 'ADMIN') {
+    where.createdBy = {
+      role: 'ADMIN'
     };
+    if (assigneeId) {
+      where.assignments = {
+        some: {
+          userId: assigneeId
+        }
+      };
+    }
   }
 
   const total = await prisma.task.count({ where });
@@ -290,9 +308,11 @@ const updateAssignmentStatus = async (
 
   // Update status transitions timestamps
   const updates = { status };
-  if (status === 'ACCEPTED') {
-    updates.acceptedAt = new Date();
-    // Update main task status to IN_PROGRESS on first assignment accept
+  if (status === 'ACCEPTED' || status === 'IN_PROGRESS') {
+    if (status === 'ACCEPTED' && !assignment.acceptedAt) {
+      updates.acceptedAt = new Date();
+    }
+    // Update main task status to IN_PROGRESS on first assignment accept or start
     await prisma.task.update({
       where: { id: taskId },
       data: { status: 'IN_PROGRESS' }

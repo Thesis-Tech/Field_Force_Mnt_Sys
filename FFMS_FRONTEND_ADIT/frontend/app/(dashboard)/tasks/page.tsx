@@ -81,6 +81,7 @@ export default function TasksPage() {
   const dispatch = useDispatch<AppDispatch>();
   const tasks = useSelector((s: RootState) => s.tasks.list);
   const employees = useSelector((s: RootState) => s.employees.list);
+  const user = useSelector((s: RootState) => s.auth.user);
   const [modal, setModal] = useState(false);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
@@ -88,6 +89,16 @@ export default function TasksPage() {
   useEffect(() => {
     dispatch(fetchTasks());
   }, [dispatch]);
+
+  const filteredEmployees = employees.filter(e => {
+    if (user?.role === "ADMIN") {
+      return e.role === "MANAGER";
+    }
+    if (user?.role === "MANAGER") {
+      return e.role === "FIELD_STAFF";
+    }
+    return true;
+  });
 
   const filtered = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
   const counts = { all: tasks.length, pending: tasks.filter(t=>t.status==="pending").length, "in-progress": tasks.filter(t=>t.status==="in-progress").length, completed: tasks.filter(t=>t.status==="completed").length };
@@ -160,7 +171,7 @@ export default function TasksPage() {
         <div style={{ textAlign:"center",padding:"60px",color:"var(--text-muted)" }}>No tasks found.</div>
       )}
 
-      {modal && <TaskModal employees={employees} onClose={()=>setModal(false)} onSave={(data, sendEmail, empEmail)=>{ 
+      {modal && <TaskModal employees={filteredEmployees} onClose={()=>setModal(false)} onSave={(data, sendEmail, empEmail)=>{ 
         dispatch(createTaskAsync(data)); 
         setModal(false); 
         if (sendEmail) {

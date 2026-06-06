@@ -100,6 +100,12 @@ const createVisitReport = async (userId, visitData, organizationId) => {
           where: { id: taskAssignmentId },
           data: { status: 'IN_PROGRESS', acceptedAt: new Date() }
         });
+        
+        // Also update parent task to IN_PROGRESS
+        await prisma.task.update({
+          where: { id: assignment.taskId },
+          data: { status: 'IN_PROGRESS' }
+        });
       }
 
       // If visit is marked COMPLETED, set assignment to COMPLETED and update timestamps

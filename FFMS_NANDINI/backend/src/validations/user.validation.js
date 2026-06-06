@@ -18,6 +18,7 @@ const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   phone: z.string().optional(),
   password: z.string().optional(),
+  employeeId: z.string().optional(),
   role: z.nativeEnum(Role).optional(),
   status: z.nativeEnum(UserStatus).optional(),
   managerId: z.string().uuid().nullable().optional(),

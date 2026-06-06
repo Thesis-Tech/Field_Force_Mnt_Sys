@@ -6,9 +6,21 @@ const logger = require('../config/logger');
 /**
  * Get Admin/Manager Dashboard stats
  */
-const getAdminDashboard = async (organizationId) => {
+const getAdminDashboard = async (organizationId, role, userId) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+
+  const taskFilter = {};
+  if (role === 'ADMIN') {
+    taskFilter.createdBy = {
+      role: 'ADMIN'
+    };
+  } else if (role === 'MANAGER') {
+    taskFilter.OR = [
+      { createdById: userId },
+      { assignments: { some: { userId } } }
+    ];
+  }
 
   // 1. todayStats
   const totalCheckedIn = await prisma.attendance.count({
@@ -40,7 +52,8 @@ const getAdminDashboard = async (organizationId) => {
     where: {
       organizationId,
       status: 'COMPLETED',
-      updatedAt: { gte: todayDate }
+      updatedAt: { gte: todayDate },
+      ...taskFilter
     }
   });
 
@@ -48,20 +61,22 @@ const getAdminDashboard = async (organizationId) => {
     where: {
       organizationId,
       status: { in: ['PENDING', 'IN_PROGRESS'] },
-      dueDate: { lt: new Date() }
+      dueDate: { lt: new Date() },
+      ...taskFilter
     }
   });
 
   // 2. tasksByStatus
-  const pending = await prisma.task.count({ where: { organizationId, status: 'PENDING' } });
-  const inProgress = await prisma.task.count({ where: { organizationId, status: 'IN_PROGRESS' } });
-  const completed = await prisma.task.count({ where: { organizationId, status: 'COMPLETED' } });
-  const cancelled = await prisma.task.count({ where: { organizationId, status: 'CANCELLED' } });
+  const pending = await prisma.task.count({ where: { organizationId, status: 'PENDING', ...taskFilter } });
+  const inProgress = await prisma.task.count({ where: { organizationId, status: 'IN_PROGRESS', ...taskFilter } });
+  const completed = await prisma.task.count({ where: { organizationId, status: 'COMPLETED', ...taskFilter } });
+  const cancelled = await prisma.task.count({ where: { organizationId, status: 'CANCELLED', ...taskFilter } });
   const overdue = await prisma.task.count({
     where: {
       organizationId,
       status: { in: ['PENDING', 'IN_PROGRESS'] },
-      dueDate: { lt: new Date() }
+      dueDate: { lt: new Date() },
+      ...taskFilter
     }
   });
 
@@ -88,7 +103,8 @@ const getAdminDashboard = async (organizationId) => {
       where: {
         organizationId,
         status: 'COMPLETED',
-        updatedAt: { gte: dateQuery, lte: dateQueryEnd }
+        updatedAt: { gte: dateQuery, lte: dateQueryEnd },
+        ...taskFilter
       }
     });
 
@@ -119,7 +135,7 @@ const getAdminDashboard = async (organizationId) => {
       name: true,
       employeeId: true,
       taskAssignments: {
-        where: { status: 'COMPLETED' },
+        where: { status: 'COMPLETED', task: taskFilter },
         select: { rating: true }
       },
       visitReports: {
