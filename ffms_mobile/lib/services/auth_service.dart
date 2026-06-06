@@ -32,6 +32,7 @@ class AuthService {
           orgId: user.organization?.id ?? '',
           name: user.name,
           email: user.email,
+          employeeId: user.employeeId,
         );
 
         return {'success': true, 'user': user};
@@ -58,6 +59,7 @@ class AuthService {
           orgId: user.organization?.id ?? '',
           name: user.name,
           email: user.email,
+          employeeId: user.employeeId,
         );
         return user;
       }

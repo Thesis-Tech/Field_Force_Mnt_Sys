@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -46,6 +47,68 @@ class _HomeScreenState extends State<HomeScreen> {
       attendanceProvider.fetchTodayState(),
       notificationProvider.fetchNotifications(),
     ]);
+
+    // Recover lost image data (e.g. from low memory background activity destruction)
+    try {
+      final picker = ImagePicker();
+      final response = await picker.retrieveLostData();
+      if (!response.isEmpty && response.file != null && response.type == RetrieveType.image) {
+        final file = response.file!;
+        if (!attendanceProvider.isCheckedIn && !attendanceProvider.isDayComplete) {
+          _processLostCheckIn(file);
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  Future<void> _processLostCheckIn(XFile file) async {
+    final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+    if (attendanceProvider.isCheckedIn || attendanceProvider.isDayComplete) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recovering photo & processing check-in...'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+
+    try {
+      final bytes = await file.readAsBytes();
+      final base64Selfie = base64Encode(bytes);
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final success = await attendanceProvider.checkIn(position, selfieBase64: base64Selfie);
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Checked In Successfully (Recovered)!'),
+              backgroundColor: AppColors.secondary,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(attendanceProvider.errorMessage ?? 'Check-in failed'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to complete recovered check-in: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   Future<void> _handleAttendanceAction() async {
@@ -76,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     try {
+      String? base64Selfie;
       if (!attendanceProvider.isCheckedIn) {
         final battery = Battery();
         final batteryLevel = await battery.batteryLevel;
@@ -102,6 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           return;
         }
+
+        final bytes = await photo.readAsBytes();
+        base64Selfie = base64Encode(bytes);
       }
 
       Position position = await Geolocator.getCurrentPosition(
@@ -113,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (wasCheckedIn) {
         success = await attendanceProvider.checkOut(position);
       } else {
-        success = await attendanceProvider.checkIn(position);
+        success = await attendanceProvider.checkIn(position, selfieBase64: base64Selfie);
       }
 
       if (mounted) {

@@ -35,13 +35,43 @@ class AuthProvider extends ChangeNotifier {
     final accessToken = await StorageHelper.getAccessToken();
 
     if (accessToken != null) {
-      final user = await _authService.getProfile();
-      if (user != null) {
-        _currentUser = user;
+      final cachedId = StorageHelper.getUserId();
+      final cachedName = StorageHelper.getUserName();
+      final cachedEmail = StorageHelper.getUserEmail();
+      final cachedRole = StorageHelper.getUserRole();
+      final cachedEmployeeId = StorageHelper.getEmployeeId();
+
+      if (cachedId != null && cachedName != null && cachedEmail != null && cachedRole != null) {
+        _currentUser = UserModel(
+          id: cachedId,
+          name: cachedName,
+          email: cachedEmail,
+          role: cachedRole,
+          status: 'ACTIVE',
+          employeeId: cachedEmployeeId,
+        );
         _state = AuthState.authenticated;
-        await SocketService.connect();
+        notifyListeners();
+
+        // Connect socket in background
+        SocketService.connect().catchError((_) {});
+
+        // Fetch fresh profile in the background
+        _authService.getProfile().then((freshUser) {
+          if (freshUser != null) {
+            _currentUser = freshUser;
+            notifyListeners();
+          }
+        }).catchError((_) {});
       } else {
-        _state = AuthState.unauthenticated;
+        final user = await _authService.getProfile();
+        if (user != null) {
+          _currentUser = user;
+          _state = AuthState.authenticated;
+          await SocketService.connect();
+        } else {
+          _state = AuthState.unauthenticated;
+        }
       }
     } else {
       _state = AuthState.unauthenticated;

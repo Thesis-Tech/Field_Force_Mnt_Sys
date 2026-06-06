@@ -22,7 +22,7 @@ class AttendanceProvider extends ChangeNotifier {
   bool get isDayComplete => _todaySessions.length >= 10 && _todaySessions.every((m) => m.checkOutTime != null);
 
   // Check In handler
-  Future<bool> checkIn(Position position) async {
+  Future<bool> checkIn(Position position, {String? selfieBase64}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -33,6 +33,7 @@ class AttendanceProvider extends ChangeNotifier {
         data: {
           'latitude': position.latitude,
           'longitude': position.longitude,
+          if (selfieBase64 != null) 'selfieBase64': selfieBase64,
         },
       );
 

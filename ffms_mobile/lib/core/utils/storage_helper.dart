@@ -2,7 +2,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageHelper {
-  static const _secureStorage = FlutterSecureStorage();
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   static SharedPreferences? _prefs;
 
   static const String _accessTokenKey = 'access_token';
@@ -12,6 +14,7 @@ class StorageHelper {
   static const String _userOrgIdKey = 'user_org_id';
   static const String _userNameKey = 'user_name';
   static const String _userEmailKey = 'user_email';
+  static const String _userEmployeeIdKey = 'user_employee_id';
 
   static Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
@@ -23,7 +26,11 @@ class StorageHelper {
   }
 
   static Future<String?> getAccessToken() async {
-    return await _secureStorage.read(key: _accessTokenKey);
+    try {
+      return await _secureStorage.read(key: _accessTokenKey);
+    } catch (e) {
+      return null;
+    }
   }
 
   static Future<void> saveRefreshToken(String token) async {
@@ -31,7 +38,11 @@ class StorageHelper {
   }
 
   static Future<String?> getRefreshToken() async {
-    return await _secureStorage.read(key: _refreshTokenKey);
+    try {
+      return await _secureStorage.read(key: _refreshTokenKey);
+    } catch (e) {
+      return null;
+    }
   }
 
   // User Info (SharedPreferences for fast sync read)
@@ -41,6 +52,7 @@ class StorageHelper {
     required String orgId,
     required String name,
     required String email,
+    String? employeeId,
   }) async {
     if (_prefs == null) await initialize();
     await _prefs!.setString(_userIdKey, id);
@@ -48,6 +60,11 @@ class StorageHelper {
     await _prefs!.setString(_userOrgIdKey, orgId);
     await _prefs!.setString(_userNameKey, name);
     await _prefs!.setString(_userEmailKey, email);
+    if (employeeId != null) {
+      await _prefs!.setString(_userEmployeeIdKey, employeeId);
+    } else {
+      await _prefs!.remove(_userEmployeeIdKey);
+    }
   }
 
   static String? getUserId() => _prefs?.getString(_userIdKey);
@@ -55,10 +72,15 @@ class StorageHelper {
   static String? getUserOrgId() => _prefs?.getString(_userOrgIdKey);
   static String? getUserName() => _prefs?.getString(_userNameKey);
   static String? getUserEmail() => _prefs?.getString(_userEmailKey);
+  static String? getEmployeeId() => _prefs?.getString(_userEmployeeIdKey);
 
   // Clear Storage
   static Future<void> clearAll() async {
-    await _secureStorage.deleteAll();
+    try {
+      await _secureStorage.deleteAll();
+    } catch (e) {
+      // Ignore secure storage deletion error
+    }
     if (_prefs == null) await initialize();
     await _prefs!.clear();
   }
