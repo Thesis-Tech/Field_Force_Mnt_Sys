@@ -27,7 +27,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
     if (!defaultTerrName && territories.length > 0) {
       defaultTerrName = territories[0].name;
     }
-    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: `EMP-${Date.now().toString().slice(-6)}`, managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
+    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
   });
   const set = (k: keyof Employee, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -116,6 +116,10 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 alert("Password is required for new employees. Please enter a password or click Generate.");
                 return;
               }
+              if (!form.employeeId?.trim()) {
+                alert("Employee ID is required.");
+                return;
+              }
               const avatarStr = (form.name||"XX").split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2);
               const matchingZone = territories.find((t: any) => t.name === form.territory);
               const payload: any = {
@@ -125,7 +129,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 territoryId: matchingZone?.id || null,
                 status: form.status === "inactive" ? "INACTIVE" : "ACTIVE",
                 avatar: avatarStr,
-                employeeId: form.employeeId || emp?.employeeId || `EMP-${Date.now().toString().slice(-6)}`,
+                employeeId: form.employeeId || emp?.employeeId,
                 managerId: form.managerId || null,
               };
               // Only include password when the user explicitly typed one
@@ -202,7 +206,7 @@ export default function EmployeesPage() {
   const [payslipEmpId, setPayslipEmpId] = useState<string | null>(null);
   const [dbTerritories, setDbTerritories] = useState<any[]>([]);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [statsMap, setStatsMap] = useState<Record<string, { checkIn: string; hours: string; tasks: number; distance: string }>>({});
+  const [statsMap, setStatsMap] = useState<Record<string, { checkIn: string; hours: string; tasks: number; distance: string; status: string }>>({});
 
   const toggleExpanded = (id: string) => {
     setExpandedRows(prev => ({ ...prev, [id]: prev[id] === false ? true : false }));
@@ -255,13 +259,20 @@ export default function EmployeesPage() {
           } else {
              newStats[a.userId].hours = a.checkInTime ? "Active" : "0:00 hrs";
           }
+          if (a.checkOutTime) {
+              newStats[a.userId].status = "Punched Out";
+          } else if (a.checkInTime) {
+              newStats[a.userId].status = "Punched In";
+          } else {
+              newStats[a.userId].status = "Not Punched In";
+          }
         });
 
         tasks.forEach((t: any) => {
           if (t.status === "COMPLETED" && t.assignments) {
             t.assignments.forEach((assign: any) => {
               if (assign.status === "COMPLETED") {
-                if (!newStats[assign.userId]) newStats[assign.userId] = { tasks: 0, distance: "0 km", hours: "0:00 hrs", checkIn: "-" };
+                if (!newStats[assign.userId]) newStats[assign.userId] = { tasks: 0, distance: "0 km", hours: "0:00 hrs", checkIn: "-", status: "Not Punched In" };
                 newStats[assign.userId].tasks += 1;
               }
             });
@@ -366,7 +377,7 @@ export default function EmployeesPage() {
     }
 
     return matchSearch && matchManager;
-  });
+  }).reverse();
 
   // Payroll summary metrics
   const totalPayrollCost = activeEmployees.reduce((sum: number, emp: Employee) => sum + calculateSalary(emp.id, emp.role).netPay, 0);
@@ -622,12 +633,12 @@ export default function EmployeesPage() {
                           </div>
                           <div>
                             <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: depth === 0 ? 700 : 500 }}>{emp.name}</div>
-                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{emp.role} • {emp.email}</div>
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{emp.employeeId || "No ID"} • {emp.role}</div>
                           </div>
                         </td>
                         <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{emp.territory || "Head Office"}</td>
                         <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>
-                          {emp.status === "active" ? "Not Punched In" : "Inactive"}
+                          {emp.status === "active" ? (statsMap[emp.id]?.status || "Not Punched In") : "Inactive"}
                         </td>
                         <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{statsMap[emp.id]?.checkIn || "-"}</td>
                         <td style={{ padding: "16px 12px", textAlign: "center" }}>

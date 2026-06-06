@@ -134,11 +134,14 @@ export default function LiveMap({
         const emp = employees.find((e) => e.id === selectedId);
         if (emp && !isNaN(Number(emp.lat)) && !isNaN(Number(emp.lng))) {
           try {
-            // Leaflet format: [lat, lng]
             if (typeof map.flyTo === 'function') {
-              map.flyTo([emp.lat, emp.lng], 13);
-            } else {
-              map.setView([emp.lat, emp.lng], 13);
+              map.flyTo({ center: { lat: emp.lat, lng: emp.lng }, zoom: 13 });
+            } else if (typeof map.panTo === 'function') {
+              map.panTo([emp.lng, emp.lat]); // Mapbox GL JS format
+            } else if (typeof map.setCenter === 'function') {
+              map.setCenter({ lat: emp.lat, lng: emp.lng });
+            } else if (typeof map.setView === 'function') {
+              map.setView([emp.lat, emp.lng], 13); // Leaflet format
             }
           } catch (_) {}
         }

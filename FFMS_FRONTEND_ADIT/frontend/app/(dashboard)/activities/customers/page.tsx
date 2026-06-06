@@ -26,48 +26,7 @@ interface CustomerRecord {
 }
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<CustomerRecord[]>([
-    {
-      id: "c-1",
-      name: "Reliance Corporate Park",
-      poc: "Rajesh Mehta",
-      email: "r.mehta@reliance.com",
-      phone: "+91 98200 12345",
-      location: "Ghansoli, Navi Mumbai (19.1245° N, 73.0034° E)",
-      category: "Enterprise Site",
-      activeVisits: 14
-    },
-    {
-      id: "c-2",
-      name: "Tata Motors Plant",
-      poc: "Vikram Gokhale",
-      email: "v.gokhale@tatamotors.com",
-      phone: "+91 99120 98765",
-      location: "Pimpri Industrial Zone (18.6298° N, 73.7997° E)",
-      category: "Warehouse / Logistics",
-      activeVisits: 8
-    },
-    {
-      id: "c-3",
-      name: "HDFC Central Bank",
-      poc: "Siddharth Sen",
-      email: "s.sen@hdfc.com",
-      phone: "+91 98300 55443",
-      location: "Kanjurmarg East ATM Hub (19.1302° N, 72.9421° E)",
-      category: "Retail Banking",
-      activeVisits: 5
-    },
-    {
-      id: "c-4",
-      name: "L&T Infrastructure",
-      poc: "Niranjan Hiranandani",
-      email: "n.hiranandani@lntecc.com",
-      phone: "+91 90040 33221",
-      location: "Powai Headquarters (19.1172° N, 72.9090° E)",
-      category: "Enterprise Site",
-      activeVisits: 11
-    }
-  ]);
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
