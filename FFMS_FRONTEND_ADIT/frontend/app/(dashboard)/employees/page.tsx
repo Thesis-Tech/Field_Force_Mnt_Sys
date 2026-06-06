@@ -19,17 +19,16 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
       let employeeId = emp.employeeId || "";
       let empPrefix = employeeId.replace(/[0-9]/g, '') || "EMP";
       let empSuffix = employeeId.replace(/[^0-9]/g, '');
-      return { ...emp, password: "", empPrefix, empSuffix };
+      return { ...emp, password: "", empPrefix, empSuffix, territoryId: emp.territoryId || null };
     }
-    let defaultTerrName = "";
+    let defaultTerrId: string | null = null;
     if (currentUser?.role === "MANAGER" && currentUser.territoryId) {
-      const managerTerr = territories.find((t: any) => t.id === currentUser.territoryId);
-      if (managerTerr) defaultTerrName = managerTerr.name;
+      defaultTerrId = currentUser.territoryId;
     }
-    if (!defaultTerrName && territories.length > 0) {
-      defaultTerrName = territories[0].name;
+    if (!defaultTerrId && territories.length > 0) {
+      defaultTerrId = territories[0].id;
     }
-    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
+    return { name:"",email:"",phone:"",role:ROLES[0],territory:"",territoryId:defaultTerrId,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
   });
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -104,11 +103,11 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
           </div>
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Territory</label>
-            <select className="input" value={form.territory||""} onChange={e=>set("territory",e.target.value)}>
+            <select className="input" value={form.territoryId || ""} onChange={e=>set("territoryId",e.target.value)}>
               {territories.length > 0 ? (
                 <>
                   {currentUser?.role !== "MANAGER" && <option value="">-- Select Territory --</option>}
-                  {territories.map((t: any) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                  {territories.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </>
               ) : (
                 <option value="">No territories available</option>
@@ -150,12 +149,11 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 return;
               }
               const avatarStr = (form.name||"XX").split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2);
-              const matchingZone = territories.find((t: any) => t.name === form.territory);
               const payload: any = {
                 id: emp?.id,
                 name: form.name||"", email: form.email||"", phone: form.phone||"",
                 role: form.role || "FIELD_STAFF",
-                territoryId: matchingZone?.id || null,
+                territoryId: form.territoryId || null,
                 status: form.status === "inactive" ? "INACTIVE" : "ACTIVE",
                 avatar: avatarStr,
                 employeeId: empId,
@@ -911,7 +909,7 @@ export default function EmployeesPage() {
               dispatch(updateEmployeeThunk({
                 id: modal.emp.id,
                 data: updateData,
-              }));
+              })).then(() => dispatch(fetchEmployees()));
             } else {
               dispatch(createEmployee({
                 name: emp.name,
@@ -923,7 +921,7 @@ export default function EmployeesPage() {
                 employeeId: emp.employeeId,
                 territoryId: emp.territoryId,
                 managerId: emp.managerId,
-              }));
+              })).then(() => dispatch(fetchEmployees()));
             }
             setModal({open:false,emp:null});
           }} />

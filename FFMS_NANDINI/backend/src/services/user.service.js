@@ -200,7 +200,12 @@ const updateUser = async (id, updateData, organizationId) => {
 
   const updatedUser = await prisma.user.update({
     where: { id },
-    data: dataToUpdate
+    data: dataToUpdate,
+    include: {
+      territory: {
+        select: { id: true, name: true }
+      }
+    }
   });
 
   const { passwordHash: _, ...userWithoutPassword } = updatedUser;
