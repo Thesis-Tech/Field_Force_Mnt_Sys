@@ -24,7 +24,8 @@ import {
   Info,
   SlidersHorizontal,
   Radio,
-  Activity
+  Activity,
+  MapPin
 } from "lucide-react";
 
 export default function NotificationsPage() {
@@ -57,6 +58,9 @@ export default function NotificationsPage() {
   const [broadcastTemplate, setBroadcastTemplate] = useState("custom");
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastPriority, setBroadcastPriority] = useState<"high" | "normal">("normal");
+
+  // Form states for requesting location
+  const [locationEmpId, setLocationEmpId] = useState("1");
 
   // Filter logic (Priority filter removed)
   const [emailAlertOffline, setEmailAlertOffline] = useState(true);
@@ -165,7 +169,30 @@ export default function NotificationsPage() {
     }
   };
 
+  // Request Real-Time Location
+  const handleRequestLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const emp = employees.find((e: any) => e.id === locationEmpId) || employees[0];
 
+    if (!emp) {
+      alert("Please select an employee.");
+      return;
+    }
+
+    try {
+      await notificationsApi.send({
+        userId: emp.id,
+        title: "LOCATION_UPDATE_REQUEST",
+        body: "Admin has requested a real-time location update.",
+        type: "system",
+        priority: "high",
+      });
+      alert(`Location request pushed to ${emp.name}'s device. You will receive a notification with their live coordinates shortly.`);
+      dispatch(fetchNotifications() as any);
+    } catch (err) {
+      alert("Failed to send location request.");
+    }
+  };
 
   return (
     <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -501,7 +528,41 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          {/* List display */}
+          {/* Request Live Location Form */}
+          <form className="card" onSubmit={handleRequestLocation} style={{ display: "flex", flexDirection: "column", gap: "12px", border: "1px solid var(--accent-blue)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
+              <MapPin size={16} color="var(--accent-blue)" />
+              <span style={{ fontWeight: 700, fontSize: "14px" }}>Request Real-Time Location</span>
+            </div>
+
+            <p style={{ fontSize: "11.5px", color: "var(--text-muted)", margin: 0 }}>
+              Force a field staff's device to transmit its current live GPS coordinates immediately.
+            </p>
+
+            <div>
+              <label style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "4px" }}>TARGET EMPLOYEE</label>
+              <select 
+                value={locationEmpId}
+                onChange={(e) => setLocationEmpId(e.target.value)}
+                className="input"
+                style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
+              >
+                {employees.map((emp: any) => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "38px", fontSize: "13px", marginTop: "4px" }}
+            >
+              <MapPin size={13} /> Push Location Request
+            </button>
+          </form>
+
+          {/* Broadcast Outgoing Notification */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {filteredList.length > 0 ? (
               filteredList.map((item: any) => {
