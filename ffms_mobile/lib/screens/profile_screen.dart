@@ -70,6 +70,12 @@ class ProfileScreen extends StatelessWidget {
               color: AppColors.surface,
               child: Column(
                 children: [
+                  if (authUser?.employeeId != null)
+                    _buildProfileTile(
+                      Icons.perm_identity_outlined,
+                      'Employee ID',
+                      authUser!.employeeId!,
+                    ),
                   _buildProfileTile(
                     Icons.badge_outlined,
                     'Employee Role',

@@ -65,6 +65,7 @@ class TaskModel {
   final String priority;
   final String status;
   final String? territoryId;
+  final String? territoryName;
   final String? projectId;
   final String? projectName;
   final DateTime? dueDate;
@@ -78,6 +79,7 @@ class TaskModel {
     required this.priority,
     required this.status,
     this.territoryId,
+    this.territoryName,
     this.projectId,
     this.projectName,
     this.dueDate,
@@ -97,6 +99,7 @@ class TaskModel {
       priority: json['priority'] as String,
       status: json['status'] as String,
       territoryId: json['territoryId'] as String?,
+      territoryName: json['territory'] != null ? json['territory']['name'] as String? : null,
       projectId: json['projectId'] as String?,
       projectName: json['project'] != null ? json['project']['name'] as String? : null,
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate'] as String) : null,

@@ -271,7 +271,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   // Metadata grid
                   _buildDetailRow(context, Icons.folder_open, 'Project', task.projectName ?? 'No Project'),
                   const SizedBox(height: 8),
-                  _buildDetailRow(context, Icons.location_on_outlined, 'Territory', task.territoryId ?? 'No Territory'),
+                  _buildDetailRow(context, Icons.location_on_outlined, 'Territory', task.territoryName ?? 'No Territory'),
                   const SizedBox(height: 8),
                   _buildDetailRow(
                     context,

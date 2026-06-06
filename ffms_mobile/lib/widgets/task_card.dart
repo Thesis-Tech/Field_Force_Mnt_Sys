@@ -91,7 +91,7 @@ class TaskCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            task.territoryId ?? 'No Location',
+                            task.territoryName ?? 'No Location',
                             style: Theme.of(context).textTheme.bodyMedium,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
