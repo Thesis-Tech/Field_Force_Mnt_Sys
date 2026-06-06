@@ -104,7 +104,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
           </div>
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Territory</label>
-            <select className="input" value={form.territory||""} onChange={e=>set("territory",e.target.value)} disabled={currentUser?.role === "MANAGER"}>
+            <select className="input" value={form.territory||""} onChange={e=>set("territory",e.target.value)}>
               {territories.length > 0 ? (
                 <>
                   {currentUser?.role !== "MANAGER" && <option value="">-- Select Territory --</option>}
