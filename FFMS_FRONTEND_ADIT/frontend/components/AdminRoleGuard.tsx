@@ -13,7 +13,7 @@ import { RootState } from "@/store";
  * 2. Logged in but NOT ADMIN → /dashboard (non-admins cannot access admin panel)
  * 3. Hydrates cookies from localStorage session if missing (same as RoleGuard)
  */
-export default function AdminRoleGuard() {
+export default function AdminRoleGuard({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, user, token } = useSelector((s: RootState) => s.auth);
   const router = useRouter();
 
@@ -39,5 +39,11 @@ export default function AdminRoleGuard() {
     }
   }, [isLoggedIn, token, user, router]);
 
-  return null;
+  const isAdmin = isLoggedIn && token && (user?.role || "").toUpperCase() === "ADMIN";
+
+  if (!isAdmin) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

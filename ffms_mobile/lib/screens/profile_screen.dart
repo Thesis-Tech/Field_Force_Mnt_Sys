@@ -5,6 +5,7 @@ import '../widgets/custom_button.dart';
 import '../core/theme/app_theme.dart';
 import 'expenses_screen.dart';
 import 'feedback_screen.dart';
+import 'permissions_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -128,6 +129,18 @@ class ProfileScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const FeedbackScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: const Icon(Icons.security_outlined, color: AppColors.primary),
+                    title: const Text('System Permissions', style: TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PermissionsScreen()),
                       );
                     },
                   ),

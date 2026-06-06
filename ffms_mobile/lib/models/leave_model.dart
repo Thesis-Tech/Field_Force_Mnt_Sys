@@ -4,10 +4,12 @@ class LeaveModel {
   final String leaveType;
   final DateTime startDate;
   final DateTime endDate;
+  final double totalDays;
   final String reason;
   final String status;
   final String? approvedById;
   final String? approvalNote;
+  final String? attachmentUrl;
   final DateTime createdAt;
 
   LeaveModel({
@@ -16,10 +18,12 @@ class LeaveModel {
     required this.leaveType,
     required this.startDate,
     required this.endDate,
+    required this.totalDays,
     required this.reason,
     required this.status,
     this.approvedById,
     this.approvalNote,
+    this.attachmentUrl,
     required this.createdAt,
   });
 
@@ -30,10 +34,12 @@ class LeaveModel {
       leaveType: (json['type'] ?? json['leaveType'] ?? '') as String,
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
+      totalDays: ((json['totalDays'] ?? 0.0) as num).toDouble(),
       reason: json['reason'] as String? ?? '',
       status: json['status'] as String,
       approvedById: json['approvedById'] as String?,
       approvalNote: json['approvalNote'] as String?,
+      attachmentUrl: json['attachmentUrl'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }

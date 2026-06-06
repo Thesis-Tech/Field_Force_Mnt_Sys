@@ -93,4 +93,28 @@ class LeaveProvider extends ChangeNotifier {
     }
     return false;
   }
+
+  // Cancel Leave
+  Future<bool> cancelLeave(String leaveId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.client.delete('/leave/$leaveId');
+      if (response.data['success'] == true) {
+        await fetchMyLeaves();
+        await fetchBalances();
+        return true;
+      }
+    } on DioException catch (e) {
+      _errorMessage = e.response?.data?['error']?['message'] ?? 'Failed to cancel leave request';
+    } catch (e) {
+      _errorMessage = 'An error occurred: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
 }

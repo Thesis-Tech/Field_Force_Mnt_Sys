@@ -90,6 +90,43 @@ export default function PlaybackMap({
         const map = mapRef.current;
         if (!map) return;
 
+        const fitMapToBounds = (points: any[]) => {
+          if (points.length === 0) return;
+          let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+          let validPoints = 0;
+          points.forEach(pt => {
+            const lat = Number(pt.lat);
+            const lng = Number(pt.lng);
+            if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+              if (lat < minLat) minLat = lat;
+              if (lat > maxLat) maxLat = lat;
+              if (lng < minLng) minLng = lng;
+              if (lng > maxLng) maxLng = lng;
+              validPoints++;
+            }
+          });
+
+          if (validPoints > 0 && minLat <= 90 && maxLat >= -90 && minLng <= 180 && maxLng >= -180) {
+            try {
+              const L = (window as any).L;
+              if (L && typeof L.latLngBounds === 'function' && typeof L.latLng === 'function') {
+                const bounds = L.latLngBounds(
+                  L.latLng(minLat, minLng),
+                  L.latLng(maxLat, maxLng)
+                );
+                map.fitBounds(bounds, { padding: [55, 55] });
+              } else if (map.fitBounds) {
+                map.fitBounds([
+                  [minLat, minLng],
+                  [maxLat, maxLng]
+                ], { padding: 55 });
+              }
+            } catch (e) {
+              console.error("PlaybackMap fitBounds error:", e);
+            }
+          }
+        };
+
       // We only clear old static layers if the route changed entirely.
       // But active marker is preserved so we can update its position.
       if (layersRef.current.lastSelectedEmployee !== selectedEmployeeName) {
@@ -279,6 +316,7 @@ export default function PlaybackMap({
                   strokeOpacity: 0.9,
                   fitbounds: true
                 });
+                fitMapToBounds(snappedPath);
               } else {
                 console.warn("OSRM Route API returned non-Ok:", data);
               }
@@ -323,6 +361,8 @@ export default function PlaybackMap({
           popupHtml: `<div style="padding: 5px;"><strong>Destination</strong><br/>Time: ${endPt.time}</div>`
         });
         layersRef.current.markers.push(endMarker);
+
+        fitMapToBounds(latLngs);
       }
 
       // Draw or Update Active playback pointer marker
@@ -405,43 +445,6 @@ export default function PlaybackMap({
           }
         } catch (e) {
           console.warn("Failed to pan map:", e);
-        }
-      }
-
-      // Auto-fit bounds if first load or path changes
-      if (latLngs.length > 0 && !layersRef.current.staticLayersRendered) {
-        let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-        let validPoints = 0;
-        latLngs.forEach(pt => {
-          const lat = Number(pt.lat);
-          const lng = Number(pt.lng);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            if (lat < minLat) minLat = lat;
-            if (lat > maxLat) maxLat = lat;
-            if (lng < minLng) minLng = lng;
-            if (lng > maxLng) maxLng = lng;
-            validPoints++;
-          }
-        });
-
-        if (validPoints > 0 && minLat <= 90 && maxLat >= -90 && minLng <= 180 && maxLng >= -180) {
-          try {
-            const L = (window as any).L;
-            if (L && typeof L.latLngBounds === 'function' && typeof L.latLng === 'function') {
-              const bounds = L.latLngBounds(
-                L.latLng(minLat, minLng),
-                L.latLng(maxLat, maxLng)
-              );
-              map.fitBounds(bounds, { padding: [55, 55] });
-            } else if (map.fitBounds) {
-              map.fitBounds([
-                [minLng, minLat],
-                [maxLng, maxLat]
-              ], { padding: 55 });
-            }
-          } catch (e) {
-            console.error("PlaybackMap fitBounds error:", e);
-          }
         }
       }
     } catch (err) {

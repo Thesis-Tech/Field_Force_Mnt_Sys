@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/leave_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../widgets/status_badge.dart';
+import 'leave_detail_screen.dart';
 
 class LeaveStatusScreen extends StatefulWidget {
   const LeaveStatusScreen({super.key});
@@ -55,8 +56,18 @@ class _LeaveStatusScreenState extends State<LeaveStatusScreen> {
                       final endStr = DateFormat('dd MMM yyyy').format(leave.endDate);
 
                       return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LeaveDetailScreen(leave: leave),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -140,6 +151,7 @@ class _LeaveStatusScreenState extends State<LeaveStatusScreen> {
                             ],
                           ),
                         ),
+                      ),
                       );
                     },
                   ),

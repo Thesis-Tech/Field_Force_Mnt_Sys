@@ -18,22 +18,37 @@ async function main() {
     throw new Error('❌ ADMIN_PASSWORD environment variable is required');
   }
 
+  // Ensure default organization exists
+  let org = await prisma.organization.findFirst();
+  if (!org) {
+    org = await prisma.organization.create({
+      data: {
+        name: 'Tinplate Computer Training Center',
+        slug: 'tctc-ffms',
+        isActive: true
+      }
+    });
+    console.log(`✅ Default organization created: ${org.name}`);
+  }
+
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
   const user = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {
       name: adminName,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       role: adminRole,
       status: adminStatus,
     },
     create: {
       email: adminEmail,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       name: adminName,
       role: adminRole,
       status: adminStatus,
+      organizationId: org.id,
+      employeeId: 'EMP-001'
     },
   });
 

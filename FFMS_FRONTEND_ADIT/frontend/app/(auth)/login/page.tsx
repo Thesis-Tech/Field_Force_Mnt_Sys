@@ -9,7 +9,7 @@ export default function LoginPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const [email, setEmail] = useState("admin@tctc.com");
-  const [password, setPassword] = useState("password123");
+  const [password, setPassword] = useState("admin123");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -100,7 +100,7 @@ export default function LoginPage() {
         ? (localStorage.getItem("ff_password") || "admin123")
         : "admin123";
 
-      const isDefaultCreds = email === "admin@tctc.com" && password === "password123";
+      const isDefaultCreds = email === "admin@tctc.com" && password === "admin123";
       const isCustomCreds = email === storedEmail && password === storedPassword;
 
       if (isDefaultCreds || isCustomCreds) {
@@ -209,7 +209,7 @@ export default function LoginPage() {
 
             {/* Hint */}
             <div style={{ background: "rgba(79,142,247,0.08)", border: "1px solid rgba(79,142,247,0.2)", borderRadius: "0", padding: "10px 14px", fontSize: "12px", color: "var(--text-secondary)" }}>
-              💡 Demo: <strong style={{ color: "var(--text-primary)" }}>admin@tctc.com</strong> / <strong style={{ color: "var(--text-primary)" }}>password123</strong>
+              💡 Demo: <strong style={{ color: "var(--text-primary)" }}>admin@tctc.com</strong> / <strong style={{ color: "var(--text-primary)" }}>admin123</strong>
             </div>
 
             {/* Button */}

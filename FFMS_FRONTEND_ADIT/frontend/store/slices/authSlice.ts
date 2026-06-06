@@ -84,7 +84,7 @@ const initialState: AuthState = {
   isLoggedIn: getInitialIsLoggedIn(),
   user: getInitialUser(),
   token: getInitialToken(),
-  passwordHash: "password123", // default mock hash for AdminTopbar
+  passwordHash: "admin123", // default mock hash for AdminTopbar
 };
 
 const authSlice = createSlice({

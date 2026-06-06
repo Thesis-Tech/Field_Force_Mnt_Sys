@@ -59,11 +59,11 @@ class LocationService {
   }
 
   // Start background or active tracking
-  Future<void> startTracking({Function(Position)? onLocationUpdated}) async {
-    if (_isTracking) return;
+  Future<bool> startTracking({Function(Position)? onLocationUpdated}) async {
+    if (_isTracking) return true;
 
     final hasPermission = await requestPermission();
-    if (!hasPermission) return;
+    if (!hasPermission) return false;
 
     _isTracking = true;
 
@@ -124,6 +124,8 @@ class LocationService {
 
       _pingServer(position);
     });
+
+    return true;
   }
 
   // Stop tracking

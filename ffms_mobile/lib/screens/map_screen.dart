@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
 import '../core/theme/app_theme.dart';
+import 'permissions_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -29,6 +30,7 @@ class _MapScreenState extends State<MapScreen> {
   String _currentZoneName = "None";
   StreamSubscription<Position>? _locationSubscription;
   bool _isSharingLocation = false;
+  double _currentSpeed = 0.0;
 
   @override
   void initState() {
@@ -39,6 +41,9 @@ class _MapScreenState extends State<MapScreen> {
     // Subscribe to live location updates
     _locationSubscription = LocationService().onLocationChanged.listen((Position position) {
       if (mounted) {
+        setState(() {
+          _currentSpeed = position.speed;
+        });
         _updateLocationPin(LatLng(position.latitude, position.longitude));
       }
     });
@@ -384,53 +389,92 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                           const Divider(height: 20),
                           
-                          // Coordinate / Address Details
+                          // Coordinate / Address Details and Speed
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.business,
-                                  color: AppColors.primary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
                               Expanded(
-                                child: Column(
+                                child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Current Coordinates',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.onSurfaceVariant,
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.business,
+                                        color: AppColors.primary,
+                                        size: 20,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Current Coordinates',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Lat: ${_currentCenter.latitude.toStringAsFixed(6)}\nLng: ${_currentCenter.longitude.toStringAsFixed(6)}',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: AppColors.onSurface,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _isInsideZone 
+                                                ? 'Zone: $_currentZoneName' 
+                                                : 'No active zone.',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: _isInsideZone ? AppColors.secondary : AppColors.outline,
+                                              fontWeight: _isInsideZone ? FontWeight.w600 : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // GPS Speedometer
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.speed, color: AppColors.secondary, size: 24),
+                                    const SizedBox(height: 6),
                                     Text(
-                                      'Lat: ${_currentCenter.latitude.toStringAsFixed(6)}, Lng: ${_currentCenter.longitude.toStringAsFixed(6)}',
+                                      (_currentSpeed > 0 ? _currentSpeed * 3.6 : 0.0).toStringAsFixed(1),
                                       style: const TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.onSurface,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.secondary,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _isInsideZone 
-                                          ? 'Zone: $_currentZoneName' 
-                                          : 'No active zone matching location.',
+                                    const Text(
+                                      'km/h',
                                       style: TextStyle(
-                                        fontSize: 11,
-                                        color: _isInsideZone ? AppColors.secondary : AppColors.outline,
-                                        fontWeight: _isInsideZone ? FontWeight.w600 : FontWeight.normal,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.secondary,
                                       ),
                                     ),
                                   ],
@@ -476,13 +520,38 @@ class _MapScreenState extends State<MapScreen> {
                                   activeColor: AppColors.primary,
                                   onChanged: (val) async {
                                     if (val) {
-                                      await LocationService().startTracking();
+                                      final success = await LocationService().startTracking();
+                                      if (success) {
+                                        setState(() {
+                                          _isSharingLocation = true;
+                                        });
+                                      } else {
+                                        if (mounted) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => PermissionsScreen(
+                                                onPermissionsGranted: () async {
+                                                  Navigator.pop(context);
+                                                  final retrySuccess = await LocationService().startTracking();
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isSharingLocation = retrySuccess;
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
                                     } else {
                                       await LocationService().stopTracking();
+                                      setState(() {
+                                        _isSharingLocation = false;
+                                        _currentSpeed = 0.0;
+                                      });
                                     }
-                                    setState(() {
-                                      _isSharingLocation = val;
-                                    });
                                   },
                                 ),
                               ],

@@ -2,6 +2,7 @@ class AttendanceModel {
   final String id;
   final String userId;
   final DateTime date;
+  final int sessionNumber;
   final DateTime? checkInTime;
   final double? checkInLat;
   final double? checkInLng;
@@ -15,6 +16,7 @@ class AttendanceModel {
     required this.id,
     required this.userId,
     required this.date,
+    this.sessionNumber = 1,
     this.checkInTime,
     this.checkInLat,
     this.checkInLng,
@@ -30,6 +32,7 @@ class AttendanceModel {
       id: json['id'] as String,
       userId: json['userId'] as String,
       date: DateTime.parse(json['date'] as String),
+      sessionNumber: json['sessionNumber'] as int? ?? 1,
       checkInTime: json['checkInTime'] != null ? DateTime.parse(json['checkInTime'] as String) : null,
       checkInLat: (json['checkInLatitude'] ?? json['checkInLat']) != null
           ? ((json['checkInLatitude'] ?? json['checkInLat']) as num).toDouble()

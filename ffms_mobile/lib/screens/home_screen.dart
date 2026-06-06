@@ -108,8 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      final bool wasCheckedIn = attendanceProvider.isCheckedIn;
       bool success;
-      if (attendanceProvider.isCheckedIn) {
+      if (wasCheckedIn) {
         success = await attendanceProvider.checkOut(position);
       } else {
         success = await attendanceProvider.checkIn(position);
@@ -119,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(attendanceProvider.isCheckedIn ? 'Checked In Successfully!' : 'Checked Out Successfully!'),
+              content: Text(wasCheckedIn ? 'Checked Out Successfully!' : 'Checked In Successfully!'),
               backgroundColor: AppColors.secondary,
             ),
           );
@@ -250,15 +251,45 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
 
               // Attendance Check-in Box
-              CustomButton(
-                text: attendanceProvider.isCheckedIn ? 'Check Out' : 'Check In',
-                isLoading: attendanceProvider.isLoading,
-                backgroundColor: attendanceProvider.isCheckedIn ? AppColors.error : AppColors.secondary,
-                textColor: Colors.white,
-                icon: attendanceProvider.isCheckedIn ? Icons.logout : Icons.how_to_reg,
-                onPressed: _handleAttendanceAction,
-                height: 56,
-              ),
+              (() {
+                final isCheckedIn = attendanceProvider.isCheckedIn;
+                final isDayComplete = attendanceProvider.isDayComplete;
+                final todaySessions = attendanceProvider.todaySessions;
+                
+                String buttonText;
+                Color buttonColor;
+                IconData buttonIcon;
+                VoidCallback? onPressed;
+
+                if (isDayComplete) {
+                  buttonText = 'Day Complete';
+                  buttonColor = AppColors.outline;
+                  buttonIcon = Icons.check_circle_outline;
+                  onPressed = null;
+                } else if (isCheckedIn) {
+                  final sessionNum = attendanceProvider.todayAttendance?.sessionNumber ?? 1;
+                  buttonText = 'Check Out (Session $sessionNum)';
+                  buttonColor = AppColors.error;
+                  buttonIcon = Icons.logout;
+                  onPressed = _handleAttendanceAction;
+                } else {
+                  final nextSessionNum = todaySessions.length + 1;
+                  buttonText = 'Check In (Session $nextSessionNum)';
+                  buttonColor = AppColors.secondary;
+                  buttonIcon = Icons.how_to_reg;
+                  onPressed = _handleAttendanceAction;
+                }
+
+                return CustomButton(
+                  text: buttonText,
+                  isLoading: attendanceProvider.isLoading,
+                  backgroundColor: buttonColor,
+                  textColor: Colors.white,
+                  icon: buttonIcon,
+                  onPressed: onPressed,
+                  height: 56,
+                );
+              })(),
               const SizedBox(height: 24),
 
               // Stats Row

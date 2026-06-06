@@ -73,23 +73,33 @@ const uploadSelfie = async (base64Str) => {
 const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizationId) => {
   const now = new Date();
   
-  // Date truncated to day (UTC or Local? We use date string truncated to local day)
+  // Date truncated to day
   const todayStr = now.toISOString().split('T')[0];
   const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
 
-  // 1. Prevent duplicate check-in same day
-  const existingAttendance = await prisma.attendance.findUnique({
+  // 1. Count today's sessions for the user and validate session state
+  const todaySessions = await prisma.attendance.findMany({
     where: {
-      userId_date: {
-        userId,
-        date: todayDate
-      }
+      userId,
+      date: todayDate
+    },
+    orderBy: {
+      sessionNumber: 'asc'
     }
   });
 
-  if (existingAttendance) {
-    throw new BadRequestError('You have already checked in for today');
+  if (todaySessions.length >= 2) {
+    throw new BadRequestError('Maximum 2 check-in/check-out sessions reached for today.');
   }
+
+  if (todaySessions.length === 1) {
+    const firstSession = todaySessions[0];
+    if (!firstSession.checkOutTime) {
+      throw new BadRequestError('You must check out from Session 1 before checking in for Session 2.');
+    }
+  }
+
+  const sessionNumber = todaySessions.length + 1;
 
   // 1.5 Geofence check
   const userRecord = await prisma.user.findUnique({
@@ -130,6 +140,7 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
     data: {
       userId,
       date: todayDate,
+      sessionNumber,
       checkInTime: now,
       checkInLatitude: latitude,
       checkInLongitude: longitude,
@@ -152,7 +163,8 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
     employeeId: attendance.user.employeeId,
     checkInTime: now,
     status: attendance.status,
-    isLate
+    isLate,
+    sessionNumber
   });
 
   if (isLate) {
@@ -176,13 +188,12 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   const todayStr = now.toISOString().split('T')[0];
   const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
 
-  // 1. Find today's check-in
-  const attendance = await prisma.attendance.findUnique({
+  // 1. Find today's active/open session
+  const openSession = await prisma.attendance.findFirst({
     where: {
-      userId_date: {
-        userId,
-        date: todayDate
-      }
+      userId,
+      date: todayDate,
+      checkOutTime: null
     },
     include: {
       user: {
@@ -191,16 +202,12 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
     }
   });
 
-  if (!attendance) {
+  if (!openSession) {
     throw new BadRequestError('You must check in first before checking out');
   }
 
-  if (attendance.checkOutTime) {
-    throw new BadRequestError('You have already checked out for today');
-  }
-
-  // 2. Compute working minutes
-  const checkInTime = new Date(attendance.checkInTime);
+  // 2. Compute working minutes for this session
+  const checkInTime = new Date(openSession.checkInTime);
   const workingMinutes = Math.floor((now - checkInTime) / 60000);
 
   // 3. Determine if early logout
@@ -208,23 +215,34 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const isEarlyLogout = currentMinutes < endMinutes;
 
-  // 4. Determine Status based on working hours business rules
-  // < 4 hours (240 mins) = ABSENT
-  // 4 to 7 hours (420 mins) = HALF_DAY
-  // > 7 hours = PRESENT (or LATE if check-in was late)
-  let calculatedStatus = attendance.status;
-  if (workingMinutes < 240) {
+  // 4. Determine Status based on cumulative working hours business rules
+  let firstSession = null;
+  if (openSession.sessionNumber === 2) {
+    firstSession = await prisma.attendance.findFirst({
+      where: {
+        userId,
+        date: todayDate,
+        sessionNumber: 1
+      }
+    });
+  }
+
+  const cumulativeWorkingMinutes = (firstSession ? firstSession.workingMinutes || 0 : 0) + workingMinutes;
+
+  let calculatedStatus = openSession.status;
+  if (cumulativeWorkingMinutes < 240) {
     calculatedStatus = 'ABSENT';
-  } else if (workingMinutes < 420) {
+  } else if (cumulativeWorkingMinutes < 420) {
     calculatedStatus = 'HALF_DAY';
   } else {
-    // If working > 7 hours, maintain 'LATE' if they were late, otherwise 'PRESENT'
-    calculatedStatus = attendance.isLate ? 'LATE' : 'PRESENT';
+    // If working > 7 hours, maintain 'LATE' if either session check-in was late
+    const eitherLate = openSession.isLate || (firstSession && firstSession.isLate);
+    calculatedStatus = eitherLate ? 'LATE' : 'PRESENT';
   }
 
   // 5. Update record
   const updatedAttendance = await prisma.attendance.update({
-    where: { id: attendance.id },
+    where: { id: openSession.id },
     data: {
       checkOutTime: now,
       checkOutLatitude: latitude,
@@ -235,23 +253,33 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
     }
   });
 
-  // 5. Emit Socket event to managers
+  // If this is session 2, retroactively update session 1 status as well
+  if (firstSession) {
+    await prisma.attendance.update({
+      where: { id: firstSession.id },
+      data: { status: calculatedStatus }
+    });
+  }
+
+  // 6. Emit Socket event to managers
   emitToOrgAdmins(organizationId, 'attendance:checkout', {
-    attendanceId: attendance.id,
+    attendanceId: openSession.id,
     userId,
-    userName: attendance.user.name,
+    userName: openSession.user.name,
     checkOutTime: now,
     workingMinutes,
-    isEarlyLogout
+    isEarlyLogout,
+    sessionNumber: openSession.sessionNumber,
+    calculatedStatus
   });
 
   if (isEarlyLogout) {
     emitToOrgAdmins(organizationId, 'attendance:alert', {
       type: 'EARLY_LOGOUT',
       userId,
-      userName: attendance.user.name,
+      userName: openSession.user.name,
       checkOutTime: now,
-      message: `${attendance.user.name} checked out early at ${now.toLocaleTimeString()}`
+      message: `${openSession.user.name} checked out early at ${now.toLocaleTimeString()}`
     });
   }
 
@@ -429,6 +457,7 @@ const getTodayAttendance = async (organizationId) => {
       profileImage: true,
       attendances: {
         where: { date: todayDate },
+        orderBy: { sessionNumber: 'desc' },
         take: 1
       }
     }

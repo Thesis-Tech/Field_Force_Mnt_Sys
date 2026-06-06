@@ -8,15 +8,18 @@ import '../models/attendance_model.dart';
 class AttendanceProvider extends ChangeNotifier {
   AttendanceModel? _todayAttendance;
   List<AttendanceModel> _attendanceHistory = [];
+  List<AttendanceModel> _todaySessions = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   AttendanceModel? get todayAttendance => _todayAttendance;
   List<AttendanceModel> get attendanceHistory => _attendanceHistory;
+  List<AttendanceModel> get todaySessions => _todaySessions;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
   bool get isCheckedIn => _todayAttendance != null && _todayAttendance!.checkOutTime == null;
+  bool get isDayComplete => _todaySessions.length >= 2 && _todaySessions.every((m) => m.checkOutTime != null);
 
   // Check In handler
   Future<bool> checkIn(Position position) async {
@@ -35,6 +38,7 @@ class AttendanceProvider extends ChangeNotifier {
 
       if (response.data['success'] == true) {
         _todayAttendance = AttendanceModel.fromJson(response.data['data']);
+        await fetchTodayState();
         await fetchHistory();
         
         // Start background location tracking upon check-in
@@ -70,6 +74,7 @@ class AttendanceProvider extends ChangeNotifier {
 
       if (response.data['success'] == true) {
         _todayAttendance = AttendanceModel.fromJson(response.data['data']);
+        await fetchTodayState();
         await fetchHistory();
         
         // Stop location tracking upon check-out
@@ -103,13 +108,28 @@ class AttendanceProvider extends ChangeNotifier {
         }).toList();
 
         if (todayLogs.isNotEmpty) {
-          _todayAttendance = AttendanceModel.fromJson(todayLogs.first as Map<String, dynamic>);
+          final models = todayLogs
+              .map((item) => AttendanceModel.fromJson(item as Map<String, dynamic>))
+              .toList();
+          _todaySessions = models;
+          
+          // Find if there is an active/open session
+          // or fallback to the latest session by sessionNumber
+          try {
+            final activeSession = models.firstWhere(
+              (m) => m.checkOutTime == null,
+            );
+            _todayAttendance = activeSession;
+          } catch (_) {
+            _todayAttendance = models.reduce((a, b) => a.sessionNumber > b.sessionNumber ? a : b);
+          }
           
           // Auto start location tracking if already checked in
           if (isCheckedIn) {
             LocationService().startTracking();
           }
         } else {
+          _todaySessions = [];
           _todayAttendance = null;
         }
       }

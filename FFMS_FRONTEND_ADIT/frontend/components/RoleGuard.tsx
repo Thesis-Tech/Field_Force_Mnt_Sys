@@ -15,7 +15,7 @@ import { RootState } from "@/store";
  * 3. Hydrates the auth cookies from localStorage so future page loads are
  *    correctly handled by the Edge middleware without requiring a re-login.
  */
-export default function RoleGuard() {
+export default function RoleGuard({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, user, token } = useSelector((s: RootState) => s.auth);
   const router = useRouter();
 
@@ -48,6 +48,11 @@ export default function RoleGuard() {
     }
   }, [isLoggedIn, token, user, router]);
 
-  // This component renders nothing — it's a pure side-effect guard
-  return null;
+  const isUser = isLoggedIn && token && (user?.role || "").toUpperCase() !== "ADMIN";
+
+  if (!isUser) {
+    return null;
+  }
+
+  return <>{children}</>;
 }
