@@ -54,13 +54,14 @@ export default function NotificationsPage() {
   const [simPriority, setSimPriority] = useState<"high" | "normal">("normal");
 
   // Form states for sending outgoing broadcast notifications to employees
-  const [broadcastEmpId, setBroadcastEmpId] = useState("1");
+  const [broadcastEmpId, setBroadcastEmpId] = useState("");
   const [broadcastTemplate, setBroadcastTemplate] = useState("custom");
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastPriority, setBroadcastPriority] = useState<"high" | "normal">("normal");
 
   // Form states for requesting location
-  const [locationEmpId, setLocationEmpId] = useState("1");
+  const [locationEmpId, setLocationEmpId] = useState("");
+  const [locationMsg, setLocationMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Filter logic (Priority filter removed)
   const [emailAlertOffline, setEmailAlertOffline] = useState(true);
@@ -172,10 +173,12 @@ export default function NotificationsPage() {
   // Request Real-Time Location
   const handleRequestLocation = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emp = employees.find((e: any) => e.id === locationEmpId) || employees[0];
+    const targetId = locationEmpId || (employees.length > 0 ? employees[0].id : "");
+    const emp = employees.find((e: any) => e.id === targetId);
 
     if (!emp) {
-      alert("Please select an employee.");
+      setLocationMsg({ type: "error", text: "Please select a valid employee." });
+      setTimeout(() => setLocationMsg(null), 4000);
       return;
     }
 
@@ -183,15 +186,17 @@ export default function NotificationsPage() {
       await notificationsApi.send({
         userId: emp.id,
         title: "LOCATION_UPDATE_REQUEST",
-        body: "Admin has requested a real-time location update.",
+        body: `Admin has requested a real-time location update from ${emp.name}.`,
         type: "system",
         priority: "high",
       });
-      alert(`Location request pushed to ${emp.name}'s device. You will receive a notification with their live coordinates shortly.`);
+      setLocationMsg({ type: "success", text: `📍 Location request successfully pushed to ${emp.name}'s device. You will receive a notification with their live GPS coordinates shortly.` });
       dispatch(fetchNotifications() as any);
     } catch (err) {
-      alert("Failed to send location request.");
+      // Even if API fails, add a local notification as feedback
+      setLocationMsg({ type: "error", text: `Failed to push location request to ${emp.name}. Please check if the employee exists in the system.` });
     }
+    setTimeout(() => setLocationMsg(null), 6000);
   };
 
   return (
@@ -528,41 +533,7 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          {/* Request Live Location Form */}
-          <form className="card" onSubmit={handleRequestLocation} style={{ display: "flex", flexDirection: "column", gap: "12px", border: "1px solid var(--accent-blue)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
-              <MapPin size={16} color="var(--accent-blue)" />
-              <span style={{ fontWeight: 700, fontSize: "14px" }}>Request Real-Time Location</span>
-            </div>
-
-            <p style={{ fontSize: "11.5px", color: "var(--text-muted)", margin: 0 }}>
-              Force a field staff's device to transmit its current live GPS coordinates immediately.
-            </p>
-
-            <div>
-              <label style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "4px" }}>TARGET EMPLOYEE</label>
-              <select 
-                value={locationEmpId}
-                onChange={(e) => setLocationEmpId(e.target.value)}
-                className="input"
-                style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
-              >
-                {employees.map((emp: any) => (
-                  <option key={emp.id} value={emp.id}>{emp.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "38px", fontSize: "13px", marginTop: "4px" }}
-            >
-              <MapPin size={13} /> Push Location Request
-            </button>
-          </form>
-
-          {/* Broadcast Outgoing Notification */}
+          {/* Notification list */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {filteredList.length > 0 ? (
               filteredList.map((item: any) => {
@@ -711,6 +682,56 @@ export default function NotificationsPage() {
               </div>
             )}
           </div>
+
+          {/* Request Live Location Form — placed after all notifications */}
+          <form className="card" onSubmit={handleRequestLocation} style={{ display: "flex", flexDirection: "column", gap: "12px", border: "1px solid var(--accent-blue)", marginTop: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
+              <MapPin size={16} color="var(--accent-blue)" />
+              <span style={{ fontWeight: 700, fontSize: "14px" }}>Request Real-Time Location</span>
+            </div>
+
+            <p style={{ fontSize: "11.5px", color: "var(--text-muted)", margin: 0 }}>
+              Push a request to a field staff's device to transmit their current live GPS coordinates immediately. If the employee exits their assigned geofence boundary, you will receive a push notification alert.
+            </p>
+
+            <div>
+              <label style={{ display: "block", fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "4px" }}>TARGET EMPLOYEE</label>
+              <select 
+                value={locationEmpId || (employees.length > 0 ? employees[0].id : "")}
+                onChange={(e) => setLocationEmpId(e.target.value)}
+                className="input"
+                style={{ fontSize: "12px", height: "36px", padding: "4px 8px" }}
+              >
+                {employees.map((emp: any) => (
+                  <option key={emp.id} value={emp.id}>{emp.name} {emp.employeeId ? `(${emp.employeeId})` : ""}</option>
+                ))}
+              </select>
+            </div>
+            
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "38px", fontSize: "13px", marginTop: "4px" }}
+            >
+              <MapPin size={13} /> Push Location Request
+            </button>
+
+            {locationMsg && (
+              <div style={{
+                padding: "10px 14px",
+                fontSize: "12px",
+                fontWeight: 600,
+                lineHeight: 1.5,
+                border: `1px solid ${locationMsg.type === "success" ? "var(--accent-green)" : "var(--accent-red)"}`,
+                borderLeft: `4px solid ${locationMsg.type === "success" ? "var(--accent-green)" : "var(--accent-red)"}`,
+                background: locationMsg.type === "success" ? "rgba(34,211,165,0.06)" : "rgba(244,63,94,0.06)",
+                color: locationMsg.type === "success" ? "var(--accent-green)" : "var(--accent-red)",
+                animation: "fadeIn 0.2s ease"
+              }}>
+                {locationMsg.text}
+              </div>
+            )}
+          </form>
         </div>
       </div>
     </div>
