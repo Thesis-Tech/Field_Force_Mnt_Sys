@@ -350,6 +350,16 @@ const updateAssignmentStatus = async (
     }
   }
 
+  // Emit task update to organization managers so real-time dashboard refreshes
+  emitToOrgAdmins(organizationId, 'task:updated', {
+    taskId,
+    assignmentId,
+    status,
+    taskTitle: assignment.task.title,
+    userName: assignment.user.name,
+    userId: assignment.user.id
+  });
+
   return updatedAssignment;
 };
 

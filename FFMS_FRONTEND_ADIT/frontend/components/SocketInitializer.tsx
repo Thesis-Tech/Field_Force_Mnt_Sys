@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { io, Socket } from "socket.io-client";
 import { addNotification } from "@/store/slices/notificationSlice";
+import { fetchTasks } from "@/store/slices/taskSlice";
 import toast from "react-hot-toast";
 
 export function SocketInitializer() {
@@ -60,6 +61,63 @@ export function SocketInitializer() {
         priority: "high"
       }));
       toast.error(data.message, { icon: "🚨" });
+    });
+
+    // Handle explicit checkin event
+    newSocket.on("attendance:checkin", (data: any) => {
+      const msg = `${data.userName || "Employee"} checked in at ${new Date(data.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      dispatch(addNotification({
+        employeeId: data.userId || "",
+        employeeName: data.userName || "Employee",
+        avatar: (data.userName || "E").substring(0, 2).toUpperCase(),
+        type: "attendance",
+        message: msg,
+        priority: "normal"
+      }));
+      toast.success(msg, { icon: "✅" });
+    });
+
+    // Handle task updates
+    newSocket.on("task:updated", (data: any) => {
+      const msg = `${data.userName || "Employee"} updated task "${data.taskTitle || "Task"}" to ${data.status}`;
+      dispatch(addNotification({
+        employeeId: data.userId || "",
+        employeeName: data.userName || "Employee",
+        avatar: (data.userName || "E").substring(0, 2).toUpperCase(),
+        type: "system",
+        message: msg,
+        priority: "normal"
+      }));
+      toast.success(msg, { icon: "📝" });
+      dispatch(fetchTasks() as any);
+    });
+
+    newSocket.on("task:completed", (data: any) => {
+      const msg = `${data.userName || "Employee"} completed task "${data.taskTitle || "Task"}"`;
+      dispatch(addNotification({
+        employeeId: data.userId || "",
+        employeeName: data.userName || "Employee",
+        avatar: (data.userName || "E").substring(0, 2).toUpperCase(),
+        type: "system",
+        message: msg,
+        priority: "normal"
+      }));
+      toast.success(msg, { icon: "✅" });
+      dispatch(fetchTasks() as any);
+    });
+
+    // Handle explicit checkout event
+    newSocket.on("attendance:checkout", (data: any) => {
+      const msg = `${data.userName || "Employee"} checked out at ${new Date(data.checkOutTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      dispatch(addNotification({
+        employeeId: data.userId || "",
+        employeeName: data.userName || "Employee",
+        avatar: (data.userName || "E").substring(0, 2).toUpperCase(),
+        type: "attendance",
+        message: msg,
+        priority: "normal"
+      }));
+      toast.success(msg, { icon: "👋" });
     });
 
     // Live status updates

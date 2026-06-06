@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronRight,
   MapPin,
-  Lightbulb
+  Lightbulb,
+  MessageSquare
 } from "lucide-react";
 
 const COLLAPSED_WIDTH = 64;
@@ -525,7 +526,7 @@ export default function Sidebar() {
         {/* 7b. Feedback */}
         <Link href={`${basePath}/feedback`} style={{ textDecoration: "none" }} title="Anonymous Feedback">
           <div style={getLinkStyle(pathname === `${basePath}/feedback`)} className="sidebar-link">
-            {renderIcon(FileText, pathname === `${basePath}/feedback`)}
+            {renderIcon(MessageSquare, pathname === `${basePath}/feedback`)}
             <span style={{
               fontSize: "13.5px",
               fontWeight: pathname === `${basePath}/feedback` ? 700 : 500,

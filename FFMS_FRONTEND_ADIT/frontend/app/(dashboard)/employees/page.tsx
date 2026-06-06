@@ -44,14 +44,44 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
           <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",color:"var(--text-muted)" }}><X size={20}/></button>
         </div>
         <div style={{ display:"flex",flexDirection:"column",gap:"14px" }}>
-          {(["name","email","phone","employeeId"] as const).map(k => (
+          {(["name","email","phone"] as const).map(k => (
             <div key={k}>
               <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px",textTransform:"capitalize" }}>
-                {k === "employeeId" ? "Employee ID" : k}
+                {k}
               </label>
-              <input className="input" value={form[k]||""} onChange={e=>handleFieldChange(k,e.target.value)} placeholder={k === "employeeId" ? "e.g. EMP101" : k} />
+              <input className="input" value={form[k]||""} onChange={e=>handleFieldChange(k,e.target.value)} placeholder={k} />
             </div>
           ))}
+
+          <div>
+            <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Employee ID</label>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input 
+                className="input" 
+                style={{ width: "80px", textAlign: "center" }} 
+                placeholder="EMP" 
+                value={(form.employeeId || "").replace(/[0-9]/g, '')}
+                onChange={e => {
+                  const prefix = e.target.value.toUpperCase();
+                  const suffix = (form.employeeId || "").replace(/[^0-9]/g, '');
+                  handleFieldChange("employeeId", prefix + suffix);
+                }}
+              />
+              <span style={{ display: "flex", alignItems: "center", color: "var(--text-muted)" }}>-</span>
+              <input 
+                className="input" 
+                style={{ flex: 1 }} 
+                placeholder="101" 
+                type="number"
+                value={(form.employeeId || "").replace(/[^0-9]/g, '')}
+                onChange={e => {
+                  const prefix = (form.employeeId || "").replace(/[0-9]/g, '') || "EMP";
+                  const suffix = e.target.value;
+                  handleFieldChange("employeeId", prefix + suffix);
+                }}
+              />
+            </div>
+          </div>
           
           {/* Password */}
           <div>

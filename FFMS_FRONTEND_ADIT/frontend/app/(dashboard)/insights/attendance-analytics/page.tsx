@@ -90,9 +90,9 @@ export default function AttendanceAnalyticsPage() {
   const employeeRankings = useMemo(() => {
     return employees.map(emp => {
       const empAtt = attendance.filter(a => a.employeeId === emp.id);
-      const totalShifts = empAtt.length;
+      const totalPresentOrLate = empAtt.filter(a => ["present", "late", "on time", "on-time", "half_day"].includes(a.status?.toLowerCase() || "")).length;
       const lateShifts = empAtt.filter(a => a.status?.toLowerCase() === "late").length;
-      const score = totalShifts > 0 ? Math.round(((totalShifts - lateShifts) / totalShifts) * 100) : 100;
+      const score = totalPresentOrLate > 0 ? Math.round(((totalPresentOrLate - lateShifts) / totalPresentOrLate) * 100) : 100;
       return { emp, score };
     }).sort((a, b) => b.score - a.score);
   }, [employees, attendance]);

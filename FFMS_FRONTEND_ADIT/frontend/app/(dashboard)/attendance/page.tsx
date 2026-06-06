@@ -47,13 +47,22 @@ export default function AttendancePage() {
   }, [attendance]);
 
   const [mounted, setMounted] = useState(false);
-  const [filters, setFilters] = useState({ startDate: "", endDate: "", status: "" });
+  const [filters, setFilters] = useState({ startDate: "", endDate: "", status: "", search: "" });
   const [showLeaveReport, setShowLeaveReport] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    dispatch(fetchAttendance(filters));
-  }, [dispatch, filters]);
+    const { search, ...apiFilters } = filters;
+    dispatch(fetchAttendance(apiFilters));
+  }, [dispatch, filters.startDate, filters.endDate, filters.status]);
+
+  const filteredAttendance = useMemo(() => {
+    if (!filters.search) return attendance;
+    const s = filters.search.toLowerCase();
+    return attendance.filter((a: any) => 
+      a.name?.toLowerCase().includes(s) || a.employeeId?.toLowerCase().includes(s)
+    );
+  }, [attendance, filters.search]);
 
   const [notified, setNotified] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -222,8 +231,14 @@ export default function AttendancePage() {
       )}
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "16px", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "12px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: "14px", fontWeight: 600 }}>Filter by:</div>
+        <input 
+          type="text" 
+          placeholder="Search Name or Emp ID..."
+          style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "4px", background: "var(--bg-card)", color: "var(--text-primary)", flex: 1, minWidth: "200px" }}
+          onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))} 
+        />
         <input 
           type="date" 
           style={{ padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "4px", background: "var(--bg-card)", color: "var(--text-primary)" }}
@@ -260,7 +275,7 @@ export default function AttendancePage() {
             </tr>
           </thead>
           <tbody>
-            {attendance.map((row: any) => (
+            {filteredAttendance.map((row: any) => (
               <tr key={row.id}>
                 <td>
                   <div style={{ fontWeight:600,fontSize:"14px" }}>{row.name}</div>

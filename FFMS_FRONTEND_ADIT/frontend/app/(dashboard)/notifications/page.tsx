@@ -286,9 +286,35 @@ export default function NotificationsPage() {
 
           {/* Dispatch/Send Broadcast Console */}
           <form className="card" onSubmit={handleSendBroadcast} style={{ display: "flex", flexDirection: "column", gap: "12px", border: "1px solid var(--accent-blue)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
-              <Bell size={16} color="var(--accent-blue)" />
-              <span style={{ fontWeight: 700, fontSize: "14px" }}>Send Outgoing Notification</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Bell size={16} color="var(--accent-blue)" />
+                <span style={{ fontWeight: 700, fontSize: "14px" }}>Send Outgoing Notification</span>
+              </div>
+              <button 
+                type="button"
+                className="btn-primary"
+                style={{ background: "var(--accent-red)", borderColor: "var(--accent-red)", height: "26px", fontSize: "11px", padding: "0 10px", gap: "4px" }}
+                onClick={async () => {
+                   if (confirm("Are you sure you want to activate a global emergency alert?")) {
+                       try {
+                         await Promise.all(employees.map((emp: any) => notificationsApi.send({
+                           userId: emp.id,
+                           title: "EMERGENCY ALERT",
+                           body: "Please evacuate or report to HQ immediately.",
+                           type: "alert",
+                           priority: "high"
+                         })));
+                         alert("Emergency alert activated for all employees.");
+                         dispatch(fetchNotifications() as any);
+                       } catch(err) {
+                         alert("Failed to activate alert");
+                       }
+                   }
+                }}
+              >
+                <AlertTriangle size={12} /> Activate Alert
+              </button>
             </div>
 
             <div>
