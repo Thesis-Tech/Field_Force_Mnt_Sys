@@ -88,14 +88,14 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
     }
   });
 
-  if (todaySessions.length >= 2) {
-    throw new BadRequestError('Maximum 2 check-in/check-out sessions reached for today.');
+  if (todaySessions.length >= 10) {
+    throw new BadRequestError('Maximum 10 check-in/check-out sessions reached for today.');
   }
 
-  if (todaySessions.length === 1) {
-    const firstSession = todaySessions[0];
-    if (!firstSession.checkOutTime) {
-      throw new BadRequestError('You must check out from Session 1 before checking in for Session 2.');
+  if (todaySessions.length > 0) {
+    const lastSession = todaySessions[todaySessions.length - 1];
+    if (!lastSession.checkOutTime) {
+      throw new BadRequestError(`You must check out from Session ${todaySessions.length} before checking in for Session ${todaySessions.length + 1}.`);
     }
   }
 
@@ -216,18 +216,16 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   const isEarlyLogout = currentMinutes < endMinutes;
 
   // 4. Determine Status based on cumulative working hours business rules
-  let firstSession = null;
-  if (openSession.sessionNumber === 2) {
-    firstSession = await prisma.attendance.findFirst({
-      where: {
-        userId,
-        date: todayDate,
-        sessionNumber: 1
-      }
-    });
-  }
+  const pastSessions = await prisma.attendance.findMany({
+    where: {
+      userId,
+      date: todayDate,
+      id: { not: openSession.id }
+    }
+  });
 
-  const cumulativeWorkingMinutes = (firstSession ? firstSession.workingMinutes || 0 : 0) + workingMinutes;
+  const pastWorkingMinutes = pastSessions.reduce((sum, s) => sum + (s.workingMinutes || 0), 0);
+  const cumulativeWorkingMinutes = pastWorkingMinutes + workingMinutes;
 
   let calculatedStatus = openSession.status;
   if (cumulativeWorkingMinutes < 240) {
@@ -235,8 +233,8 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   } else if (cumulativeWorkingMinutes < 420) {
     calculatedStatus = 'HALF_DAY';
   } else {
-    // If working > 7 hours, maintain 'LATE' if either session check-in was late
-    const eitherLate = openSession.isLate || (firstSession && firstSession.isLate);
+    // If working > 7 hours, maintain 'LATE' if any session check-in was late
+    const eitherLate = openSession.isLate || pastSessions.some(s => s.isLate);
     calculatedStatus = eitherLate ? 'LATE' : 'PRESENT';
   }
 
@@ -253,10 +251,14 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
     }
   });
 
-  // If this is session 2, retroactively update session 1 status as well
-  if (firstSession) {
-    await prisma.attendance.update({
-      where: { id: firstSession.id },
+  // Retroactively update all previous sessions' status as well
+  if (pastSessions.length > 0) {
+    await prisma.attendance.updateMany({
+      where: {
+        userId,
+        date: todayDate,
+        id: { not: openSession.id }
+      },
       data: { status: calculatedStatus }
     });
   }

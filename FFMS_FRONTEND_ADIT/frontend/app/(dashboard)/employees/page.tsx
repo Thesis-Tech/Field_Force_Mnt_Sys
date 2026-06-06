@@ -14,10 +14,12 @@ const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi 
 
 function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, currentUser }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[]; currentUser: any }) {
   const isEditing = Boolean(emp?.id);
-  const [form, setForm] = useState<Partial<Employee>>(() => {
+  const [form, setForm] = useState<Partial<Employee> & { empPrefix?: string, empSuffix?: string }>(() => {
     if (emp) {
-      // When editing: password starts blank — admin only fills it to change it
-      return { ...emp, password: "" };
+      let employeeId = emp.employeeId || "";
+      let empPrefix = employeeId.replace(/[0-9]/g, '') || "EMP";
+      let empSuffix = employeeId.replace(/[^0-9]/g, '');
+      return { ...emp, password: "", empPrefix, empSuffix };
     }
     let defaultTerrName = "";
     if (currentUser?.role === "MANAGER" && currentUser.territoryId) {
@@ -27,12 +29,12 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
     if (!defaultTerrName && territories.length > 0) {
       defaultTerrName = territories[0].name;
     }
-    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", employeeId: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
+    return { name:"",email:"",phone:"",role:ROLES[0],territory:defaultTerrName,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
   });
-  const set = (k: keyof Employee, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   // Update field without touching the password — password is fully manual
-  const handleFieldChange = (k: keyof Employee, v: string) => {
+  const handleFieldChange = (k: string, v: string) => {
     setForm(f => ({ ...f, [k]: v }));
   };
 
@@ -60,11 +62,9 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 className="input" 
                 style={{ width: "80px", textAlign: "center" }} 
                 placeholder="EMP" 
-                value={(form.employeeId || "").replace(/[0-9]/g, '')}
+                value={form.empPrefix || ""}
                 onChange={e => {
-                  const prefix = e.target.value.toUpperCase();
-                  const suffix = (form.employeeId || "").replace(/[^0-9]/g, '');
-                  handleFieldChange("employeeId", prefix + suffix);
+                  handleFieldChange("empPrefix", e.target.value.toUpperCase());
                 }}
               />
               <span style={{ display: "flex", alignItems: "center", color: "var(--text-muted)" }}>-</span>
@@ -73,11 +73,9 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 style={{ flex: 1 }} 
                 placeholder="101" 
                 type="number"
-                value={(form.employeeId || "").replace(/[^0-9]/g, '')}
+                value={form.empSuffix || ""}
                 onChange={e => {
-                  const prefix = (form.employeeId || "").replace(/[0-9]/g, '') || "EMP";
-                  const suffix = e.target.value;
-                  handleFieldChange("employeeId", prefix + suffix);
+                  handleFieldChange("empSuffix", e.target.value);
                 }}
               />
             </div>
@@ -146,7 +144,8 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 alert("Password is required for new employees. Please enter a password or click Generate.");
                 return;
               }
-              if (!form.employeeId?.trim()) {
+              const empId = (form.empPrefix || "") + (form.empSuffix || "");
+              if (!empId.trim()) {
                 alert("Employee ID is required.");
                 return;
               }
@@ -155,11 +154,11 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
               const payload: any = {
                 id: emp?.id,
                 name: form.name||"", email: form.email||"", phone: form.phone||"",
-                role: "FIELD_STAFF",
+                role: form.role || "FIELD_STAFF",
                 territoryId: matchingZone?.id || null,
                 status: form.status === "inactive" ? "INACTIVE" : "ACTIVE",
                 avatar: avatarStr,
-                employeeId: form.employeeId || emp?.employeeId,
+                employeeId: empId,
                 managerId: form.managerId || null,
               };
               // Only include password when the user explicitly typed one
@@ -900,6 +899,7 @@ export default function EmployeesPage() {
               const updateData: Record<string, unknown> = {
                 name: emp.name,
                 phone: emp.phone,
+                role: emp.role,
                 status: emp.status,
                 territoryId: emp.territoryId,
                 employeeId: emp.employeeId,
@@ -917,7 +917,7 @@ export default function EmployeesPage() {
                 name: emp.name,
                 email: emp.email,
                 phone: emp.phone,
-                role: "FIELD_STAFF",
+                role: emp.role || "FIELD_STAFF",
                 status: emp.status,
                 password: emp.password,
                 employeeId: emp.employeeId,
