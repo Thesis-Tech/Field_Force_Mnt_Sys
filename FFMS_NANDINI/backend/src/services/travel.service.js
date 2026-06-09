@@ -62,22 +62,25 @@ const upsertTravelLog = async (userId, { meterStart, meterEnd, proofImageBase64,
     throw new BadRequestError('At least meterStart or meterEnd must be provided');
   }
 
-  if (meterStart != null && meterEnd != null && meterEnd < meterStart) {
+  const today = getLocalDate();
+
+  // Query existing travel log first
+  const existing = await prisma.travelLog.findFirst({
+    where: { userId, date: today },
+  });
+
+  const finalStart = meterStart != null ? meterStart : (existing ? existing.meterStart : null);
+  const finalEnd = meterEnd != null ? meterEnd : (existing ? existing.meterEnd : null);
+
+  if (finalStart != null && finalEnd != null && finalEnd < finalStart) {
     throw new BadRequestError('meterEnd cannot be less than meterStart');
   }
-
-  const today = getLocalDate();
 
   // Upload proof image if provided
   let proofImageUrl = undefined;
   if (proofImageBase64) {
     proofImageUrl = await uploadMeterProof(proofImageBase64);
   }
-
-  // Compute distance from meter readings
-  const distance = (meterStart != null && meterEnd != null)
-    ? Math.max(0, meterEnd - meterStart)
-    : undefined;
 
   // Get user's allowance rate
   const user = await prisma.user.findUnique({
@@ -86,12 +89,12 @@ const upsertTravelLog = async (userId, { meterStart, meterEnd, proofImageBase64,
   });
   const rate = user?.travelAllowanceRate ?? DEFAULT_TRAVEL_RATE;
 
-  const allowanceAmount = distance != null ? distance * rate : undefined;
+  // Compute distance from meter readings
+  const distance = (finalStart != null && finalEnd != null)
+    ? Math.max(0, finalEnd - finalStart)
+    : undefined;
 
-  // Upsert (try update existing, else create)
-  const existing = await prisma.travelLog.findFirst({
-    where: { userId, date: today },
-  });
+  const allowanceAmount = distance != null ? distance * rate : undefined;
 
   let result;
   if (existing) {

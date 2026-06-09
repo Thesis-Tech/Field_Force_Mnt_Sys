@@ -605,6 +605,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Text('₹${travelProvider.todayAllowance.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
                                   ],
                                 ),
+                                if (travelProvider.todayLog!.meterEnd == null) ...[
+                                  const SizedBox(height: 12),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (sheetContext) => TravelEntrySheet(travelProvider: travelProvider),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    child: const Text('Complete Travel Log', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
                               ],
                             ],
                           ),

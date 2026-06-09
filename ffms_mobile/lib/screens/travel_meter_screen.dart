@@ -25,10 +25,24 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final tp = Provider.of<TravelProvider>(context, listen: false);
-      tp.fetchTodayTravel();
-      tp.fetchTravelHistory(limit: 7);
+      await tp.fetchTodayTravel();
+      if (mounted) {
+        final today = tp.todayLog;
+        if (today != null) {
+          if (today.meterStart != null) {
+            _startController.text = today.meterStart!.toStringAsFixed(0);
+          }
+          if (today.meterEnd != null) {
+            _endController.text = today.meterEnd!.toStringAsFixed(0);
+          }
+          if (today.notes != null) {
+            _notesController.text = today.notes!;
+          }
+        }
+        tp.fetchTravelHistory(limit: 7);
+      }
     });
   }
 
@@ -63,20 +77,49 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
     final start = double.tryParse(_startController.text.trim()) ?? 0;
     final end = double.tryParse(_endController.text.trim()) ?? 0;
 
-    if (end <= start) {
+    final tp = Provider.of<TravelProvider>(context, listen: false);
+    final today = tp.todayLog;
+
+    // Validation checks depending on what we are submitting
+    if (today != null && today.meterStart != null) {
+      // We are completing/submitting end meter
+      if (end <= today.meterStart!) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('End meter reading must be greater than start reading (${today.meterStart!.toStringAsFixed(0)} KM)'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    } else {
+      // We are logging start meter (or both)
+      if (_endController.text.isNotEmpty && end <= start) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('End meter reading must be greater than start reading'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (_proofBase64 == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('End meter reading must be greater than start reading'),
+        SnackBar(
+          content: Text(today != null && today.meterStart != null
+              ? 'Please upload end meter proof photo'
+              : 'Please upload start meter proof photo'),
           backgroundColor: AppColors.error,
         ),
       );
       return;
     }
 
-    final tp = Provider.of<TravelProvider>(context, listen: false);
     final success = await tp.submitTravelLog(
-      meterStart: start,
-      meterEnd: end,
+      meterStart: (today == null || today.meterStart == null) ? start : null,
+      meterEnd: _endController.text.isNotEmpty ? end : null,
       proofImageBase64: _proofBase64,
       notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
     );
@@ -198,10 +241,13 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
                   TextFormField(
                     controller: _startController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
+                    enabled: today == null || today.meterStart == null,
+                    decoration: InputDecoration(
                       labelText: 'Start Meter Reading (KM)',
                       hintText: 'e.g. 12500',
-                      prefixIcon: Icon(Icons.speed_outlined),
+                      prefixIcon: const Icon(Icons.speed_outlined),
+                      fillColor: (today != null && today.meterStart != null) ? Colors.grey[200] : Colors.transparent,
+                      filled: (today != null && today.meterStart != null),
                     ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Start reading is required';
@@ -213,14 +259,25 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
                   TextFormField(
                     controller: _endController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
+                    enabled: today == null || today.meterEnd == null,
+                    decoration: InputDecoration(
                       labelText: 'End Meter Reading (KM)',
                       hintText: 'e.g. 12513',
-                      prefixIcon: Icon(Icons.speed),
+                      prefixIcon: const Icon(Icons.speed),
+                      fillColor: (today != null && today.meterEnd != null) ? Colors.grey[200] : Colors.transparent,
+                      filled: (today != null && today.meterEnd != null),
                     ),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'End reading is required';
-                      if (double.tryParse(v.trim()) == null) return 'Enter a valid number';
+                      if (today != null && today.meterStart != null) {
+                        // When completing travel, end meter is required
+                        if (v == null || v.trim().isEmpty) return 'End reading is required';
+                        if (double.tryParse(v.trim()) == null) return 'Enter a valid number';
+                      } else {
+                        // When logging start, end meter is optional
+                        if (v != null && v.trim().isNotEmpty) {
+                          if (double.tryParse(v.trim()) == null) return 'Enter a valid number';
+                        }
+                      }
                       return null;
                     },
                   ),
@@ -255,6 +312,7 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
 
                   TextFormField(
                     controller: _notesController,
+                    enabled: today == null || today.meterEnd == null,
                     decoration: const InputDecoration(
                       labelText: 'Notes (Optional)',
                       hintText: 'e.g. Client visits in Jamshedpur East Zone',
@@ -265,50 +323,53 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
                   const SizedBox(height: 16),
 
                   // Meter Photo Upload
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: Icon(
-                            _proofBase64 != null ? Icons.check_circle : Icons.camera_alt_outlined,
-                            color: _proofBase64 != null ? AppColors.secondary : AppColors.primary,
-                          ),
-                          label: Text(
-                            _proofBase64 != null ? 'Photo Captured ✓' : 'Upload Meter Photo',
-                            style: TextStyle(
+                  if (!(today != null && today.meterStart != null && today.meterEnd != null))
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: Icon(
+                              _proofBase64 != null ? Icons.check_circle : Icons.camera_alt_outlined,
                               color: _proofBase64 != null ? AppColors.secondary : AppColors.primary,
                             ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 48),
-                            side: BorderSide(
-                              color: _proofBase64 != null ? AppColors.secondary : AppColors.primary,
+                            label: Text(
+                              _proofBase64 != null 
+                                  ? 'Photo Captured ✓' 
+                                  : (today != null && today.meterStart != null ? 'Upload End Meter Photo' : 'Upload Start Meter Photo'),
+                              style: TextStyle(
+                                color: _proofBase64 != null ? AppColors.secondary : AppColors.primary,
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: _isPicking ? null : _pickMeterPhoto,
-                        ),
-                      ),
-                      if (_proofBase64 != null) ...[
-                        const SizedBox(width: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.memory(
-                            base64Decode(_proofBase64!),
-                            height: 48,
-                            width: 48,
-                            fit: BoxFit.cover,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                              side: BorderSide(
+                                color: _proofBase64 != null ? AppColors.secondary : AppColors.primary,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: _isPicking ? null : _pickMeterPhoto,
                           ),
                         ),
+                        if (_proofBase64 != null) ...[
+                          const SizedBox(width: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              base64Decode(_proofBase64!),
+                              height: 48,
+                              width: 48,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
                   const SizedBox(height: 24),
 
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: tp.isSubmitting ? null : _submit,
+                      onPressed: (tp.isSubmitting || (today != null && today.meterStart != null && today.meterEnd != null)) ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 52),
                         backgroundColor: AppColors.primary,
@@ -321,7 +382,14 @@ class _TravelMeterScreenState extends State<TravelMeterScreen> {
                               width: 20,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             )
-                          : const Text('Submit Travel Log', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          : Text(
+                              today != null && today.meterStart != null && today.meterEnd == null
+                                  ? 'Complete Travel Log'
+                                  : (today != null && today.meterStart != null && today.meterEnd != null
+                                      ? 'Travel Log Completed'
+                                      : 'Submit Travel Log'),
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                            ),
                     ),
                   ),
                 ],
