@@ -8,8 +8,8 @@ import { Zap, Eye, EyeOff, MapPin } from "lucide-react";
 export default function LoginPage() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const [email, setEmail] = useState("admin@tctc.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -100,10 +100,9 @@ export default function LoginPage() {
         ? (localStorage.getItem("ff_password") || "admin123")
         : "admin123";
 
-      const isDefaultCreds = email === "admin@tctc.com" && password === "admin123";
-      const isCustomCreds = email === storedEmail && password === storedPassword;
+      const isCustomCreds = storedProfile.email && email === storedEmail && password === storedPassword;
 
-      if (isDefaultCreds || isCustomCreds) {
+      if (isCustomCreds) {
         const storedName = storedProfile.firstName || "Admin";
         const fallbackRole = storedProfile.role || "ADMIN";
         dispatch(login({ token: "dev_fallback_token", user: { name: storedName, email, role: fallbackRole } }));
@@ -116,7 +115,7 @@ export default function LoginPage() {
         const dest = fallbackRole === "ADMIN" ? "/admin/dashboard" : "/dashboard";
         router.push(dest);
       } else {
-        setError("Invalid credentials. Demo: admin@tctc.com / password123");
+        setError("Invalid credentials. Please check your email and password.");
         setLoading(false);
       }
     }
@@ -140,15 +139,7 @@ export default function LoginPage() {
       <div style={{ width: "100%", maxWidth: "410px", animation: "fadeIn 0.5s ease", position: "relative", zIndex: 2 }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <img 
-            src="/logo.png" 
-            alt="TR@NSForce" 
-            style={{
-              height: "60px",
-              margin: "0 auto 12px",
-              objectFit: "contain"
-            }} 
-          />
+          
           <h1 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)", margin: "0 0 2px" }}>TR@NSForce Admin</h1>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 500 }}>Sign in to your dashboard</p>
         </div>
@@ -207,10 +198,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Hint */}
-            <div style={{ background: "rgba(79,142,247,0.08)", border: "1px solid rgba(79,142,247,0.2)", borderRadius: "0", padding: "10px 14px", fontSize: "12px", color: "var(--text-secondary)" }}>
-              💡 Demo: <strong style={{ color: "var(--text-primary)" }}>admin@tctc.com</strong> / <strong style={{ color: "var(--text-primary)" }}>admin123</strong>
-            </div>
+            
 
             {/* Button */}
             {loading ? (

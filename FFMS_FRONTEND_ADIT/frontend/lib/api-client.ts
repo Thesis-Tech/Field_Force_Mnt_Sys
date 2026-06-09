@@ -101,6 +101,8 @@ async function request<T>(
           localStorage.removeItem("auth_token");
           localStorage.removeItem("ff_is_logged_in");
           localStorage.removeItem("ff_user_profile");
+          document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+          document.cookie = "ff_user_role=; path=/; max-age=0; SameSite=Lax";
           window.location.href = "/login";
         }
       }

@@ -4,47 +4,15 @@ import { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/store";
 import { getStatusColor } from "@/lib/utils";
-import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, FileText } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, FileText } from "lucide-react";
 import { addNotification } from "@/store/slices/notificationSlice";
 import { fetchAttendance } from "@/store/slices/attendanceSlice";
 import { LeaveReportModal } from "@/components/LeaveReportModal";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from "recharts";
 
 export default function AttendancePage() {
   const dispatch = useDispatch<AppDispatch>();
   const attendance = useSelector((s: RootState) => s.attendance.list);
   const loading = useSelector((s: RootState) => s.attendance.loading);
-
-  const weeklyChartData = useMemo(() => {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const counts = days.map(d => ({ day: d, present: 0, absent: 0 }));
-    
-    attendance.forEach((a: any) => {
-      if (!a.date) return;
-      const d = new Date(a.date);
-      const dayName = days[d.getDay()];
-      const match = counts.find(c => c.day === dayName);
-      if (match) {
-        if (a.status === "absent" || a.status === "leave" || a.status === "holiday") {
-          match.absent++;
-        } else {
-          match.present++;
-        }
-      }
-    });
-    // Reorder to start from Monday
-    const sun = counts.shift();
-    if (sun) counts.push(sun);
-    return counts;
-  }, [attendance]);
 
   const [mounted, setMounted] = useState(false);
   const [filters, setFilters] = useState({ startDate: "", endDate: "", status: "", search: "" });
@@ -147,52 +115,6 @@ export default function AttendancePage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Weekly Attendance Graph */}
-      <div className="card" style={{ marginBottom: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "15px" }}>Weekly Attendance</div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Present vs Absent this week</div>
-          </div>
-          <TrendingUp size={18} color="var(--accent-green)" />
-        </div>
-        <ResponsiveContainer width="100%" height={220}>
-          {mounted ? (
-            <AreaChart data={weeklyChartData}>
-              <defs>
-                <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22d3a5" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#22d3a5" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="day" tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0", color: "var(--text-primary)" }} />
-              <Area type="monotone" dataKey="present" stroke="#22d3a5" fill="url(#presentGrad)" strokeWidth={2} name="Present" />
-              <Area type="monotone" dataKey="absent" stroke="#f43f5e" fill="url(#absentGrad)" strokeWidth={2} name="Absent" />
-            </AreaChart>
-          ) : (
-            <div className="skeleton-card" style={{ height: "100%", width: "100%", borderRadius: "4px", padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
-              <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: "10%" }}>
-                {[1, 2, 3, 4, 5, 6, 7].map(i => (
-                  <div key={i} className="skeleton-box" style={{ flex: 1, height: `${20 + Math.random() * 60}%`, borderTopLeftRadius: "4px", borderTopRightRadius: "4px" }} />
-                ))}
-              </div>
-              <div style={{ display: "flex", borderTop: "2px solid var(--border)", paddingTop: "12px", justifyContent: "space-between" }}>
-                {[1, 2, 3, 4, 5, 6, 7].map(i => (
-                  <div key={i} className="skeleton-line" style={{ width: "30px", height: "10px" }} />
-                ))}
-              </div>
-            </div>
-          )}
-        </ResponsiveContainer>
       </div>
 
       {/* Late Check-in Alert Banner */}

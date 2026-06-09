@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState } from "@/store";
@@ -16,9 +16,14 @@ import { RootState } from "@/store";
 export default function AdminRoleGuard({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, user, token } = useSelector((s: RootState) => s.auth);
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!isLoggedIn || !token) {
+      document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "ff_user_role=; path=/; max-age=0; SameSite=Lax";
       router.replace("/login");
       return;
     }
@@ -41,7 +46,7 @@ export default function AdminRoleGuard({ children }: { children: React.ReactNode
 
   const isAdmin = isLoggedIn && token && (user?.role || "").toUpperCase() === "ADMIN";
 
-  if (!isAdmin) {
+  if (!mounted || !isAdmin) {
     return null;
   }
 

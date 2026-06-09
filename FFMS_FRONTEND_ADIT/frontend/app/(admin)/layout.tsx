@@ -18,10 +18,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div
             className="dashboard-main"
             style={{
-              marginLeft: "64px",
               flex: 1,
               display: "flex",
               flexDirection: "column",
+              minWidth: 0,
               transition: "margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >

@@ -14,6 +14,11 @@
   --accent-orange: #f97316;
   --accent-red: #ba1a1a;
   --accent-purple: #8b5cf6;
+
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-text-muted: #737688;
+  --sidebar-text-inactive: #434656;
 }
 
 * {

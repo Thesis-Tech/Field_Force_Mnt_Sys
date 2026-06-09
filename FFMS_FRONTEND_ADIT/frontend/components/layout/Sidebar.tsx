@@ -23,7 +23,8 @@ import {
   ChevronRight,
   MapPin,
   Lightbulb,
-  MessageSquare
+  MessageSquare,
+  Video
 } from "lucide-react";
 
 const COLLAPSED_WIDTH = 64;
@@ -107,7 +108,7 @@ export default function Sidebar() {
           height: "32px",
           borderRadius: "50%",
           background: isActive ? "var(--accent-blue)" : "transparent",
-          border: isActive ? "none" : "1px solid var(--border)",
+          border: isActive ? "none" : "1px solid var(--sidebar-icon-border)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -115,7 +116,7 @@ export default function Sidebar() {
           transition: "all 0.15s ease",
         }}
       >
-        <Icon size={15} color={isActive ? "white" : "var(--text-secondary)"} />
+        <Icon size={15} color={isActive ? "white" : "var(--sidebar-text-inactive)"} />
       </div>
     );
   };
@@ -127,10 +128,10 @@ export default function Sidebar() {
       gap: "12px",
       padding: isExpanded ? "10px 12px" : "10px 0",
       justifyContent: isExpanded ? "flex-start" : "center",
-      background: isActive ? "rgba(0, 82, 255, 0.06)" : "transparent",
+      background: isActive ? "var(--sidebar-active-bg)" : "transparent",
       borderRadius: "0",
       cursor: "pointer",
-      color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+      color: isActive ? "var(--sidebar-text)" : "var(--sidebar-text-inactive)",
       transition: "all 0.2s ease",
       marginBottom: "2px",
     };
@@ -158,11 +159,11 @@ export default function Sidebar() {
         width: isMobile ? `${EXPANDED_WIDTH}px` : (isExpanded ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`),
         height: "100vh",
         maxHeight: "100vh",
-        background: "var(--bg-secondary)",
-        borderRight: "1px solid var(--border)",
+        background: "var(--sidebar-bg)",
+        borderRight: "1px solid var(--sidebar-border)",
         display: "flex",
         flexDirection: "column",
-        position: "fixed",
+        position: isMobile ? "fixed" : "sticky",
         top: 0,
         left: 0,
         zIndex: 9999,
@@ -170,14 +171,14 @@ export default function Sidebar() {
         overflow: "hidden",
         boxShadow: isMobile
           ? (isMobileOpen ? "4px 0 24px rgba(0, 0, 0, 0.25)" : "none")
-          : (isExpanded ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"),
+          : "none",
         transform: isMobile ? (isMobileOpen ? "translateX(0)" : "translateX(-100%)") : "translateX(0)",
       }}
     >
       {/* Brand Header */}
       <div style={{
         padding: isExpanded ? "24px 20px" : "24px 0",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--sidebar-border)",
         display: "flex",
         justifyContent: isExpanded ? "flex-start" : "center",
         alignItems: "center",
@@ -196,6 +197,7 @@ export default function Sidebar() {
           }}>
             <img 
               src="/logo.png" 
+              style={{ filter: "brightness(0) invert(1)" }} 
               alt="TR@NSForce" 
               style={{
                 height: "100%",
@@ -215,7 +217,7 @@ export default function Sidebar() {
         <div
           style={{
             fontSize: "11px",
-            color: "var(--text-muted)",
+            color: "var(--sidebar-text-muted)",
             fontWeight: 600,
             letterSpacing: "0.08em",
             padding: isExpanded ? "0 8px 10px" : "0 0 10px",
@@ -246,22 +248,56 @@ export default function Sidebar() {
           </div>
         </Link>
 
-        {/* 2. My Team (Employees) */}
-        <Link href={`${basePath}/employees`} style={{ textDecoration: "none" }} title="My Team">
-          <div style={getLinkStyle(pathname === `${basePath}/employees`)} className="sidebar-link">
-            {renderIcon(Users, pathname === `${basePath}/employees`)}
+        {/* 2. My Team (Employees) or Managers (Admin) */}
+        {isAdmin ? (
+          <Link href={`${basePath}/managers`} style={{ textDecoration: "none" }} title="Managers">
+            <div style={getLinkStyle(pathname === `${basePath}/managers`)} className="sidebar-link">
+              {renderIcon(Users, pathname === `${basePath}/managers`)}
+              <span style={{
+                fontSize: "13.5px",
+                fontWeight: pathname === `${basePath}/managers` ? 700 : 500,
+                opacity: isExpanded ? 1 : 0,
+                width: isExpanded ? "auto" : 0,
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                transition: "opacity 0.2s ease 0.05s",
+              }}>Managers</span>
+            </div>
+          </Link>
+        ) : (
+          <Link href={`${basePath}/employees`} style={{ textDecoration: "none" }} title="My Team">
+            <div style={getLinkStyle(pathname === `${basePath}/employees`)} className="sidebar-link">
+              {renderIcon(Users, pathname === `${basePath}/employees`)}
+              <span style={{
+                fontSize: "13.5px",
+                fontWeight: pathname === `${basePath}/employees` ? 700 : 500,
+                opacity: isExpanded ? 1 : 0,
+                width: isExpanded ? "auto" : 0,
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                transition: "opacity 0.2s ease 0.05s",
+              }}>My Team</span>
+            </div>
+          </Link>
+        )}
+
+        {/* Project Management */}
+        <Link href={`${basePath}/projects`} style={{ textDecoration: "none" }} title="Project Management">
+          <div style={getLinkStyle(pathname === `${basePath}/projects`)} className="sidebar-link">
+            {renderIcon(Briefcase, pathname === `${basePath}/projects`)}
             <span style={{
               fontSize: "13.5px",
-              fontWeight: pathname === `${basePath}/employees` ? 700 : 500,
+              fontWeight: pathname === `${basePath}/projects` ? 700 : 500,
               opacity: isExpanded ? 1 : 0,
               width: isExpanded ? "auto" : 0,
               overflow: "hidden",
               whiteSpace: "nowrap",
               transition: "opacity 0.2s ease 0.05s",
-            }}>My Team</span>
+            }}>Project Management</span>
           </div>
         </Link>
 
+        {mounted && !isAdmin && (<>
         {/* 3. My Task Accordion */}
         <div>
           <div
@@ -283,9 +319,9 @@ export default function Sidebar() {
               }}>My Task</span>
             </div>
             {isExpanded && (openSections.myTask ? (
-              <ChevronDown size={14} color="var(--text-muted)" />
+              <ChevronDown size={14} color="var(--sidebar-text-muted)" />
             ) : (
-              <ChevronRight size={14} color="var(--text-muted)" />
+              <ChevronRight size={14} color="var(--sidebar-text-muted)" />
             ))}
           </div>
 
@@ -295,7 +331,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/attendance` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/attendance` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/attendance` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -308,7 +344,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/tasks` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/tasks` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/tasks` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -320,20 +356,21 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+        </>)}
 
         {/* 4. Activities Accordion */}
         <div>
           <div
             onClick={() => toggleSection("activities")}
-            style={getLinkStyle(pathname === `${basePath}/geofencing` || pathname.startsWith(`${basePath}/activities`))}
+            style={getLinkStyle(pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/activities`))}
             className="sidebar-link"
             title="Activities"
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, justifyContent: isExpanded ? "flex-start" : "center" }}>
-              {renderIcon(Briefcase, pathname === `${basePath}/geofencing` || pathname.startsWith(`${basePath}/activities`))}
+              {renderIcon(Briefcase, pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/activities`))}
               <span style={{
                 fontSize: "13.5px",
-                fontWeight: (pathname === `${basePath}/geofencing` || pathname.startsWith(`${basePath}/activities`)) ? 700 : 500,
+                fontWeight: (pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/activities`)) ? 700 : 500,
                 opacity: isExpanded ? 1 : 0,
                 width: isExpanded ? "auto" : 0,
                 overflow: "hidden",
@@ -342,9 +379,9 @@ export default function Sidebar() {
               }}>Activities</span>
             </div>
             {isExpanded && (openSections.activities ? (
-              <ChevronDown size={14} color="var(--text-muted)" />
+              <ChevronDown size={14} color="var(--sidebar-text-muted)" />
             ) : (
-              <ChevronRight size={14} color="var(--text-muted)" />
+              <ChevronRight size={14} color="var(--sidebar-text-muted)" />
             ))}
           </div>
 
@@ -354,7 +391,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/geofencing` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/geofencing` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/geofencing` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -363,30 +400,30 @@ export default function Sidebar() {
                   ➔ Geofencing Monitor
                 </span>
               </Link>
-              <Link href={`${basePath}/activities/visits`} style={{ textDecoration: "none", color: "inherit" }}>
+              <Link href={`${basePath}/map`} style={{ textDecoration: "none", color: "inherit" }}>
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/activities/visits` ? "var(--accent-blue)" : "var(--text-secondary)",
-                    fontWeight: pathname === `${basePath}/activities/visits` ? 700 : 400,
+                    color: pathname === `${basePath}/map` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
+                    fontWeight: pathname === `${basePath}/map` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
                   }}
                 >
-                  ➔ Visits
+                  ➔ Live GPS Map
                 </span>
               </Link>
-              <Link href={`${basePath}/activities/customers`} style={{ textDecoration: "none", color: "inherit" }}>
+              <Link href={`${basePath}/playback`} style={{ textDecoration: "none", color: "inherit" }}>
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/activities/customers` ? "var(--accent-blue)" : "var(--text-secondary)",
-                    fontWeight: pathname === `${basePath}/activities/customers` ? 700 : 400,
+                    color: pathname === `${basePath}/playback` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
+                    fontWeight: pathname === `${basePath}/playback` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
                   }}
                 >
-                  ➔ Customers
+                  ➔ Map Insights (Playback)
                 </span>
               </Link>
             </div>
@@ -413,15 +450,15 @@ export default function Sidebar() {
         <div>
           <div
             onClick={() => toggleSection("insights")}
-            style={getLinkStyle(pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/insights`))}
+            style={getLinkStyle(pathname.startsWith(`${basePath}/insights`))}
             className="sidebar-link"
             title="Insights"
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, justifyContent: isExpanded ? "flex-start" : "center" }}>
-              {renderIcon(TrendingUp, pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/insights`))}
+              {renderIcon(TrendingUp, pathname.startsWith(`${basePath}/insights`))}
               <span style={{
                 fontSize: "13.5px",
-                fontWeight: (pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/insights`)) ? 700 : 500,
+                fontWeight: pathname.startsWith(`${basePath}/insights`) ? 700 : 500,
                 opacity: isExpanded ? 1 : 0,
                 width: isExpanded ? "auto" : 0,
                 overflow: "hidden",
@@ -430,45 +467,19 @@ export default function Sidebar() {
               }}>Insights</span>
             </div>
             {isExpanded && (openSections.insights ? (
-              <ChevronDown size={14} color="var(--text-muted)" />
+              <ChevronDown size={14} color="var(--sidebar-text-muted)" />
             ) : (
-              <ChevronRight size={14} color="var(--text-muted)" />
+              <ChevronRight size={14} color="var(--sidebar-text-muted)" />
             ))}
           </div>
 
           {isExpanded && openSections.insights && (
             <div style={{ paddingLeft: "42px", display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px", marginTop: "4px" }}>
-              <Link href={`${basePath}/map`} style={{ textDecoration: "none", color: "inherit" }}>
-                <span
-                  style={{
-                    fontSize: "12.5px",
-                    color: pathname === `${basePath}/map` ? "var(--accent-blue)" : "var(--text-secondary)",
-                    fontWeight: pathname === `${basePath}/map` ? 700 : 400,
-                    display: "block",
-                    padding: "4px 8px",
-                  }}
-                >
-                  ➔ Live GPS Map
-                </span>
-              </Link>
-              <Link href={`${basePath}/playback`} style={{ textDecoration: "none", color: "inherit" }}>
-                <span
-                  style={{
-                    fontSize: "12.5px",
-                    color: pathname === `${basePath}/playback` ? "var(--accent-blue)" : "var(--text-secondary)",
-                    fontWeight: pathname === `${basePath}/playback` ? 700 : 400,
-                    display: "block",
-                    padding: "4px 8px",
-                  }}
-                >
-                  ➔ Map Insights (Playback)
-                </span>
-              </Link>
               <Link href={`${basePath}/insights/overview`} style={{ textDecoration: "none", color: "inherit" }}>
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/insights/overview` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/insights/overview` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/insights/overview` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -481,7 +492,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/insights/attendance-analytics` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/insights/attendance-analytics` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/insights/attendance-analytics` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -494,7 +505,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/insights/expense-audits` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/insights/expense-audits` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/insights/expense-audits` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -561,9 +572,9 @@ export default function Sidebar() {
               }}>Reports</span>
             </div>
             {isExpanded && (openSections.reports ? (
-              <ChevronDown size={14} color="var(--text-muted)" />
+              <ChevronDown size={14} color="var(--sidebar-text-muted)" />
             ) : (
-              <ChevronRight size={14} color="var(--text-muted)" />
+              <ChevronRight size={14} color="var(--sidebar-text-muted)" />
             ))}
           </div>
 
@@ -573,7 +584,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/reports` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/reports` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/reports` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -585,7 +596,7 @@ export default function Sidebar() {
               <Link href={`${basePath}/reports/travel-expenses`} style={{ textDecoration: "none", color: "inherit" }}>
                 <span style={{
                   fontSize: "12.5px",
-                  color: pathname === `${basePath}/reports/travel-expenses` ? "var(--accent-blue)" : "var(--text-secondary)",
+                  color: pathname === `${basePath}/reports/travel-expenses` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                   fontWeight: pathname === `${basePath}/reports/travel-expenses` ? 700 : 400,
                   display: "block",
                   padding: "4px 8px",
@@ -596,7 +607,7 @@ export default function Sidebar() {
               <Link href={`${basePath}/reports/productivity`} style={{ textDecoration: "none", color: "inherit" }}>
                 <span style={{
                   fontSize: "12.5px",
-                  color: pathname === `${basePath}/reports/productivity` ? "var(--accent-blue)" : "var(--text-secondary)",
+                  color: pathname === `${basePath}/reports/productivity` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                   fontWeight: pathname === `${basePath}/reports/productivity` ? 700 : 400,
                   display: "block",
                   padding: "4px 8px",
@@ -607,7 +618,7 @@ export default function Sidebar() {
               <Link href={`${basePath}/reports/compliance`} style={{ textDecoration: "none", color: "inherit" }}>
                 <span style={{
                   fontSize: "12.5px",
-                  color: pathname === `${basePath}/reports/compliance` ? "var(--accent-blue)" : "var(--text-secondary)",
+                  color: pathname === `${basePath}/reports/compliance` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                   fontWeight: pathname === `${basePath}/reports/compliance` ? 700 : 400,
                   display: "block",
                   padding: "4px 8px",
@@ -659,9 +670,9 @@ export default function Sidebar() {
               }}>Settings</span>
             </div>
             {isExpanded && (openSections.settings ? (
-              <ChevronDown size={14} color="var(--text-muted)" />
+              <ChevronDown size={14} color="var(--sidebar-text-muted)" />
             ) : (
-              <ChevronRight size={14} color="var(--text-muted)" />
+              <ChevronRight size={14} color="var(--sidebar-text-muted)" />
             ))}
           </div>
 
@@ -671,7 +682,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/settings/notifications` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/settings/notifications` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/settings/notifications` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -684,7 +695,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/settings/user-management` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/settings/user-management` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/settings/user-management` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -697,7 +708,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/settings/territory-setup` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/settings/territory-setup` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/settings/territory-setup` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -710,7 +721,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/settings/travel-policies` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/settings/travel-policies` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/settings/travel-policies` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -723,7 +734,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/settings/security-access` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/settings/security-access` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/settings/security-access` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -736,7 +747,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "12.5px",
-                    color: pathname === `${basePath}/settings/inactive-persons` ? "var(--accent-blue)" : "var(--text-secondary)",
+                    color: pathname === `${basePath}/settings/inactive-persons` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
                     fontWeight: pathname === `${basePath}/settings/inactive-persons` ? 700 : 400,
                     display: "block",
                     padding: "4px 8px",
@@ -754,7 +765,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout Row at Bottom */}
-      <div style={{ padding: isExpanded ? "16px 12px" : "16px 0", borderTop: "1px solid var(--border)", transition: "padding 0.25s ease" }}>
+      <div style={{ padding: isExpanded ? "16px 12px" : "16px 0", borderTop: "1px solid var(--sidebar-border)", transition: "padding 0.25s ease" }}>
         <div
           onClick={() => {
             dispatch(logout());

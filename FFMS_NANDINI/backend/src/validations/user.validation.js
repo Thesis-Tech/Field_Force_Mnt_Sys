@@ -11,6 +11,7 @@ const createUserSchema = z.object({
   status: z.nativeEnum(UserStatus).default('ACTIVE'),
   managerId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
   territoryId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
+  department: z.string().optional(),
   profileImage: z.string().optional()
 });
 
@@ -23,6 +24,7 @@ const updateUserSchema = z.object({
   status: z.nativeEnum(UserStatus).optional(),
   managerId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
   territoryId: z.preprocess((val) => (val === '' || val === 'null' || val === null) ? null : val, z.string().nullable().optional()),
+  department: z.string().optional(),
   profileImage: z.string().optional()
 });
 

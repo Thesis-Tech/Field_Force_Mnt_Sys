@@ -114,6 +114,7 @@ const listUsers = async ({
       phone: true,
       profileImage: true,
       employeeId: true,
+      department: true,
       role: true,
       status: true,
       managerId: true,

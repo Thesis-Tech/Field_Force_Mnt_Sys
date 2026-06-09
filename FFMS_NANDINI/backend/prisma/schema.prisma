@@ -145,6 +145,7 @@ model User {
   phone          String?
   profileImage   String?
   employeeId     String
+  department     String?
   
   role           Role        @default(FIELD_STAFF)
   status         UserStatus  @default(ACTIVE)

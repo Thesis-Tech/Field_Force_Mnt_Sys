@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { projectsApi, usersApi, ApiProject } from "@/lib/api-client";
-import { FolderPlus, Search, Edit2, X, Check, RefreshCw, Briefcase, CheckCircle2, PauseCircle, Clock4 } from "lucide-react";
+import { projectsApi, usersApi, tasksApi, ApiProject } from "@/lib/api-client";
+import { FolderPlus, Search, Edit2, X, Check, RefreshCw, Briefcase, CheckCircle2, PauseCircle, Clock4, Plus } from "lucide-react";
 
 
 const statusColors: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
@@ -23,8 +23,12 @@ export default function AdminProjectsPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "", managerId: "", startDate: "", endDate: "", status: "ACTIVE", department: "", budget: "", progress: 0,
+    name: "", managerId: "", startDate: "", endDate: "", status: "ACTIVE", department: "", budget: "", progress: 0, description: ""
   });
+  
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: "", description: "", assigneeId: "", priority: "MEDIUM", dueDate: "" });
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -34,8 +38,9 @@ export default function AdminProjectsPage() {
   const loadData = () => {
     Promise.all([
       projectsApi.list(),
-      usersApi.list({ role: "MANAGER" })
-    ]).then(([projRes, mgrRes]) => {
+      usersApi.list({ role: "MANAGER" }),
+      usersApi.list()
+    ]).then(([projRes, mgrRes, empRes]) => {
       if (projRes.success) {
         setProjects(projRes.data);
       }
@@ -43,6 +48,13 @@ export default function AdminProjectsPage() {
         setManagers(mgrRes.data);
         if (mgrRes.data.length > 0 && !formData.managerId) {
           setFormData(prev => ({ ...prev, managerId: mgrRes.data[0].id }));
+        }
+      }
+      if (empRes.success) {
+        const staff = empRes.data.filter((u: any) => u.role === "FIELD_STAFF" || u.role === "MANAGER");
+        setEmployees(staff);
+        if (staff.length > 0 && !taskForm.assigneeId) {
+          setTaskForm(prev => ({ ...prev, assigneeId: staff[0].id }));
         }
       }
     })
@@ -72,7 +84,7 @@ export default function AdminProjectsPage() {
       startDate: formData.startDate || null,
       endDate: formData.endDate || null,
       status: formData.status,
-      description: ""
+      description: formData.description
     });
 
     if (res.success) {
@@ -92,7 +104,8 @@ export default function AdminProjectsPage() {
       managerId: formData.managerId,
       startDate: formData.startDate || null,
       endDate: formData.endDate || null,
-      status: formData.status
+      status: formData.status,
+      description: formData.description
     });
 
     if (res.success) {
@@ -129,9 +142,32 @@ export default function AdminProjectsPage() {
       status: p.status,
       department: "",
       budget: "",
-      progress: p.progress
+      progress: p.progress,
+      description: p.description || ""
     });
     setEditingProject(p);
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskForm.assigneeId && employees.length > 0) {
+      taskForm.assigneeId = employees[0].id;
+    }
+    const res = await tasksApi.create({
+      title: taskForm.title,
+      description: taskForm.description,
+      priority: taskForm.priority,
+      assigneeIds: [taskForm.assigneeId],
+      dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : undefined
+    });
+
+    if (res.success) {
+      setShowTaskModal(false);
+      setTaskForm({ title: "", description: "", assigneeId: employees[0]?.id || "", priority: "MEDIUM", dueDate: "" });
+      showToast(`Task "${taskForm.title}" assigned successfully!`, "success");
+    } else {
+      showToast(res.error?.message || "Failed to create task", "error");
+    }
   };
 
   if (loading) {
@@ -228,7 +264,11 @@ export default function AdminProjectsPage() {
               <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
-            <button id="add-project-btn" onClick={() => { setFormData({ name: "", managerId: managers[0]?.id || "", startDate: "", endDate: "", status: "ACTIVE", department: "", budget: "", progress: 0 }); setShowAddModal(true); }}
+            <button onClick={() => { setTaskForm({ title: "", description: "", assigneeId: employees[0]?.id || "", priority: "MEDIUM", dueDate: "" }); setShowTaskModal(true); }}
+              className="btn-primary" style={{ background: "#10b981", border: "none" }}>
+              <Plus size={16} /> Create Task
+            </button>
+            <button id="add-project-btn" onClick={() => { setFormData({ name: "", managerId: managers[0]?.id || "", startDate: "", endDate: "", status: "ACTIVE", department: "", budget: "", progress: 0, description: "" }); setShowAddModal(true); }}
               className="btn-primary">
               <FolderPlus size={16} /> Create Project
             </button>
@@ -314,6 +354,7 @@ export default function AdminProjectsPage() {
             </div>
             <form onSubmit={editingProject ? handleEditProject : handleAddProject} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Project Name *</label><input type="text" required className="input" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Q3 Sales Drive" /></div>
+              <div><label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Description</label><textarea className="input" value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} placeholder="Brief details about the project..." style={{ minHeight: "80px", resize: "vertical" }} /></div>
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Assign Manager *</label>
@@ -338,6 +379,52 @@ export default function AdminProjectsPage() {
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
                 <button type="button" onClick={() => { setShowAddModal(false); setEditingProject(null); }} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary" style={{ background: "#3b82f6" }}>{editingProject ? "Save Changes" : "Create Project"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Task Modal */}
+      {showTaskModal && (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth: 520 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#1e293b" }}>Assign New Task</h2>
+              <button onClick={() => setShowTaskModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><X size={18} /></button>
+            </div>
+            <form onSubmit={handleCreateTask} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Task Title *</label>
+                <input type="text" required className="input" value={taskForm.title} onChange={(e) => setTaskForm((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. Client Visit" />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Description</label>
+                <textarea className="input" value={taskForm.description} onChange={(e) => setTaskForm((p) => ({ ...p, description: e.target.value }))} placeholder="Task details..." style={{ minHeight: "80px", resize: "vertical" }} />
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Assign To *</label>
+                  <select className="input" required value={taskForm.assigneeId} onChange={(e) => setTaskForm((p) => ({ ...p, assigneeId: e.target.value }))}>
+                    {employees.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Priority</label>
+                  <select className="input" value={taskForm.priority} onChange={(e) => setTaskForm((p) => ({ ...p, priority: e.target.value }))}>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>Deadline</label>
+                <input type="date" className="input" value={taskForm.dueDate} onChange={(e) => setTaskForm((p) => ({ ...p, dueDate: e.target.value }))} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                <button type="button" onClick={() => setShowTaskModal(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: "#10b981", border: "none" }}>Create Task</button>
               </div>
             </form>
           </div>
