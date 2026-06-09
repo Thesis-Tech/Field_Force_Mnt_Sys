@@ -98,29 +98,34 @@ export default function NotificationsPage() {
     e.preventDefault();
     const emp = employees.find((e: any) => e.id === simEmployeeId) || employees[0];
 
+    if (!emp) {
+      alert("No employees found to simulate event for.");
+      return;
+    }
+
     let message = "";
-    let type: "attendance" | "task" | "alert" | "system" = "system";
+    let dbType: "ATTENDANCE" | "TASK" | "GEOFENCE" | "SYSTEM" = "SYSTEM";
 
     if (simEventType === "checkin") {
       message = `${emp.name} logged in from active coordinates near ${emp.territory}`;
-      type = "attendance";
+      dbType = "ATTENDANCE";
     } else if (simEventType === "task") {
       const t = tasks.find((tk: any) => tk.assignedTo === emp.name) || { title: "Scheduled Client Visit" };
       message = `${emp.name} submitted task update: Completed '${t.title}'`;
-      type = "task";
+      dbType = "TASK";
     } else if (simEventType === "late") {
       message = `${emp.name} check-in alert: Delayed arrival recorded (Territory: ${emp.territory})`;
-      type = "alert";
+      dbType = "ATTENDANCE";
     } else if (simEventType === "geofence") {
       message = `Geofence BREACH: ${emp.name} exited assigned boundary ring near South Hub`;
-      type = "alert";
+      dbType = "GEOFENCE";
     } else if (simEventType === "offline") {
       const battery = Math.floor(Math.random() * 15) + 1; // 1% to 15%
       const lat = emp.lat ? emp.lat.toFixed(4) : "19.0760";
       const lng = emp.lng ? emp.lng.toFixed(4) : "72.8777";
       const emailStatus = emailAlertOffline ? "Email alert dispatched to admin." : "Email alert disabled in settings.";
       message = `CRITICAL OFFLINE: ${emp.name}'s phone is unreachable (>30 mins). Last known battery: ${battery}%. Last coords: [${lat}, ${lng}]. ${emailStatus}`;
-      type = "system";
+      dbType = "SYSTEM";
     }
 
     try {
@@ -128,7 +133,7 @@ export default function NotificationsPage() {
         userId: emp.id,
         title: `Simulated Event: ${simEventType.toUpperCase()}`,
         body: message,
-        type,
+        type: dbType,
         priority: simPriority,
       });
       alert("Simulated event successfully created on backend.");
@@ -142,6 +147,11 @@ export default function NotificationsPage() {
   const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     const emp = employees.find((e: any) => e.id === broadcastEmpId) || employees[0];
+
+    if (!emp) {
+      alert("No employees found to send broadcast to.");
+      return;
+    }
 
     let messageContent = broadcastMessage;
     if (broadcastTemplate !== "custom") {
@@ -158,7 +168,7 @@ export default function NotificationsPage() {
         userId: emp.id,
         title: "SYSTEM BROADCAST",
         body: messageContent,
-        type: "system",
+        type: "SYSTEM",
         priority: broadcastPriority,
       });
       setBroadcastMessage("");
@@ -187,7 +197,7 @@ export default function NotificationsPage() {
         userId: emp.id,
         title: "LOCATION_UPDATE_REQUEST",
         body: `Admin has requested a real-time location update from ${emp.name}.`,
-        type: "system",
+        type: "SYSTEM",
         priority: "high",
       });
       setLocationMsg({ type: "success", text: `📍 Location request successfully pushed to ${emp.name}'s device. You will receive a notification with their live GPS coordinates shortly.` });
@@ -334,7 +344,7 @@ export default function NotificationsPage() {
                            userId: emp.id,
                            title: "EMERGENCY ALERT",
                            body: "Please evacuate or report to HQ immediately.",
-                           type: "alert",
+                           type: "SYSTEM",
                            priority: "high"
                          })));
                          alert("Emergency alert activated for all employees.");
@@ -652,7 +662,7 @@ export default function NotificationsPage() {
                                 userId: targetEmp.id,
                                 title: "URGENT: Return to Workplace",
                                 body: "You have breached the assigned geofence boundary. Please return to the workplace immediately.",
-                                type: "alert",
+                                type: "GEOFENCE",
                                 priority: "high",
                               });
                               dispatch(fetchNotifications() as any);
