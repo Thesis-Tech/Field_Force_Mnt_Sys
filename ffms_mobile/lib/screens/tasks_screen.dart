@@ -24,12 +24,12 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Status filter tabs — unified list, no type segmentation
+  // Status filter tabs — order: All, In Progress, Pending, Complete, Missed
   final List<Map<String, String>> _tabs = [
     {'label': 'All', 'status': 'ALL'},
-    {'label': 'Pending', 'status': 'PENDING'},
     {'label': 'In Progress', 'status': 'IN_PROGRESS'},
-    {'label': 'Completed', 'status': 'COMPLETED'},
+    {'label': 'Pending', 'status': 'PENDING'},
+    {'label': 'Complete', 'status': 'COMPLETED'},
     {'label': 'Missed', 'status': 'OVERDUE'},
   ];
 

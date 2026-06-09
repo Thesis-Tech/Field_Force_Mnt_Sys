@@ -44,8 +44,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Count-up timer running every second for live punch updates
-    _countUpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Count-up timer removed — punch times now show real clock time, not elapsed duration
+    // A lightweight 1-minute ticker keeps the "Hours Worked" calculation fresh without
+    // flooding setState every second.
+    _countUpTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
         setState(() {});
       }
@@ -81,57 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
       travelProvider.fetchMonthlySummary(),
       travelProvider.fetchTravelHistory(limit: 30),
     ]);
-
-    // Recover lost image data from background activity destruction
-    try {
-      final picker = ImagePicker();
-      final response = await picker.retrieveLostData();
-      if (!response.isEmpty && response.file != null && response.type == RetrieveType.image) {
-        final file = response.file!;
-        if (!attendanceProvider.isPunchedIn && !attendanceProvider.isDayComplete) {
-          _processLostPunchIn(file);
-        }
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _processLostPunchIn(XFile file) async {
-    final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
-    if (attendanceProvider.isPunchedIn || attendanceProvider.isDayComplete) return;
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recovering photo & processing punch-in...'), duration: Duration(seconds: 4)),
-      );
-    }
-
-    try {
-      final bytes = await file.readAsBytes();
-      final base64Selfie = base64Encode(bytes);
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      
-      // Renamed from Check In/Out to Punch In/Out as per v2 spec
-      final success = await attendanceProvider.punchIn(position, selfieBase64: base64Selfie);
-      if (success) {
-        await StorageHelper.savePunchInTime(DateTime.now().toIso8601String());
-        await StorageHelper.clearPunchOutTime();
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Punched In Successfully (Recovered)!' : (attendanceProvider.errorMessage ?? 'Punch In failed')),
-            backgroundColor: success ? AppColors.secondary : AppColors.error,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to complete recovered punch-in: $e'), backgroundColor: AppColors.error),
-        );
-      }
-    }
+    // NOTE: retrieveLostData() removed — it was re-triggering punch-in flows
+    // when the camera app returned, causing the splash-screen-like blank refresh.
   }
 
   Future<void> _handleAttendanceAction() async {
@@ -155,9 +108,11 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fetching current GPS coordinates...')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fetching current GPS coordinates...')),
+      );
+    }
 
     try {
       String? base64Selfie;
@@ -230,16 +185,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
-  }
-
-  String _getPunchInDuration(DateTime? punchInTime) {
-    if (punchInTime == null) return '00:00:00';
-    final diff = DateTime.now().difference(punchInTime.toLocal());
-    if (diff.isNegative) return '00:00:00';
-    final h = diff.inHours.toString().padLeft(2, '0');
-    final m = (diff.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (diff.inSeconds % 60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
   }
 
   @override
@@ -446,11 +391,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              attendanceProvider.isPunchedIn
-                                  ? _getPunchInDuration(firstPunchIn)
-                                  : (firstPunchIn != null
-                                      ? DateFormat('hh:mm a').format(firstPunchIn.toLocal())
-                                      : '--:--:--'),
+                              // Show the real punch-in clock time in HH:MM:SS format.
+                              // This is the moment the user actually punched in — not an elapsed timer.
+                              // Source: phone clock at the moment of punch, stored in punchInTime from server.
+                              firstPunchIn != null
+                                  ? DateFormat('HH:mm:ss').format(firstPunchIn.toLocal())
+                                  : '--:--:--',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -484,9 +430,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
+                              // Show the real punch-out clock time in HH:MM:SS format.
+                              // Source: phone clock at the moment of punch-out, stored from server response.
                               lastPunchOut != null
-                                  ? DateFormat('hh:mm a').format(lastPunchOut.toLocal())
-                                  : '--:-- PM',
+                                  ? DateFormat('HH:mm:ss').format(lastPunchOut.toLocal())
+                                  : '--:--:--',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
