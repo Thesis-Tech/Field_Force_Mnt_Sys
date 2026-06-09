@@ -33,20 +33,23 @@ export default function MapPage() {
 
         const merged = employeesFromRedux.map((emp) => {
           const live = liveLocMap.get(emp.id) as any;
-          if (live) {
+          if (live && live.latitude && live.longitude && live.latitude !== 0 && live.longitude !== 0) {
             return {
               ...emp,
-              lat: live.latitude || emp.lat,
-              lng: live.longitude || emp.lng,
+              lat: live.latitude,
+              lng: live.longitude,
               status: "active",
             };
           }
-          return emp;
+          return {
+            ...emp,
+            status: "inactive",
+          };
         });
         setEmployees(merged);
       } catch (e) {
         console.error("Failed to fetch live locations", e);
-        setEmployees(employeesFromRedux);
+        setEmployees(employeesFromRedux.map(emp => ({ ...emp, status: "inactive" })));
       }
     };
 
@@ -59,7 +62,7 @@ export default function MapPage() {
     }
   }, [employeesFromRedux]);
 
-  const active = employees.filter(e => e.status === "active");
+  const active = employees.filter(e => e.status === "active" && e.lat !== 0 && e.lng !== 0);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "16px", height: "calc(100vh - 130px)" }}>
