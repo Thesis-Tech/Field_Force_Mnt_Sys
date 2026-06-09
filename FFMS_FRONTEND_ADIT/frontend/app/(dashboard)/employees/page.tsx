@@ -115,16 +115,8 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
               className="input" 
               value={form.territoryId || ""} 
               onChange={e=>set("territoryId",e.target.value)}
-              disabled={currentUser?.role === "MANAGER"}
             >
-              {currentUser?.role === "MANAGER" ? (
-                <option value={currentUser.territoryId || ""}>
-                  {(() => {
-                    const managerTerritory = territories.find((t: any) => t.id === currentUser.territoryId);
-                    return managerTerritory ? managerTerritory.name : "Your Territory";
-                  })()}
-                </option>
-              ) : territories.length > 0 ? (
+              {territories.length > 0 ? (
                 <>
                   <option value="">-- Select Territory --</option>
                   {territories.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -133,7 +125,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 <option value="">No territories available</option>
               )}
             </select>
-            {territories.length === 0 && currentUser?.role !== "MANAGER" && (
+            {territories.length === 0 && (
               <div style={{ fontSize: "11px", marginTop: "6px", color: "var(--accent-red)", lineHeight: "1.4" }}>
                 No territories are available. Please contact the Admin to set up territories.
               </div>
