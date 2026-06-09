@@ -921,6 +921,7 @@ export default function EmployeesPage() {
               // Build update payload — only include password if provided
               const updateData: Record<string, unknown> = {
                 name: emp.name,
+                email: emp.email,
                 phone: emp.phone,
                 role: emp.role,
                 status: emp.status ? emp.status.toUpperCase() : "ACTIVE",

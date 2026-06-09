@@ -16,6 +16,7 @@ const createUserSchema = z.object({
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
+  email: z.string().email('Invalid email address').optional(),
   phone: z.string().optional(),
   password: z.string().optional(),
   employeeId: z.string().optional(),
