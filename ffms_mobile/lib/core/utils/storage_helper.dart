@@ -125,6 +125,22 @@ class StorageHelper {
     await _prefs!.remove(_punchOutTimeKey);
   }
 
+  static const String _travelMeterStartKey = 'travel_meter_start';
+
+  static Future<void> saveTravelMeterStart(double value) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setDouble(_travelMeterStartKey, value);
+  }
+
+  static double? getTravelMeterStart() {
+    return _prefs?.getDouble(_travelMeterStartKey);
+  }
+
+  static Future<void> clearTravelMeterStart() async {
+    if (_prefs == null) await initialize();
+    await _prefs!.remove(_travelMeterStartKey);
+  }
+
   // Clear Storage
   static Future<void> clearAll() async {
     try {

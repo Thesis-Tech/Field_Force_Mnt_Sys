@@ -100,10 +100,9 @@ class TravelProvider extends ChangeNotifier {
       );
 
       if (response.data['success'] == true) {
-        final logData = response.data['data']['log'];
-        _todayLog = logData != null ? TravelLogModel.fromJson(logData as Map<String, dynamic>) : null;
-        // Refresh history
-        fetchTravelHistory();
+        // Refresh travel block after submit so UI reflects latest data
+        await fetchTodayTravel();
+        await fetchTravelHistory();
         return true;
       }
     } on DioException catch (e) {

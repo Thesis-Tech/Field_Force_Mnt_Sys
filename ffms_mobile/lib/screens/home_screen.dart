@@ -18,6 +18,8 @@ import '../core/theme/app_theme.dart';
 import '../core/utils/storage_helper.dart';
 import '../core/utils/constants.dart';
 import 'permissions_screen.dart';
+import 'request_advance_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -828,29 +830,94 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Calculate daily salary components (standard 26 working days)
                         final dailySalaryRate = baseSalary / 26.0;
 
+                        // Group sessions by date to prevent duplicate rows
+                        // LATE status treated as full day pay per business rules
+                        final Map<String, List<dynamic>> groupedByDate = {};
+                        for (final log in logs) {
+                          final dateStr = DateFormat('yyyy-MM-dd').format(log.date);
+                          groupedByDate.putIfAbsent(dateStr, () => []).add(log);
+                        }
+
+                        // Define status ranking to determine the highest status for multiple sessions
+                        int getStatusRank(String status) {
+                          final upper = status.toUpperCase();
+                          if (upper == 'PRESENT' || upper == 'ON_DUTY') return 4;
+                          if (upper == 'LATE') return 3;
+                          if (upper == 'HALF_DAY') return 2;
+                          if (upper == 'ABSENT') return 1;
+                          return 0;
+                        }
+
+                        final List<Map<String, dynamic>> groupedLogs = groupedByDate.entries.map((entry) {
+                          final dateLogs = entry.value;
+
+                          // Sum total working hours for the date
+                          double totalHours = 0.0;
+                          for (final l in dateLogs) {
+                            totalHours += l.totalWorkingHours ?? 0.0;
+                          }
+
+                          // Get highest status session of the date
+                          dynamic highestLog = dateLogs.first;
+                          int highestRank = getStatusRank(highestLog.status);
+                          for (final l in dateLogs) {
+                            final rank = getStatusRank(l.status);
+                            if (rank > highestRank) {
+                              highestRank = rank;
+                              highestLog = l;
+                            }
+                          }
+
+                          final finalStatus = highestLog.status.toUpperCase();
+                          double salaryFactor = 0.0;
+                          bool isPayable = false;
+
+                          // PRESENT -> 100%, LATE -> 100%, HALF_DAY -> 50%, ABSENT or other -> 0%
+                          if (finalStatus == 'PRESENT' || finalStatus == 'ON_DUTY' || finalStatus == 'LATE') {
+                            salaryFactor = 1.0;
+                            isPayable = true;
+                          } else if (finalStatus == 'HALF_DAY') {
+                            salaryFactor = 0.5;
+                            isPayable = true;
+                          }
+
+                          final dailySalary = dailySalaryRate * salaryFactor;
+
+                          return {
+                            'date': highestLog.date as DateTime,
+                            'totalHours': totalHours,
+                            'dailySalary': dailySalary,
+                            'isPayable': isPayable,
+                          };
+                        }).toList();
+
+                        // Sort grouped logs by date descending
+                        groupedLogs.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+
                         return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: logs.take(5).length,
+                              itemCount: groupedLogs.take(5).length,
                               separatorBuilder: (_, __) => const Divider(height: 8),
                               itemBuilder: (context, index) {
-                                final log = logs[index];
-                                final isPresent = log.status.toUpperCase() == 'PRESENT' || log.status.toUpperCase() == 'ON_DUTY';
-                                final dailySalary = isPresent ? dailySalaryRate : 0.0;
+                                final gLog = groupedLogs[index];
+                                final isPayable = gLog['isPayable'] as bool;
+                                final dailySalary = gLog['dailySalary'] as double;
+                                final date = gLog['date'] as DateTime;
+                                final totalHours = gLog['totalHours'] as double;
 
                                 return Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      DateFormat('dd MMM yyyy').format(log.date),
+                                      DateFormat('dd MMM yyyy').format(date),
                                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
                                     ),
                                     Text(
-                                      log.totalWorkingHours != null
-                                          ? '${log.totalWorkingHours!.toStringAsFixed(1)} hrs'
-                                          : '0.0 hrs',
+                                      '${totalHours.toStringAsFixed(1)} hrs',
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     Text(
@@ -858,7 +925,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        color: isPresent ? const Color(0xFF16A34A) : AppColors.error,
+                                        color: isPayable ? const Color(0xFF16A34A) : AppColors.error,
                                       ),
                                     ),
                                   ],
@@ -874,13 +941,38 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                 ),
                                 Text(
-                                  '₹${logs.fold<double>(0.0, (sum, log) {
-                                    final isPresent = log.status.toUpperCase() == 'PRESENT' || log.status.toUpperCase() == 'ON_DUTY';
-                                    return sum + (isPresent ? dailySalaryRate : 0.0);
+                                  '₹${groupedLogs.fold<double>(0.0, (sum, gLog) {
+                                    return sum + (gLog['dailySalary'] as double);
                                   }).toStringAsFixed(2)}',
                                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Advance pay backend endpoint not yet available
+                            // UI ready — waiting for backend implementation
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const RequestAdvanceScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: AppColors.onPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              icon: const Icon(Icons.payment, size: 16),
+                              label: const Text(
+                                'Request Salary Advance',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         );
@@ -1102,10 +1194,12 @@ class _TravelEntrySheetState extends State<TravelEntrySheet> {
 
         if (success && mounted) {
           debugPrint('[TravelEntrySheet] Closing dialog and showing success SnackBar');
+          // Refresh travel block after submit so UI reflects latest data
+          widget.travelProvider.fetchTodayTravel();
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Start-of-Day Odometer logged successfully!'),
+              content: Text('Travel log submitted successfully'),
               backgroundColor: AppColors.secondary,
             ),
           );
@@ -1152,10 +1246,12 @@ class _TravelEntrySheetState extends State<TravelEntrySheet> {
 
         if (success && mounted) {
           debugPrint('[TravelEntrySheet] Closing dialog and showing success SnackBar');
+          // Refresh travel block after submit so UI reflects latest data
+          widget.travelProvider.fetchTodayTravel();
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('End-of-Day Odometer logged successfully!'),
+              content: Text('Travel log submitted successfully'),
               backgroundColor: AppColors.secondary,
             ),
           );
