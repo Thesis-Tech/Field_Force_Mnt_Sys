@@ -14,7 +14,7 @@ import {
   CheckCircle,
   X
 } from "lucide-react";
-import { tasksApi, ApiTask } from "@/lib/api-client";
+import { tasksApi, ApiTask, mapApi } from "@/lib/api-client";
 import { loadMapplsSDK, fetchMapToken } from "@/lib/mappls-loader";
 
 export default function VisitsPage() {
@@ -47,6 +47,31 @@ export default function VisitsPage() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMarkerDragEnd = async (e: any) => {
+    const dragLat = e.lngLat?.lat ?? e.latlng?.lat ?? e.lat;
+    const dragLng = e.lngLat?.lng ?? e.latlng?.lng ?? e.lng;
+    if (dragLat && dragLng) {
+      try {
+        const res = await mapApi.reverseGeocode(dragLat, dragLng);
+        const formattedAddress = res.data?.results?.[0]?.formatted_address || `${dragLat.toFixed(6)}, ${dragLng.toFixed(6)}`;
+        setNewVisit(p => ({
+          ...p,
+          lat: dragLat.toFixed(6),
+          lng: dragLng.toFixed(6),
+          customerName: formattedAddress
+        }));
+        setLocationSearchQuery(formattedAddress);
+      } catch (err) {
+        console.error("Reverse geocoding failed on dragend:", err);
+        setNewVisit(p => ({
+          ...p,
+          lat: dragLat.toFixed(6),
+          lng: dragLng.toFixed(6)
+        }));
+      }
+    }
+  };
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -101,21 +126,37 @@ export default function VisitsPage() {
 
           mapObj.on("load", () => {
             if (!active) return;
-            pickerMarkerRef.current = new mappls.Marker({
+            const markerObj = new mappls.Marker({
               map: mapObj,
               position: { lat: initialLat, lng: initialLng },
+              draggable: true
             });
+            pickerMarkerRef.current = markerObj;
+            markerObj.on("dragend", handleMarkerDragEnd);
           });
 
-          mapObj.on("click", (e: any) => {
+          mapObj.on("click", async (e: any) => {
             const clickedLat = e.latlng?.lat ?? e.lngLat?.lat;
             const clickedLng = e.latlng?.lng ?? e.lngLat?.lng;
             if (clickedLat && clickedLng) {
-              setNewVisit(p => ({
-                ...p,
-                lat: clickedLat.toFixed(6),
-                lng: clickedLng.toFixed(6)
-              }));
+              try {
+                const res = await mapApi.reverseGeocode(clickedLat, clickedLng);
+                const formattedAddress = res.data?.results?.[0]?.formatted_address || `${clickedLat.toFixed(6)}, ${clickedLng.toFixed(6)}`;
+                setNewVisit(p => ({
+                  ...p,
+                  lat: clickedLat.toFixed(6),
+                  lng: clickedLng.toFixed(6),
+                  customerName: formattedAddress
+                }));
+                setLocationSearchQuery(formattedAddress);
+              } catch (err) {
+                console.error("Reverse geocoding failed on click:", err);
+                setNewVisit(p => ({
+                  ...p,
+                  lat: clickedLat.toFixed(6),
+                  lng: clickedLng.toFixed(6)
+                }));
+              }
             }
           });
         }, 100);
@@ -155,10 +196,13 @@ export default function VisitsPage() {
       try { pickerMarkerRef.current.setPosition({ lat: latVal, lng: lngVal }); } catch (_) { }
     } else {
       try {
-        pickerMarkerRef.current = new mappls.Marker({
+        const markerObj = new mappls.Marker({
           map: mapObj,
-          position: { lat: latVal, lng: lngVal }
+          position: { lat: latVal, lng: lngVal },
+          draggable: true
         });
+        pickerMarkerRef.current = markerObj;
+        markerObj.on("dragend", handleMarkerDragEnd);
       } catch (_) { }
     }
   }, [newVisit.lat, newVisit.lng, showAddModal]);

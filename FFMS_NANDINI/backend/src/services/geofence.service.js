@@ -1,5 +1,7 @@
 const prisma             = require('../config/prisma')
 const { geofenceAlertQueue } = require('../jobs/index')
+const { getLocalDate } = require('../utils/timezone')
+const { validateCoordinatePrecision } = require('../utils/validateCoordinatePrecision')
 
 // ─── Point-in-polygon (Ray casting algorithm) ─────────────────────
 // No PostGIS needed — pure JS works for polygon zone checks
@@ -149,24 +151,45 @@ const saveTravelLog = async (userId, attendanceId) => {
   const route = await getTodayRoute(userId)
   if (route.totalDistanceKm === 0) return null
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = getLocalDate()
 
-  return prisma.travelLog.upsert({
-    where:  { userId_date: { userId, date: today } },
-    update: { totalDistanceKm: route.totalDistanceKm, pathGeoJson: route.pathGeoJson },
-    create: {
-      userId,
-      date: today,
-      totalDistanceKm: route.totalDistanceKm,
-      pathGeoJson: route.pathGeoJson,
-      attendanceId,
-    }
+  const existing = await prisma.travelLog.findFirst({
+    where: { userId, date: today }
   })
+
+  if (existing) {
+    return prisma.travelLog.update({
+      where: { id: existing.id },
+      data: {
+        totalDistanceKm: route.totalDistanceKm,
+        pathGeoJson: route.pathGeoJson,
+        ...(attendanceId && { attendanceId })
+      }
+    })
+  } else {
+    return prisma.travelLog.create({
+      data: {
+        userId,
+        date: today,
+        totalDistanceKm: route.totalDistanceKm,
+        pathGeoJson: route.pathGeoJson,
+        attendanceId
+      }
+    })
+  }
 }
 
 // ─── Zone CRUD ─────────────────────────────────────────────────────
 const createZone = async (orgId, data) => {
+  if (data.centerLat !== undefined && data.centerLng !== undefined) {
+    validateCoordinatePrecision(data.centerLat, data.centerLng);
+  }
+  if (data.polygon && data.polygon.coordinates && data.polygon.coordinates[0]) {
+    data.polygon.coordinates[0].forEach(([lng, lat]) => {
+      validateCoordinatePrecision(lat, lng);
+    });
+  }
+
   return prisma.territory.create({
     data: { organizationId: orgId, ...data }
   })
@@ -187,6 +210,16 @@ const updateZone = async (zoneId, orgId, data) => {
   if (!zone) {
     const err = new Error('Zone not found'); err.statusCode = 404; throw err
   }
+
+  if (data.centerLat !== undefined && data.centerLng !== undefined) {
+    validateCoordinatePrecision(data.centerLat, data.centerLng);
+  }
+  if (data.polygon && data.polygon.coordinates && data.polygon.coordinates[0]) {
+    data.polygon.coordinates[0].forEach(([lng, lat]) => {
+      validateCoordinatePrecision(lat, lng);
+    });
+  }
+
   return prisma.territory.update({ where: { id: zoneId }, data })
 }
 

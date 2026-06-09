@@ -1,7 +1,7 @@
 name: ffms_mobile
 description: "Field Force Management Mobile App"
 publish_to: 'none'
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: ^3.11.0
@@ -31,6 +31,7 @@ dependencies:
   # Location & Permissions
   geolocator: ^12.0.0
   permission_handler: ^11.0.0
+  flutter_foreground_task: ^8.0.0
   
   # Utilities
   intl: ^0.19.0
@@ -47,6 +48,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   google_fonts: ^8.1.0
   lucide_icons: ^0.257.0
+  device_info_plus: ^12.4.0
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:

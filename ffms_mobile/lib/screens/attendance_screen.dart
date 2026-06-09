@@ -68,11 +68,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     itemBuilder: (context, index) {
                       final log = attendanceProvider.attendanceHistory[index];
                       final dateStr = DateFormat('EEE, dd MMM yyyy').format(log.date);
-                      final checkInStr = log.checkInTime != null
-                          ? DateFormat('hh:mm a').format(log.checkInTime!.toLocal())
+                      final punchInStr = log.punchInTime != null
+                          ? DateFormat('hh:mm a').format(log.punchInTime!.toLocal())
                           : '--:--';
-                      final checkOutStr = log.checkOutTime != null
-                          ? DateFormat('hh:mm a').format(log.checkOutTime!.toLocal())
+                      final punchOutStr = log.punchOutTime != null
+                          ? DateFormat('hh:mm a').format(log.punchOutTime!.toLocal())
                           : '--:--';
 
                       return Card(
@@ -92,19 +92,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Row(
+                                Row(
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         const Text(
-                                          'Check In',
+                                          'Punch In',
                                           style: TextStyle(fontSize: 11, color: AppColors.outline),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          checkInStr,
+                                          punchInStr,
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -114,23 +114,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 12),
                                   Container(
                                     width: 1,
                                     height: 30,
                                     color: AppColors.outlineVariant,
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         const Text(
-                                          'Check Out',
+                                          'Punch Out',
                                           style: TextStyle(fontSize: 11, color: AppColors.outline),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          checkOutStr,
+                                          punchOutStr,
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -141,15 +142,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                     ),
                                   ),
                                   if (log.totalWorkingHours != null) ...[
+                                    const SizedBox(width: 12),
                                     Container(
                                       width: 1,
                                       height: 30,
                                       color: AppColors.outlineVariant,
                                     ),
-                                    const SizedBox(width: 16),
+                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           const Text(
                                             'Hours',

@@ -1,14 +1,15 @@
+// Renamed from Check In/Out to Punch In/Out as per v2 spec
 class AttendanceModel {
   final String id;
   final String userId;
   final DateTime date;
   final int sessionNumber;
-  final DateTime? checkInTime;
-  final double? checkInLat;
-  final double? checkInLng;
-  final DateTime? checkOutTime;
-  final double? checkOutLat;
-  final double? checkOutLng;
+  final DateTime? punchInTime;
+  final double? punchInLat;
+  final double? punchInLng;
+  final DateTime? punchOutTime;
+  final double? punchOutLat;
+  final double? punchOutLng;
   final String status;
   final double? totalWorkingHours;
 
@@ -17,12 +18,12 @@ class AttendanceModel {
     required this.userId,
     required this.date,
     this.sessionNumber = 1,
-    this.checkInTime,
-    this.checkInLat,
-    this.checkInLng,
-    this.checkOutTime,
-    this.checkOutLat,
-    this.checkOutLng,
+    this.punchInTime,
+    this.punchInLat,
+    this.punchInLng,
+    this.punchOutTime,
+    this.punchOutLat,
+    this.punchOutLng,
     required this.status,
     this.totalWorkingHours,
   });
@@ -33,18 +34,19 @@ class AttendanceModel {
       userId: json['userId'] as String,
       date: DateTime.parse(json['date'] as String),
       sessionNumber: json['sessionNumber'] as int? ?? 1,
-      checkInTime: json['checkInTime'] != null ? DateTime.parse(json['checkInTime'] as String) : null,
-      checkInLat: (json['checkInLatitude'] ?? json['checkInLat']) != null
+      // Renamed from Check In/Out to Punch In/Out as per v2 spec
+      punchInTime: json['checkInTime'] != null ? DateTime.parse(json['checkInTime'] as String) : null,
+      punchInLat: (json['checkInLatitude'] ?? json['checkInLat']) != null
           ? ((json['checkInLatitude'] ?? json['checkInLat']) as num).toDouble()
           : null,
-      checkInLng: (json['checkInLongitude'] ?? json['checkInLng']) != null
+      punchInLng: (json['checkInLongitude'] ?? json['checkInLng']) != null
           ? ((json['checkInLongitude'] ?? json['checkInLng']) as num).toDouble()
           : null,
-      checkOutTime: json['checkOutTime'] != null ? DateTime.parse(json['checkOutTime'] as String) : null,
-      checkOutLat: (json['checkOutLatitude'] ?? json['checkOutLat']) != null
+      punchOutTime: json['checkOutTime'] != null ? DateTime.parse(json['checkOutTime'] as String) : null,
+      punchOutLat: (json['checkOutLatitude'] ?? json['checkOutLat']) != null
           ? ((json['checkOutLatitude'] ?? json['checkOutLat']) as num).toDouble()
           : null,
-      checkOutLng: (json['checkOutLongitude'] ?? json['checkOutLng']) != null
+      punchOutLng: (json['checkOutLongitude'] ?? json['checkOutLng']) != null
           ? ((json['checkOutLongitude'] ?? json['checkOutLng']) as num).toDouble()
           : null,
       status: json['status'] as String,

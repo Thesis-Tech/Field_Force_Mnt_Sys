@@ -436,11 +436,11 @@ const listComments = async (taskId, organizationId) => {
   });
 };
 
-const getMyTasks = async (userId, { page = 1, limit = 10, status } = {}) => {
-  const where = {
-    assignments: { some: { userId } },
-    ...(status && { status }),
-  }
+const getMyTasks = async (userId, { page = 1, limit = 10, status, type = 'assigned' } = {}) => {
+  const where = type === 'created' 
+    ? { createdById: userId, ...(status && { status }) }
+    : { assignments: { some: { userId } }, ...(status && { status }) };
+
   const [tasks, total] = await Promise.all([
     prisma.task.findMany({
       where,
@@ -448,8 +448,12 @@ const getMyTasks = async (userId, { page = 1, limit = 10, status } = {}) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        assignments: { where: { userId }, select: { id: true, taskId: true, userId: true, status: true, assignedAt: true } },
+        assignments: { 
+          where: type === 'assigned' ? { userId } : {}, 
+          select: { id: true, taskId: true, userId: true, status: true, assignedAt: true, acceptedAt: true, completionNote: true } 
+        },
         territory: { select: { name: true } },
+        createdBy: { select: { name: true, role: true } }
       },
     }),
     prisma.task.count({ where }),

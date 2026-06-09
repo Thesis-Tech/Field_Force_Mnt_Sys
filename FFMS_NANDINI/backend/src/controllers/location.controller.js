@@ -27,6 +27,11 @@ const batchInsertLocation = async (req, res, next) => {
  */
 const getLiveLocations = async (req, res, next) => {
   try {
+    const { userId } = req.query;
+    if (userId) {
+      const live = await locationService.getSingleLiveLocation(userId, req.user.organizationId);
+      return successResponse(res, live);
+    }
     const liveLocations = await locationService.getLiveLocations(req.user.organizationId);
     return successResponse(res, liveLocations);
   } catch (err) {

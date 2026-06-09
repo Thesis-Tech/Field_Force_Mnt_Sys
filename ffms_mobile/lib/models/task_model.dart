@@ -34,6 +34,7 @@ class TaskAssignmentModel {
   final String status;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String? completionNote;
 
   TaskAssignmentModel({
     required this.id,
@@ -42,6 +43,7 @@ class TaskAssignmentModel {
     required this.status,
     this.startedAt,
     this.completedAt,
+    this.completionNote,
   });
 
   factory TaskAssignmentModel.fromJson(Map<String, dynamic> json) {
@@ -53,8 +55,40 @@ class TaskAssignmentModel {
       startedAt: json['acceptedAt'] != null
           ? DateTime.parse(json['acceptedAt'] as String)
           : (json['startedAt'] != null ? DateTime.parse(json['startedAt'] as String) : null),
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
+      completedAt:
+          json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
+      completionNote: json['completionNote'] as String?,
     );
+  }
+}
+
+/// Represents who created/assigned a task — used for "Assigned By" display
+class TaskCreatorModel {
+  final String id;
+  final String name;
+  final String role;
+
+  TaskCreatorModel({required this.id, required this.name, required this.role});
+
+  factory TaskCreatorModel.fromJson(Map<String, dynamic> json) {
+    return TaskCreatorModel(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? 'Unknown',
+      role: (json['role'] as String?) ?? 'ADMIN',
+    );
+  }
+
+  String get displayRole {
+    switch (role) {
+      case 'ADMIN':
+        return 'Super Admin';
+      case 'MANAGER':
+        return 'Manager';
+      case 'FIELD_STAFF':
+        return 'Field Staff';
+      default:
+        return role.replaceAll('_', ' ');
+    }
   }
 }
 
@@ -71,6 +105,9 @@ class TaskModel {
   final DateTime? dueDate;
   final DateTime createdAt;
   final List<TaskAssignmentModel> assignments;
+  final TaskCreatorModel? createdBy;
+  // is_personal flag tells backend to hide this from admin/manager
+  final bool isPersonal;
 
   TaskModel({
     required this.id,
@@ -85,12 +122,15 @@ class TaskModel {
     this.dueDate,
     required this.createdAt,
     required this.assignments,
+    this.createdBy,
+    this.isPersonal = false,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
-    var assignmentsList = json['assignments'] as List? ?? [];
-    List<TaskAssignmentModel> mappedAssignments =
-        assignmentsList.map((a) => TaskAssignmentModel.fromJson(a as Map<String, dynamic>)).toList();
+    final assignmentsList = json['assignments'] as List? ?? [];
+    final mappedAssignments = assignmentsList
+        .map((a) => TaskAssignmentModel.fromJson(a as Map<String, dynamic>))
+        .toList();
 
     return TaskModel(
       id: json['id'] as String,
@@ -105,6 +145,11 @@ class TaskModel {
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate'] as String) : null,
       createdAt: DateTime.parse(json['createdAt'] as String),
       assignments: mappedAssignments,
+      createdBy: json['createdBy'] != null
+          ? TaskCreatorModel.fromJson(json['createdBy'] as Map<String, dynamic>)
+          : null,
+      // is_personal flag — read from backend or default false
+      isPersonal: json['isPersonal'] as bool? ?? false,
     );
   }
 }

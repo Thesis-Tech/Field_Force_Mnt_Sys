@@ -16,5 +16,6 @@ router.post('/reset-password', authLimiter, authController.resetPassword);
 
 // Profile
 router.get('/me', authenticate, authController.me);
+router.patch('/profile/image', authenticate, authController.updateProfileImage);
 
 module.exports = router;

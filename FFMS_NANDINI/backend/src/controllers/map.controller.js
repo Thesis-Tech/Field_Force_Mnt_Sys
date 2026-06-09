@@ -138,7 +138,56 @@ const searchLocation = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /map/reverse-geocode?lat=...&lng=...
+ * Server-side proxy for reverse geocoding using Mappls.
+ */
+const reverseGeocode = async (req, res, next) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      throw new BadRequestError('Latitude and longitude are required');
+    }
+
+    let token;
+    try {
+      token = await getFreshToken();
+    } catch (tokenErr) {
+      logger.error('Token fetch failed:', tokenErr.message);
+      throw new Error('Failed to fetch Mappls authentication token');
+    }
+
+    // Try atlas.mappls.com first (OAuth Bearer token API)
+    let mapplsUrl = `https://atlas.mappls.com/api/places/geocode/json?lat=${lat}&lng=${lng}`;
+    let response = await fetch(mapplsUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      // Fallback to apis.mappls.com (OAuth license key path)
+      logger.warn(`atlas reverse-geocode failed (HTTP ${response.status}). Trying apis.mappls.com fallback...`);
+      mapplsUrl = `https://apis.mappls.com/advancedmaps/v1/${token}/rev_geocode?lat=${lat}&lng=${lng}`;
+      response = await fetch(mapplsUrl);
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Mappls API responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+    const results = data.results || [];
+    
+    return successResponse(res, { results });
+  } catch (err) {
+    logger.error('reverseGeocode error:', err);
+    next(err);
+  }
+};
+
 module.exports = {
   getMapplsToken,
   searchLocation,
+  reverseGeocode,
 };

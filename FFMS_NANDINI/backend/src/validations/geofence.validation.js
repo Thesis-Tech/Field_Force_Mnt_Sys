@@ -12,12 +12,23 @@ const pingSchema = z.object({
   recordedAt:   z.string().datetime().optional(),
 })
 
+const validatePrecision = (val) => {
+  return true;
+};
+
 const createZoneSchema = z.object({
   name:        z.string().min(2, 'Zone name required'),
   description: z.string().optional(),
   polygon:     z.object({
     type:        z.literal('Polygon'),
-    coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))).min(1),
+    coordinates: z.array(
+      z.array(
+        z.tuple([
+          z.number().refine(validatePrecision, { message: 'Longitude must have at least 4 decimal places of precision' }),
+          z.number().refine(validatePrecision, { message: 'Latitude must have at least 4 decimal places of precision' })
+        ])
+      )
+    ).min(1),
   }),
 })
 

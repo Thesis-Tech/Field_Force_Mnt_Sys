@@ -15,12 +15,14 @@ interface Props {
   selectedEmployeeName: string;
   route: RoutePoint[];
   activePointIndex: number;
+  isPlaying?: boolean;
 }
 
 export default function PlaybackMap({
   selectedEmployeeName,
   route,
   activePointIndex,
+  isPlaying = false,
 }: Props) {
   const generatedId = useId().replace(/:/g, "");
   const mapContainerId = "map-" + generatedId;
@@ -61,8 +63,8 @@ export default function PlaybackMap({
         }
 
         const initialCenter = route && route.length > 0 && route[0].lat && route[0].lng
-          ? [route[0].lat, route[0].lng]
-          : [22.7915, 86.2201]; // Default to a reasonable center if route empty
+          ? { lat: route[0].lat, lng: route[0].lng }
+          : { lat: 22.7915, lng: 86.2201 }; // Default to Jamshedpur center if route empty
 
         mapRef.current = new mappls.Map(mapContainerId, {
           center: initialCenter,
@@ -91,7 +93,7 @@ export default function PlaybackMap({
         if (!map) return;
 
         const fitMapToBounds = (points: any[]) => {
-          if (points.length === 0) return;
+          if (!points || points.length === 0) return;
           let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
           let validPoints = 0;
           points.forEach(pt => {
@@ -114,12 +116,12 @@ export default function PlaybackMap({
                   L.latLng(minLat, minLng),
                   L.latLng(maxLat, maxLng)
                 );
-                map.fitBounds(bounds, { padding: [55, 55] });
+                map.fitBounds(bounds, { padding: [60, 60] });
               } else if (map.fitBounds) {
                 map.fitBounds([
-                  [minLat, minLng],
-                  [maxLat, maxLng]
-                ], { padding: 55 });
+                  [minLng, minLat],
+                  [maxLng, maxLat]
+                ], { padding: 60 });
               }
             } catch (e) {
               console.error("PlaybackMap fitBounds error:", e);
@@ -146,6 +148,28 @@ export default function PlaybackMap({
         layersRef.current.markers = [];
         layersRef.current.staticLayersRendered = false;
         layersRef.current.lastSelectedEmployee = selectedEmployeeName;
+      }
+
+      // Clear layers if route is empty
+      if (!route || route.length === 0) {
+        if (layersRef.current.polyline) {
+          try { mappls.remove({ map, layer: layersRef.current.polyline }); } catch (_) {}
+          layersRef.current.polyline = null;
+        }
+        if (layersRef.current.directionPlugin) {
+          try { mappls.remove({ map, layer: layersRef.current.directionPlugin }); } catch (_) {}
+          layersRef.current.directionPlugin = null;
+        }
+        layersRef.current.markers.forEach((m) => {
+          try { mappls.remove({ map, layer: m }); } catch (_) {}
+        });
+        layersRef.current.markers = [];
+        if (layersRef.current.activeMarker) {
+          try { mappls.remove({ map, layer: layersRef.current.activeMarker }); } catch (_) {}
+          layersRef.current.activeMarker = null;
+        }
+        layersRef.current.staticLayersRendered = false;
+        return;
       }
 
       // Filter out invalid coordinates to prevent NaN errors
@@ -437,14 +461,22 @@ export default function PlaybackMap({
         }
 
         // Pan map to follow active point during playback
-        try {
-          if (typeof map.panTo === 'function') {
-             map.panTo([activePt.lat, activePt.lng]);
-          } else if (typeof map.setCenter === 'function') {
-             map.setCenter([activePt.lat, activePt.lng]);
+        if (activePt && activePt.lat !== null && activePt.lng !== null && !(activePt.lat === 0 && activePt.lng === 0) && !isNaN(activePt.lat) && !isNaN(activePt.lng)) {
+          try {
+            if (typeof map.panTo === 'function') {
+              try {
+                map.panTo({ lat: activePt.lat, lng: activePt.lng });
+              } catch (_) {
+                map.panTo([activePt.lng, activePt.lat]); // Mapbox GL format
+              }
+            } else if (typeof map.setCenter === 'function') {
+              map.setCenter({ lat: activePt.lat, lng: activePt.lng });
+            } else if (typeof map.setView === 'function') {
+              map.setView([activePt.lat, activePt.lng]);
+            }
+          } catch (e) {
+            console.warn("Failed to pan map:", e);
           }
-        } catch (e) {
-          console.warn("Failed to pan map:", e);
         }
       }
     } catch (err) {
@@ -452,6 +484,48 @@ export default function PlaybackMap({
       }
     }
   }, [route, activePointIndex, selectedEmployeeName, sdkReady, mapContainerId]);
+
+  // Fit bounds when play starts
+  const prevIsPlaying = useRef(false);
+  useEffect(() => {
+    if (isPlaying && !prevIsPlaying.current && mapRef.current && route && route.length > 0) {
+      const map = mapRef.current;
+      let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+      let validPoints = 0;
+      route.forEach(pt => {
+        const lat = Number(pt.lat);
+        const lng = Number(pt.lng);
+        if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          validPoints++;
+        }
+      });
+
+      if (validPoints > 0 && minLat <= 90 && maxLat >= -90 && minLng <= 180 && maxLng >= -180) {
+        try {
+          const L = (window as any).L;
+          if (L && typeof L.latLngBounds === 'function' && typeof L.latLng === 'function') {
+            const bounds = L.latLngBounds(
+              L.latLng(minLat, minLng),
+              L.latLng(maxLat, maxLng)
+            );
+            map.fitBounds(bounds, { padding: [60, 60] });
+          } else if (map.fitBounds) {
+            map.fitBounds([
+              [minLng, minLat],
+              [maxLng, maxLat]
+            ], { padding: 60 });
+          }
+        } catch (e) {
+          console.error("PlaybackMap fitBounds error:", e);
+        }
+      }
+    }
+    prevIsPlaying.current = !!isPlaying;
+  }, [isPlaying, route]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -494,6 +568,56 @@ export default function PlaybackMap({
           Loading Mappls Map...
         </div>
       ) : null}
+
+      {!route || route.length === 0 ? (
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg-secondary)",
+          zIndex: 20,
+          padding: "20px",
+        }}>
+          <div style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            border: "1px solid rgba(37, 99, 235, 0.20)",
+            padding: "28px 36px",
+            maxWidth: "360px",
+            textAlign: "center",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "14px"
+          }}>
+            <div style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
+              background: "rgba(37, 99, 235, 0.08)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9.43 9.43a3 3 0 0 0 4.14 4.14" />
+                <path d="M18.8 13.2a14 14 0 0 0-4.3-7.8l-1.3-1.2a1.8 1.8 0 0 0-2.4 0L9.5 5.4a14 14 0 0 0-3.3 5A10.9 10.9 0 0 0 6 12c0 5.25 6 10 6 10s3-2.25 4.5-4.5" />
+                <line x1="2" y1="2" x2="22" y2="22" />
+              </svg>
+            </div>
+            <div>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#1e293b", margin: 0, fontFamily: "var(--font-hanken), sans-serif" }}>No movement data</h3>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: "6px 0 0 0", lineHeight: "1.5", fontFamily: "var(--font-hanken), sans-serif" }}>
+                This agent has no location logs for the selected date.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div
         id={mapContainerId}
         style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }}

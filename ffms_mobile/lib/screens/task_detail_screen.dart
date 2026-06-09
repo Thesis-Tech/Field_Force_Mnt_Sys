@@ -10,6 +10,7 @@ import 'submit_report_screen.dart';
 
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
+import '../utils/image_upload_util.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final String taskId;
@@ -24,12 +25,26 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
   List<CommentModel> _comments = [];
   bool _isLoadingComments = false;
+  bool _isLoadingTask = false;
   bool _isActionInProgress = false;
 
   @override
   void initState() {
     super.initState();
+    _loadTask();
     _loadComments();
+  }
+
+  Future<void> _loadTask() async {
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    final exists = taskProvider.tasks.any((t) => t.id == widget.taskId);
+    if (!exists) {
+      setState(() => _isLoadingTask = true);
+      await taskProvider.fetchTaskById(widget.taskId);
+      if (mounted) {
+        setState(() => _isLoadingTask = false);
+      }
+    }
   }
 
   Future<void> _loadComments() async {
@@ -55,26 +70,40 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update status'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(taskProvider.errorMessage ?? 'Failed to update status'), backgroundColor: AppColors.error),
         );
       }
     }
   }
 
+  // Send button wired to task message API
   Future<void> _submitComment() async {
     final text = _commentController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a comment before sending.'), backgroundColor: AppColors.error),
+        );
+      }
+      return;
+    }
 
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
     final success = await taskProvider.addComment(widget.taskId, text);
 
     if (success) {
+      // Clear input field on success
       _commentController.clear();
       _loadComments();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comment sent successfully!'), backgroundColor: AppColors.secondary),
+        );
+      }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add comment'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Failed to send comment. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -105,8 +134,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   children: [
                     TextField(
                       controller: noteController,
-                      decoration: const InputDecoration(labelText: 'Completion Note', hintText: 'Optional notes...'),
+                      decoration: InputDecoration(
+                        labelText: 'Completion Note *',
+                        hintText: 'Describe what was completed...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        errorText: noteController.text.trim().isEmpty && base64TaskImage != null
+                            ? 'Completion note is required'
+                            : null,
+                      ),
                       maxLines: 3,
+                      onChanged: (_) => setState(() {}), // rebuild to update error
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -123,16 +160,23 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                               const Icon(Icons.image, size: 40, color: Colors.grey),
                             const SizedBox(height: 4),
                             ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(80, 36),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
                               icon: const Icon(Icons.camera_alt, size: 14),
                               label: const Text('Task Proof', style: TextStyle(fontSize: 10)),
                               onPressed: isPicking ? null : () async {
                                 setState(() => isPicking = true);
                                 try {
-                                  final picker = ImagePicker();
-                                  final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 30, maxWidth: 800, maxHeight: 800);
-                                  if (image != null) {
-                                    final bytes = await image.readAsBytes();
-                                    setState(() => base64TaskImage = base64Encode(bytes));
+                                  // Reusable image upload utility: checks camera/gallery permission, lets user choose, formats/sizes under 1MB
+                                  final result = await ImageUploadUtil.pickAndCompressImage(
+                                    context,
+                                    cameraOnly: false,
+                                    preferredCameraDevice: CameraDevice.rear,
+                                  );
+                                  if (result != null) {
+                                    setState(() => base64TaskImage = result.base64String);
                                   }
                                 } finally {
                                   setState(() => isPicking = false);
@@ -152,16 +196,23 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                               const Icon(Icons.face, size: 40, color: Colors.grey),
                             const SizedBox(height: 4),
                             ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(80, 36),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
                               icon: const Icon(Icons.camera_front, size: 14),
                               label: const Text('Selfie', style: TextStyle(fontSize: 10)),
                               onPressed: isPicking ? null : () async {
                                 setState(() => isPicking = true);
                                 try {
-                                  final picker = ImagePicker();
-                                  final XFile? image = await picker.pickImage(source: ImageSource.camera, imageQuality: 30, maxWidth: 800, maxHeight: 800);
-                                  if (image != null) {
-                                    final bytes = await image.readAsBytes();
-                                    setState(() => base64SelfieImage = base64Encode(bytes));
+                                  // Reusable image upload utility: checks camera permission, formats/sizes selfie under 1MB
+                                  final result = await ImageUploadUtil.pickAndCompressImage(
+                                    context,
+                                    cameraOnly: true,
+                                    preferredCameraDevice: CameraDevice.front,
+                                  );
+                                  if (result != null) {
+                                    setState(() => base64SelfieImage = result.base64String);
                                   }
                                 } finally {
                                   setState(() => isPicking = false);
@@ -173,17 +224,44 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    if (base64TaskImage == null || base64SelfieImage == null)
-                      const Text('Both Task Proof and Selfie are MANDATORY', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 11)),
+                    // Mandatory fields validation notice
+                    if (noteController.text.trim().isEmpty || base64TaskImage == null || base64SelfieImage == null)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (noteController.text.trim().isEmpty)
+                              const Text('• Completion note is required', style: TextStyle(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w600)),
+                            if (base64TaskImage == null)
+                              const Text('• Task Proof photo is required', style: TextStyle(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w600)),
+                            if (base64SelfieImage == null)
+                              const Text('• Selfie verification is required', style: TextStyle(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
                 ElevatedButton(
-                  onPressed: (base64TaskImage == null || base64SelfieImage == null) ? null : () {
-                    Navigator.pop(ctx, true);
-                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(80, 36),
+                  ),
+                  // Submit disabled unless ALL mandatory fields are filled
+                  onPressed: (noteController.text.trim().isEmpty ||
+                          base64TaskImage == null ||
+                          base64SelfieImage == null)
+                      ? null
+                      : () => Navigator.pop(ctx, true),
                   child: const Text('Submit'),
                 ),
               ],
@@ -222,8 +300,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
     if (task.id.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: const Center(child: Text('Task not found.')),
+        appBar: AppBar(title: const Text('Loading Task...')),
+        body: Center(
+          child: _isLoadingTask
+              ? const CircularProgressIndicator()
+              : const Text('Task not found.'),
+        ),
       );
     }
 
@@ -272,6 +354,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   _buildDetailRow(context, Icons.folder_open, 'Project', task.projectName ?? 'No Project'),
                   const SizedBox(height: 8),
                   _buildDetailRow(context, Icons.location_on_outlined, 'Territory', task.territoryName ?? 'No Territory'),
+                  if (task.createdBy != null) ...[
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      context,
+                      Icons.person_pin_outlined,
+                      'Assigned By',
+                      '${task.createdBy!.name} (${task.createdBy!.displayRole})',
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   _buildDetailRow(
                     context,

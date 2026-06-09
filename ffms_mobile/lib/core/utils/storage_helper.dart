@@ -74,6 +74,57 @@ class StorageHelper {
   static String? getUserEmail() => _prefs?.getString(_userEmailKey);
   static String? getEmployeeId() => _prefs?.getString(_userEmployeeIdKey);
 
+  static const String _permissionsGrantedKey = 'permissions_granted';
+  static const String _punchInTimeKey = 'punch_in_time';
+  static const String _punchOutTimeKey = 'punch_out_time';
+  static const String _trackingActiveKey = 'is_tracking_active';
+
+  static Future<void> setPermissionsGranted(bool value) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setBool(_permissionsGrantedKey, value);
+  }
+
+  static bool hasPermissionsBeenGranted() {
+    return _prefs?.getBool(_permissionsGrantedKey) ?? false;
+  }
+
+  static Future<void> setTrackingActive(bool value) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setBool(_trackingActiveKey, value);
+  }
+
+  static bool isTrackingActive() {
+    return _prefs?.getBool(_trackingActiveKey) ?? false;
+  }
+
+  static Future<void> savePunchInTime(String timeStr) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setString(_punchInTimeKey, timeStr);
+  }
+
+  static String? getPunchInTime() {
+    return _prefs?.getString(_punchInTimeKey);
+  }
+
+  static Future<void> clearPunchInTime() async {
+    if (_prefs == null) await initialize();
+    await _prefs!.remove(_punchInTimeKey);
+  }
+
+  static Future<void> savePunchOutTime(String timeStr) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setString(_punchOutTimeKey, timeStr);
+  }
+
+  static String? getPunchOutTime() {
+    return _prefs?.getString(_punchOutTimeKey);
+  }
+
+  static Future<void> clearPunchOutTime() async {
+    if (_prefs == null) await initialize();
+    await _prefs!.remove(_punchOutTimeKey);
+  }
+
   // Clear Storage
   static Future<void> clearAll() async {
     try {

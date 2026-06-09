@@ -36,6 +36,10 @@ class UserModel {
   final Organization? organization;
   final Territory? territory;
   final String? deviceToken;
+  final String? profileImage;
+  final DateTime? profileImageLockedAt;
+  final double? baseSalary;
+  final double? travelAllowanceRate;
 
   UserModel({
     required this.id,
@@ -47,6 +51,10 @@ class UserModel {
     this.organization,
     this.territory,
     this.deviceToken,
+    this.profileImage,
+    this.profileImageLockedAt,
+    this.baseSalary,
+    this.travelAllowanceRate,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -64,6 +72,12 @@ class UserModel {
           ? Territory.fromJson(json['territory'] as Map<String, dynamic>)
           : null,
       deviceToken: json['deviceToken'] as String?,
+      profileImage: json['profileImage'] as String?,
+      profileImageLockedAt: json['profileImageLockedAt'] != null
+          ? DateTime.parse(json['profileImageLockedAt'] as String)
+          : null,
+      baseSalary: (json['baseSalary'] as num?)?.toDouble(),
+      travelAllowanceRate: (json['travelAllowanceRate'] as num?)?.toDouble() ?? 4.0,
     );
   }
 }

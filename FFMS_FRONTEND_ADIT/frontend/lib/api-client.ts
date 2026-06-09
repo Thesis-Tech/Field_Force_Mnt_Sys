@@ -388,5 +388,11 @@ export const geofenceApi = {
     request("GET", "/geofence/alerts", undefined, query),
 };
 
+// ─── Map Services ────────────────────────────────────
+export const mapApi = {
+  reverseGeocode: (lat: number | string, lng: number | string) =>
+    request<{ results: any[] }>("GET", "/map/reverse-geocode", undefined, { lat, lng }),
+};
+
 export { ApiError };
 export default request;

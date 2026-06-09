@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const cloudinary = require('../config/cloudinary');
 const { NotFoundError, BadRequestError } = require('../utils/errors');
 const logger = require('../config/logger');
+const { validateCoordinatePrecision } = require('../utils/validateCoordinatePrecision');
 
 /**
  * Upload base64 signature to Cloudinary
@@ -60,6 +61,10 @@ const createVisitReport = async (userId, visitData, organizationId) => {
   }
 
   const { images, signatureBase64, taskAssignmentId, ...restVisitData } = visitData;
+
+  if (restVisitData.latitude !== undefined && restVisitData.longitude !== undefined) {
+    validateCoordinatePrecision(restVisitData.latitude, restVisitData.longitude);
+  }
 
   // 1. Upload images
   let imageUrls = [];
@@ -274,6 +279,9 @@ const updateVisitReport = async (visitId, userId, data) => {
   }
   if (visit.userId !== userId) {
     const err = new Error('Not authorised'); err.statusCode = 403; throw err
+  }
+  if (data.latitude !== undefined && data.longitude !== undefined) {
+    validateCoordinatePrecision(data.latitude, data.longitude);
   }
   return prisma.visitReport.update({ where: { id: visitId }, data })
 }

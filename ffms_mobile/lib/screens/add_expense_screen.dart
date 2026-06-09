@@ -21,12 +21,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
 
-  String _selectedCategory = 'TRAVEL';
+  String _selectedCategory = 'FOOD'; // Travel claims moved to Home screen Distance Travel block (Task 2c)
   DateTime _selectedDate = DateTime.now();
   File? _receiptFile;
   bool _isSaving = false;
 
-  final List<String> _categories = ['TRAVEL', 'FOOD', 'LODGING', 'OTHER'];
+  final List<String> _categories = ['FOOD', 'LODGING', 'OTHER']; // Travel claims moved to Home screen Distance Travel block (Task 2c)
 
   Future<void> _selectDate() async {
     final picked = await showDatePicker(

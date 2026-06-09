@@ -1,10 +1,11 @@
 "use client";
-
+ 
 import { useState, useEffect, useRef } from "react";
 import { Map, Plus, Trash2, MapPin, X, Send, Eye, Pencil } from "lucide-react";
-import { geofenceApi } from "@/lib/api-client";
+import { geofenceApi, mapApi } from "@/lib/api-client";
 import { loadMapplsSDK, fetchMapToken } from "@/lib/mappls-loader";
-
+import { parseCoordinate } from "@/lib/parseCoordinate";
+ 
 interface Territory {
   id: string;
   name: string;
@@ -14,13 +15,13 @@ interface Territory {
     users: number;
   };
 }
-
+ 
 export default function TerritorySetupPage() {
   const [territories, setTerritories] = useState<Territory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-
+ 
   // Picker Map Refs & Autocomplete State
   const pickerMapRef = useRef<any>(null);
   const pickerMarkerRef = useRef<any>(null);
@@ -29,18 +30,20 @@ export default function TerritorySetupPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-
+ 
   // New Territory Form State
   const [form, setForm] = useState({
     name: "",
     description: "",
     lat: "22.786999", // default Jamshedpur center
     lng: "86.184998",
+    centerLat: "22.786999",
+    centerLng: "86.184998",
     radius: "300"
   });
-
+ 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+ 
   const fetchTerritories = async () => {
     setIsLoading(true);
     try {
@@ -54,11 +57,11 @@ export default function TerritorySetupPage() {
       setIsLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     fetchTerritories();
   }, []);
-
+ 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this territory?")) return;
     try {
@@ -68,7 +71,7 @@ export default function TerritorySetupPage() {
       alert(err.message || "Failed to delete territory.");
     }
   };
-
+ 
   const handleEditClick = (t: Territory) => {
     setEditId(t.id);
     let latVal = 22.786999;
@@ -82,17 +85,64 @@ export default function TerritorySetupPage() {
       lngVal = avgLng / coords.length;
       latVal = avgLat / coords.length;
     }
-
+ 
     setForm({
       name: t.name,
       description: t.description || "",
       lat: latVal.toString(),
       lng: lngVal.toString(),
+      centerLat: latVal.toString(),
+      centerLng: lngVal.toString(),
       radius: "300" // We don't store radius natively in backend, using default for picker
     });
     setSearchQuery("");
     setSuggestions([]);
     setShowModal(true);
+  };
+
+  const handleMarkerDragEnd = async (e: any) => {
+    const newLat = e.lngLat?.lat ?? e.latlng?.lat ?? e.lat;
+    const newLng = e.lngLat?.lng ?? e.latlng?.lng ?? e.lng;
+    if (newLat && newLng) {
+      setForm(p => ({
+        ...p,
+        lat: newLat.toFixed(6),
+        lng: newLng.toFixed(6),
+        centerLat: newLat.toFixed(6),
+        centerLng: newLng.toFixed(6)
+      }));
+      try {
+        const res = await mapApi.reverseGeocode(newLat, newLng);
+        const formattedAddress = res.data?.results?.[0]?.formatted_address || `${newLat.toFixed(6)}, ${newLng.toFixed(6)}`;
+        setSearchQuery(formattedAddress);
+      } catch (err) {
+        console.error("Reverse geocoding failed on dragend:", err);
+      }
+    }
+  };
+
+  const handleCoordinateChange = (field: 'lat' | 'lng', value: string) => {
+    const isMultiFormat = /[°'"度,]/g.test(value) || (value.trim().split(/\s+/).length >= 2 && !/^-?[\d.]+$/.test(value.trim()));
+    
+    if (isMultiFormat) {
+      const parsed = parseCoordinate(value);
+      if (parsed) {
+        setForm(p => ({
+          ...p,
+          lat: parsed.lat.toFixed(6),
+          lng: parsed.lng.toFixed(6),
+          centerLat: parsed.lat.toFixed(6),
+          centerLng: parsed.lng.toFixed(6)
+        }));
+        return;
+      }
+    }
+
+    setForm(p => ({
+      ...p,
+      [field]: value,
+      [field === 'lat' ? 'centerLat' : 'centerLng']: value
+    }));
   };
 
   // Map initialization inside Modal
@@ -139,8 +189,10 @@ export default function TerritorySetupPage() {
             const markerObj = new mappls.Marker({
               map: mapObj,
               position: { lat: initialLat, lng: initialLng },
+              draggable: true,
             });
             pickerMarkerRef.current = markerObj;
+            markerObj.on("dragend", handleMarkerDragEnd);
 
             // Add circle geofence outline
             const circleObj = new mappls.Circle({
@@ -156,15 +208,24 @@ export default function TerritorySetupPage() {
           });
 
           // Bind map click to pin marker and set form values
-          mapObj.on("click", (e: any) => {
+          mapObj.on("click", async (e: any) => {
             const clickedLat = e.latlng?.lat ?? e.lngLat?.lat;
             const clickedLng = e.latlng?.lng ?? e.lngLat?.lng;
             if (clickedLat && clickedLng) {
               setForm(p => ({
                 ...p,
                 lat: clickedLat.toFixed(6),
-                lng: clickedLng.toFixed(6)
+                lng: clickedLng.toFixed(6),
+                centerLat: clickedLat.toFixed(6),
+                centerLng: clickedLng.toFixed(6)
               }));
+              try {
+                const res = await mapApi.reverseGeocode(clickedLat, clickedLng);
+                const formattedAddress = res.data?.results?.[0]?.formatted_address || `${clickedLat.toFixed(6)}, ${clickedLng.toFixed(6)}`;
+                setSearchQuery(formattedAddress);
+              } catch (err) {
+                console.error("Reverse geocoding failed on click:", err);
+              }
             }
           });
         }, 100);
@@ -211,10 +272,13 @@ export default function TerritorySetupPage() {
       } catch (_) { }
     } else {
       try {
-        pickerMarkerRef.current = new mappls.Marker({
+        const markerObj = new mappls.Marker({
           map: mapObj,
-          position: { lat: latVal, lng: lngVal }
+          position: { lat: latVal, lng: lngVal },
+          draggable: true
         });
+        pickerMarkerRef.current = markerObj;
+        markerObj.on("dragend", handleMarkerDragEnd);
       } catch (_) { }
     }
 
@@ -283,14 +347,16 @@ export default function TerritorySetupPage() {
   };
 
   const handleSelectSuggestion = async (loc: any) => {
-    let latVal = parseFloat(loc.latitude);
-    let lngVal = parseFloat(loc.longitude);
+    let latVal = parseFloat(loc.lat || loc.latitude);
+    let lngVal = parseFloat(loc.lng || loc.longitude);
     
     const applyLocation = (lat: number, lng: number) => {
       setForm(p => ({
         ...p,
         lat: lat.toFixed(6),
         lng: lng.toFixed(6),
+        centerLat: lat.toFixed(6),
+        centerLng: lng.toFixed(6),
         name: p.name || loc.placeName || ""
       }));
       setSearchQuery(loc.placeName || loc.placeAddress || "");
@@ -312,7 +378,7 @@ export default function TerritorySetupPage() {
         (window as any).mappls.getPinDetails({ 
           pin: loc.eLoc, 
           callback: (data: any) => {
-            if (data && (data.lat || data.latitude)) {
+            if (data && (data.lat || data.latitude || data.lng || data.longitude)) {
               const finalLat = parseFloat(data.lat || data.latitude);
               const finalLng = parseFloat(data.lng || data.longitude);
               applyLocation(finalLat, finalLng);
@@ -369,6 +435,8 @@ export default function TerritorySetupPage() {
           ...p,
           lat: lat.toFixed(6),
           lng: lng.toFixed(6),
+          centerLat: lat.toFixed(6),
+          centerLng: lng.toFixed(6),
           name: p.name || loc.placeName || ""
         }));
         setSearchQuery(loc.placeName || loc.placeAddress || "");
@@ -456,6 +524,8 @@ export default function TerritorySetupPage() {
         description: "",
         lat: "22.786999",
         lng: "86.184998",
+        centerLat: "22.786999",
+        centerLng: "86.184998",
         radius: "300"
       });
       fetchTerritories();
@@ -483,6 +553,8 @@ export default function TerritorySetupPage() {
               description: "",
               lat: "22.786999",
               lng: "86.184998",
+              centerLat: "22.786999",
+              centerLng: "86.184998",
               radius: "300"
             });
             setShowModal(true);
@@ -695,7 +767,8 @@ export default function TerritorySetupPage() {
                   id="mappls-picker-map"
                   style={{
                     width: "100%",
-                    height: "130px",
+                    minHeight: "500px",
+                    height: "60vh",
                     background: "var(--bg-secondary)",
                     border: "1px solid var(--border)",
                     borderRadius: "4px",
@@ -703,32 +776,30 @@ export default function TerritorySetupPage() {
                   }}
                 ></div>
                 <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px", textAlign: "right" }}>
-                  Interactive Map (Click to pin location)
+                  Interactive Map (Click/Drag pin to set location)
                 </div>
               </div>
-
+ 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.5fr", gap: "10px", alignItems: "center" }}>
                 <div>
                   <label style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>Center Latitude *</label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     className="input"
                     style={{ padding: "6px 10px", fontSize: "12px" }}
-                    value={form.lat}
-                    onChange={(e) => setForm((p) => ({ ...p, lat: e.target.value }))}
+                    value={form.centerLat}
+                    onChange={(e) => handleCoordinateChange('lat', e.target.value)}
                     required
                   />
                 </div>
                 <div>
                   <label style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>Center Longitude *</label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     className="input"
                     style={{ padding: "6px 10px", fontSize: "12px" }}
-                    value={form.lng}
-                    onChange={(e) => setForm((p) => ({ ...p, lng: e.target.value }))}
+                    value={form.centerLng}
+                    onChange={(e) => handleCoordinateChange('lng', e.target.value)}
                     required
                   />
                 </div>
