@@ -8,7 +8,7 @@ import { Plus, Search, Trash2, Pencil, X, Coins, FileText, Calculator, Printer, 
 import Link from "next/link";
 import { geofenceApi, attendanceApi, tasksApi } from "@/lib/api-client";
 
-const ROLES = ["Sales Executive","Delivery Staff","Service Engineer","Surveyor","Marketing Executive","Healthcare Worker"];
+const ROLES = ["FIELD_STAFF", "MANAGER", "ADMIN"];
 const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi Mumbai","Nashik"];
 
 
@@ -28,7 +28,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
     if (!defaultTerrId && territories.length > 0) {
       defaultTerrId = territories[0].id;
     }
-    return { name:"",email:"",phone:"",role:ROLES[0],territory:"",territoryId:defaultTerrId,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
+    return { name:"",email:"",phone:"",role:"FIELD_STAFF",territory:"",territoryId:defaultTerrId,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
   });
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -97,16 +97,28 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
 
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Role</label>
-            <select className="input" value={form.role||""} onChange={e=>handleFieldChange("role",e.target.value)}>
-              {ROLES.map(r=><option key={r}>{r}</option>)}
+            <select className="input" value={form.role||"FIELD_STAFF"} onChange={e=>handleFieldChange("role",e.target.value)}>
+              {currentUser?.role === "MANAGER" ? (
+                <option value="FIELD_STAFF">Field Staff</option>
+              ) : (
+                <>
+                  <option value="FIELD_STAFF">Field Staff</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="ADMIN">Admin</option>
+                </>
+              )}
             </select>
           </div>
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Territory</label>
-            <select className="input" value={form.territoryId || ""} onChange={e=>set("territoryId",e.target.value)}>
+            <select 
+              className="input" 
+              value={form.territoryId || ""} 
+              onChange={e=>set("territoryId",e.target.value)}
+            >
               {territories.length > 0 ? (
                 <>
-                  {currentUser?.role !== "MANAGER" && <option value="">-- Select Territory --</option>}
+                  <option value="">-- Select Territory --</option>
                   {territories.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </>
               ) : (
@@ -128,12 +140,22 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
           </div>
           <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Reports To (Manager)</label>
-            <select className="input" value={form.managerId || ""} onChange={e=>set("managerId",e.target.value || "")}>
-              {currentUser?.role !== "MANAGER" && <option value="">-- No Manager (Root) --</option>}
-              {currentUser?.role === "MANAGER" && <option value={currentUser.id}>{currentUser.name} (You)</option>}
-              {allEmployees.filter(e => e.id !== emp?.id && (e.role === 'MANAGER' || e.role === 'ADMIN')).map((e: Employee) => (
-                <option key={e.id} value={e.id}>{e.name} ({e.role})</option>
-              ))}
+            <select 
+              className="input" 
+              value={form.managerId || ""} 
+              onChange={e=>set("managerId",e.target.value || "")}
+              disabled={currentUser?.role === "MANAGER"}
+            >
+              {currentUser?.role === "MANAGER" ? (
+                <option value={currentUser.id}>{currentUser.name} (You)</option>
+              ) : (
+                <>
+                  <option value="">-- No Manager (Root) --</option>
+                  {allEmployees.filter(e => e.id !== emp?.id && (e.role === 'MANAGER' || e.role === 'ADMIN')).map((e: Employee) => (
+                    <option key={e.id} value={e.id}>{e.name} ({e.role})</option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
           <button className="btn-primary" style={{ width:"100%",justifyContent:"center",marginTop:"6px" }}
@@ -174,6 +196,9 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
 }
 
 const BASE_SALARIES: Record<string, number> = {
+  "FIELD_STAFF": 30000,
+  "MANAGER": 50000,
+  "ADMIN": 75000,
   "Sales Executive": 35000,
   "Delivery Staff": 22000,
   "Service Engineer": 45000,
@@ -660,7 +685,7 @@ export default function EmployeesPage() {
                           </div>
                           <div>
                             <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: depth === 0 ? 700 : 500 }}>{emp.name}</div>
-                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{emp.employeeId || "No ID"} • {emp.role}</div>
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{emp.employeeId || "No ID"} • {emp.role === "FIELD_STAFF" ? "Field Staff" : emp.role === "MANAGER" ? "Manager" : emp.role === "ADMIN" ? "Admin" : emp.role}</div>
                           </div>
                         </td>
                         <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{emp.territory || "Head Office"}</td>
@@ -896,9 +921,10 @@ export default function EmployeesPage() {
               // Build update payload — only include password if provided
               const updateData: Record<string, unknown> = {
                 name: emp.name,
+                email: emp.email,
                 phone: emp.phone,
                 role: emp.role,
-                status: emp.status,
+                status: emp.status ? emp.status.toUpperCase() : "ACTIVE",
                 territoryId: emp.territoryId,
                 employeeId: emp.employeeId,
                 managerId: emp.managerId,
@@ -924,7 +950,7 @@ export default function EmployeesPage() {
                 email: emp.email,
                 phone: emp.phone,
                 role: emp.role || "FIELD_STAFF",
-                status: emp.status,
+                status: emp.status ? emp.status.toUpperCase() : "ACTIVE",
                 password: emp.password,
                 employeeId: emp.employeeId,
                 territoryId: emp.territoryId,

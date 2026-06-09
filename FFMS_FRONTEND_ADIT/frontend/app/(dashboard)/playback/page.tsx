@@ -18,6 +18,7 @@ const PlaybackMap = dynamic(() => import("@/components/map/PlaybackMap"), {
 export default function PlaybackPage() {
   const [agents, setAgents] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("2026-05-31");
   const [route, setRoute] = useState<any[]>([]);
   const [activePointIndex, setActivePointIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -52,7 +53,10 @@ export default function PlaybackPage() {
     const fetchHistory = async () => {
       setLoadingRoute(true);
       try {
-        const res = await locationApi.getHistory(selectedId);
+        const res = await locationApi.getHistory(selectedId, {
+          startDate: selectedDate,
+          endDate: selectedDate
+        });
         const historyData = (res as any).data;
         const logs = historyData?.logs || [];
         
@@ -72,22 +76,17 @@ export default function PlaybackPage() {
           status: log.isMoving ? "Moving" : "Idle"
         }));
 
-        // Fallback for empty route
-        if (mappedRoute.length === 0) {
-           mappedRoute.push({ lat: 0, lng: 0, time: "N/A", speed: "0 km/h", status: "No logs found" });
-        }
-        
         setRoute(mappedRoute);
         setActivePointIndex(0);
         setIsPlaying(false);
       } catch (err: any) {
-        setRoute([{ lat: 0, lng: 0, time: "N/A", speed: "0 km/h", status: "Error fetching logs" }]);
+        setRoute([]);
       } finally {
         setLoadingRoute(false);
       }
     };
     fetchHistory();
-  }, [selectedId]);
+  }, [selectedId, selectedDate]);
 
   // Playback timer loop
   useEffect(() => {
@@ -181,7 +180,7 @@ export default function PlaybackPage() {
   }
 
   const selectedAgent = agents.find(a => a.id === selectedId);
-  const currentPoint = route[activePointIndex] || { lat: 0, lng: 0, time: "N/A", speed: "0 km/h", status: "Idle" };
+  const currentPoint = route[activePointIndex] || { lat: null, lng: null, time: "N/A", speed: "N/A", status: "No logs found" };
 
   return (
     <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", height: "calc(100vh - 120px)" }}>
@@ -190,7 +189,26 @@ export default function PlaybackPage() {
           <h1 className="page-title">Routes Playback</h1>
           <p className="page-subtitle">Replay historic travel paths, coordinates, speeds, and log indices.</p>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setRoute([]);
+              setActivePointIndex(0);
+              setIsPlaying(false);
+            }}
+            style={{
+              padding: "6px 12px",
+              border: "1px solid var(--border)",
+              borderRadius: "4px",
+              background: "var(--bg-card)",
+              color: "var(--text-primary)",
+              fontSize: "13px",
+              fontFamily: "var(--font-hanken), sans-serif"
+            }}
+          />
           <div className="badge badge-green" style={{ fontFamily: "var(--font-jetbrains), monospace" }}>
             <Activity size={12} /> Playback Ready
           </div>
@@ -242,8 +260,8 @@ export default function PlaybackPage() {
                     <div key={i} className="skeleton-box" style={{ height: "46px", borderRadius: "4px" }} />
                   ))}
                 </div>
-              ) : route.length === 1 && route[0].lat === 0 ? (
-                <div style={{ padding: 20, textAlign: "center", color: "#64748b", fontSize: 13 }}>No route data available for this agent today.</div>
+              ) : route.length === 0 ? (
+                <div style={{ padding: 20, textAlign: "center", color: "#64748b", fontSize: 13 }}>No route data available for this agent on this date.</div>
               ) : (
                 route.map((pt, index) => {
                   const active = index === activePointIndex;
@@ -266,20 +284,21 @@ export default function PlaybackPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "100%", minWidth: 0 }}>
           <div className="card" style={{ padding: "0", overflow: "hidden", flex: 1, maxHeight: "40vh", minHeight: "250px", border: "1px solid var(--border)", position: "relative" }}>
-            <PlaybackMap selectedEmployeeName={selectedAgent?.name || ""} route={route} activePointIndex={activePointIndex} />
+            <PlaybackMap selectedEmployeeName={selectedAgent?.name || ""} route={route} activePointIndex={activePointIndex} isPlaying={isPlaying} />
           </div>
 
           <div className="card" style={{ padding: "20px", flex: "0 0 auto", display: "flex", flexDirection: "column", gap: "16px", minHeight: 0 }}>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <button className="btn-primary" onClick={() => setIsPlaying(!isPlaying)} disabled={route.length <= 1}
-                  style={{ padding: "8px 16px", fontSize: "13px", background: isPlaying ? "var(--accent-orange)" : "var(--accent-blue)", display: "flex", alignItems: "center", gap: "6px", opacity: route.length <= 1 ? 0.5 : 1 }}
+                  style={{ padding: "8px 16px", fontSize: "13px", background: isPlaying ? "var(--accent-orange)" : "var(--accent-blue)", display: "flex", alignItems: "center", gap: "6px", opacity: route.length <= 1 ? 0.5 : 1, cursor: route.length <= 1 ? "not-allowed" : "pointer" }}
                 >
                   {isPlaying ? <Pause size={14} /> : <Play size={14} />}
                   {isPlaying ? "Pause Log" : "Play History"}
                 </button>
-                <button className="btn-secondary" onClick={() => { setIsPlaying(false); setActivePointIndex(0); }} style={{ padding: "8px 12px" }} title="Reset to Start"><RotateCcw size={14} /></button>
-                <div style={{ display: "flex", background: "var(--bg-hover)", border: "1px solid var(--border)", marginLeft: "8px" }}>
+                <button className="btn-secondary" onClick={() => { setIsPlaying(false); setActivePointIndex(0); }} disabled={route.length <= 1}
+                  style={{ padding: "8px 12px", opacity: route.length <= 1 ? 0.5 : 1, cursor: route.length <= 1 ? "not-allowed" : "pointer" }} title="Reset to Start"><RotateCcw size={14} /></button>
+                <div style={{ display: "flex", background: "var(--bg-hover)", border: "1px solid var(--border)", marginLeft: "8px", opacity: route.length <= 1 ? 0.5 : 1, pointerEvents: route.length <= 1 ? "none" : "auto" }}>
                   {[{ label: "1x", delay: 1500 }, { label: "2x", delay: 750 }, { label: "4x", delay: 300 }].map((speed) => (
                     <button key={speed.label} onClick={() => setPlaybackSpeed(speed.delay)}
                       style={{ padding: "6px 12px", fontSize: "12px", fontWeight: 600, border: "none", cursor: "pointer", background: playbackSpeed === speed.delay ? "var(--accent-blue)" : "transparent", color: playbackSpeed === speed.delay ? "white" : "var(--text-secondary)", transition: "all 0.15s ease" }}
@@ -289,7 +308,7 @@ export default function PlaybackPage() {
               </div>
               <div style={{ fontSize: "13px", fontFamily: "var(--font-jetbrains), monospace", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "8px" }}>
                 <Clock size={14} color="var(--accent-blue)" />
-                Log Point {route.length > 1 ? activePointIndex + 1 : 0} of {route.length > 1 ? route.length : 0}
+                Log Point {route.length > 0 ? activePointIndex + 1 : 0} of {route.length > 0 ? route.length : 0}
               </div>
             </div>
 
@@ -315,7 +334,11 @@ export default function PlaybackPage() {
               </div>
               <div>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, fontFamily: "var(--font-jetbrains), monospace" }}><MapPin size={10} /> GPS Location</span>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", display: "block", marginTop: "2px" }}>{(currentPoint.lat || 0).toFixed(5)}° N, {(currentPoint.lng || 0).toFixed(5)}° E</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", display: "block", marginTop: "2px" }}>
+                  {currentPoint.lat !== null && currentPoint.lng !== null
+                    ? `${currentPoint.lat.toFixed(5)}° N, ${currentPoint.lng.toFixed(5)}° E`
+                    : "N/A"}
+                </span>
               </div>
             </div>
           </div>

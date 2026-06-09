@@ -159,6 +159,12 @@ model User {
   
   deviceToken    String?
   lastActiveAt   DateTime?
+
+  // Salary & Allowance (set by Admin)
+  baseSalary            Float?   // monthly base salary in INR
+  travelAllowanceRate   Float?   @default(4) // ₹ per KM, default ₹4
+  profileImageLockedAt  DateTime? // null = not yet uploaded; non-null = locked
+
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   
@@ -493,7 +499,16 @@ model TravelLog {
   totalDistanceKm Float    @default(0)
   pathGeoJson     Json?
   attendanceId    String?  @unique
+
+  // Meter Reading fields (employee-entered)
+  meterStart      Float?   // odometer reading at start of day (KM)
+  meterEnd        Float?   // odometer reading at end of day (KM)
+  proofImageUrl   String?  // Cloudinary URL of meter photo
+  allowanceAmount Float?   // computed = totalDistanceKm × travelAllowanceRate
+  notes           String?
+
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([userId, date])
 }

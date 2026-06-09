@@ -147,4 +147,30 @@ class AuthService {
       return {'success': false, 'error': 'An unexpected error occurred: $e'};
     }
   }
+
+  // Update Profile Image (upload and lock)
+  Future<UserModel?> updateProfileImage(String base64Image) async {
+    try {
+      final response = await ApiService.client.patch(
+        '/auth/profile/image',
+        data: {'base64Image': base64Image},
+      );
+      if (response.data['success'] == true) {
+        final userJson = response.data['data']['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userJson);
+        await StorageHelper.saveUserInfo(
+          id: user.id,
+          role: user.role,
+          orgId: user.organization?.id ?? '',
+          name: user.name,
+          email: user.email,
+          employeeId: user.employeeId,
+        );
+        return user;
+      }
+    } catch (e) {
+      // Log or handle
+    }
+    return null;
+  }
 }

@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
 import '../core/theme/app_theme.dart';
-import 'permissions_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -23,19 +22,19 @@ class _MapScreenState extends State<MapScreen> {
   String? _mapToken;
   List<Polygon> _geofencePolygons = [];
   List<Marker> _markers = [];
-  
   // Tracked state variables
   List<Map<String, dynamic>> _zonesList = [];
   bool _isInsideZone = false;
   String _currentZoneName = "None";
   StreamSubscription<Position>? _locationSubscription;
-  bool _isSharingLocation = false;
+  // Location sharing is system-controlled — starts on Punch In, stops on Punch Out — no manual toggle for employee
+  // Always ON — locked by system. No field needed since the indicator is static.
   double _currentSpeed = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _isSharingLocation = LocationService().isTracking;
+    // Location sharing is always ON — system-controlled, no user toggle
     _initMapData();
     
     // Subscribe to live location updates
@@ -484,75 +483,65 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                           const SizedBox(height: 12),
                           
-                          // Share Toggle Switch
+                          // Location sharing is system-controlled — always ON, visible to dispatcher.
+                          // Employee cannot turn it off. Starts on Punch In, stops on Punch Out.
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
-                              color: AppColors.background,
+                              color: AppColors.secondary.withOpacity(0.06),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.outlineVariant, width: 0.5),
+                              border: Border.all(color: AppColors.secondary.withOpacity(0.3), width: 0.8),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Row(
                                   children: [
-                                    Text(
-                                      'Share Location',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.onSurface,
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.secondary,
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
-                                    Text(
-                                      'Visible to dispatcher',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.onSurfaceVariant,
-                                      ),
+                                    const SizedBox(width: 10),
+                                    const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Share Location',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.onSurface,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Always visible to dispatcher',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                Switch(
-                                  value: _isSharingLocation,
-                                  activeColor: AppColors.primary,
-                                  onChanged: (val) async {
-                                    if (val) {
-                                      final success = await LocationService().startTracking();
-                                      if (success) {
-                                        setState(() {
-                                          _isSharingLocation = true;
-                                        });
-                                      } else {
-                                        if (mounted) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => PermissionsScreen(
-                                                onPermissionsGranted: () async {
-                                                  Navigator.pop(context);
-                                                  final retrySuccess = await LocationService().startTracking();
-                                                  if (mounted) {
-                                                    setState(() {
-                                                      _isSharingLocation = retrySuccess;
-                                                    });
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    } else {
-                                      await LocationService().stopTracking();
-                                      setState(() {
-                                        _isSharingLocation = false;
-                                        _currentSpeed = 0.0;
-                                      });
-                                    }
-                                  },
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'ACTIVE',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

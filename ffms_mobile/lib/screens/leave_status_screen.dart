@@ -107,14 +107,14 @@ class _LeaveStatusScreenState extends State<LeaveStatusScreen> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              if (leave.reason != null && leave.reason!.isNotEmpty) ...[
+                              if (leave.reason.isNotEmpty) ...[
                                 const Text(
                                   'Reason',
                                   style: TextStyle(fontSize: 11, color: AppColors.outline),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  leave.reason!,
+                                  leave.reason,
                                   style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
                                 ),
                               ],

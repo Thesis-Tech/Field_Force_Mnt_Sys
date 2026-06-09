@@ -56,13 +56,13 @@ class AuthProvider extends ChangeNotifier {
         // Connect socket in background
         SocketService.connect().catchError((_) {});
 
-        // Fetch fresh profile in the background
-        _authService.getProfile().then((freshUser) {
+        // Fetch fresh profile synchronously to avoid layout jump
+        try {
+          final freshUser = await _authService.getProfile();
           if (freshUser != null) {
             _currentUser = freshUser;
-            notifyListeners();
           }
-        }).catchError((_) {});
+        } catch (_) {}
       } else {
         final user = await _authService.getProfile();
         if (user != null) {
@@ -111,6 +111,26 @@ class AuthProvider extends ChangeNotifier {
     _currentUser = null;
     _state = AuthState.unauthenticated;
     notifyListeners();
+  }
+
+  // Upload Profile Image
+  Future<bool> uploadProfileImage(String base64Image) async {
+    _state = AuthState.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    final updatedUser = await _authService.updateProfileImage(base64Image);
+    if (updatedUser != null) {
+      _currentUser = updatedUser;
+      _state = AuthState.authenticated;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = 'Failed to upload profile image';
+      _state = AuthState.authenticated; // Keep authenticated
+      notifyListeners();
+      return false;
+    }
   }
 
   // Forgot password flows

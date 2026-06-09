@@ -367,8 +367,8 @@ export default function AdminSetupPage() {
                       address,
                       city,
                       country,
-                      lat: pos.lat,
-                      lng: pos.lng,
+                      lat: parseFloat(pos.lat.toFixed(6)),
+                      lng: parseFloat(pos.lng.toFixed(6)),
                       accuracy: 10
                     };
                   }
@@ -539,13 +539,16 @@ export default function AdminSetupPage() {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, { headers: { 'User-Agent': 'AdminSetupApp/1.0' } });
         const geoData = await res.json();
         if (geoData && geoData.length > 0) {
-          lat = parseFloat(geoData[0].lat);
-          lng = parseFloat(geoData[0].lon);
+          lat = parseFloat(parseFloat(geoData[0].lat).toFixed(6));
+          lng = parseFloat(parseFloat(geoData[0].lon).toFixed(6));
           accuracy = 50;
         }
       } catch (e) {
         console.warn("Geocoding failed for manual entry");
       }
+    } else {
+      lat = parseFloat(lat.toFixed(6));
+      lng = parseFloat(lng.toFixed(6));
     }
 
     const updatedLoc: LocationData = {

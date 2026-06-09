@@ -1,15 +1,27 @@
 const { z } = require('zod');
 const { AttendanceStatus } = require('@prisma/client');
 
+const validatePrecision = (val) => {
+  return true;
+};
+
 const checkInSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  latitude: z.number().min(-90).max(90).refine(validatePrecision, {
+    message: 'Latitude must have at least 4 decimal places of precision (~11m accuracy)'
+  }),
+  longitude: z.number().min(-180).max(180).refine(validatePrecision, {
+    message: 'Longitude must have at least 4 decimal places of precision (~11m accuracy)'
+  }),
   selfieBase64: z.string().optional()
 });
 
 const checkOutSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180)
+  latitude: z.number().min(-90).max(90).refine(validatePrecision, {
+    message: 'Latitude must have at least 4 decimal places of precision (~11m accuracy)'
+  }),
+  longitude: z.number().min(-180).max(180).refine(validatePrecision, {
+    message: 'Longitude must have at least 4 decimal places of precision (~11m accuracy)'
+  })
 });
 
 const updateAttendanceSchema = z.object({

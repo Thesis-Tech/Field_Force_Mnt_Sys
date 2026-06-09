@@ -2,13 +2,13 @@ const prisma = require('../config/prisma');
 const { getLiveLocations } = require('./location.service');
 const { NotFoundError } = require('../utils/errors');
 const logger = require('../config/logger');
+const { getLocalDate } = require('../utils/timezone');
 
 /**
  * Get Admin/Manager Dashboard stats
  */
 const getAdminDashboard = async (organizationId, role, userId) => {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+  const todayDate = getLocalDate();
 
   const taskFilter = {};
   if (role === 'ADMIN') {
@@ -92,8 +92,9 @@ const getAdminDashboard = async (organizationId, role, userId) => {
   const weeklyActivityPromises = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dStr = d.toISOString().split('T')[0];
+    const localNow = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+    localNow.setUTCDate(localNow.getUTCDate() - i);
+    const dStr = localNow.toISOString().split('T')[0];
     const dateQuery = new Date(`${dStr}T00:00:00.000Z`);
     const dateQueryEnd = new Date(`${dStr}T23:59:59.999Z`);
 
@@ -204,16 +205,16 @@ const getAdminDashboard = async (organizationId, role, userId) => {
  * Get Field Staff Dashboard metrics
  */
 const getFieldStaffDashboard = async (userId, organizationId) => {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+  const todayDate = getLocalDate();
 
-  // 1. todayAttendance
-  const todayAttendance = await prisma.attendance.findUnique({
+  // 1. todayAttendance (find the latest session for today)
+  const todayAttendance = await prisma.attendance.findFirst({
     where: {
-      userId_date: {
-        userId,
-        date: todayDate
-      }
+      userId,
+      date: todayDate
+    },
+    orderBy: {
+      sessionNumber: 'desc'
     }
   });
 

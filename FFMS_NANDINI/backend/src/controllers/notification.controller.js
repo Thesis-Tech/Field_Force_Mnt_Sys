@@ -24,8 +24,16 @@ const getAll = async (req, res, next) => {
 const send = async (req, res, next) => {
   try {
     const { userId, title, body, type, referenceId } = req.body
+    
+    // Normalize type for database enum safety
+    let normalizedType = type ? type.toUpperCase() : 'SYSTEM';
+    const validTypes = ['TASK', 'ATTENDANCE', 'LEAVE', 'GEOFENCE', 'SYSTEM', 'REPORT'];
+    if (!validTypes.includes(normalizedType)) {
+      normalizedType = 'SYSTEM';
+    }
+
     const notif = await notificationService.createNotification({
-      userId, title, body, type, referenceId
+      userId, title, body, type: normalizedType, referenceId
     })
     return successResponse(res, notif, 201)
   } catch (err) { next(err) }

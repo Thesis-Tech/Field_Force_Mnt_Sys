@@ -188,14 +188,15 @@ const listComments = async (req, res, next) => {
 
 const getMyTasks = async (req, res, next) => {
   try {
-    const { page, limit, status } = req.query
+    const { page, limit, status, type } = req.query;
     const data = await taskService.getMyTasks(req.user.id, {
       page: +page || 1,
-      limit: +limit || 10,
+      limit: +limit || 50,
       status,
-    })
-    return successResponse(res, data)
-  } catch (err) { next(err) }
+      type: type || 'assigned', // 'assigned' | 'created'
+    });
+    return successResponse(res, data);
+  } catch (err) { next(err); }
 }
 
 const assignTask = async (req, res, next) => {

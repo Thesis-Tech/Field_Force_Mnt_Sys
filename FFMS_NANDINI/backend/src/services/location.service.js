@@ -2,6 +2,8 @@ const prisma = require('../config/prisma');
 const { emitToOrgAdmins } = require('../config/socket');
 const { NotFoundError } = require('../utils/errors');
 const logger = require('../config/logger');
+const redis = require('../config/redis');
+const { locationWriteQueue } = require('../jobs/locationWrite.job');
 
 /**
  * Calculate distance between two coordinates using the Haversine formula
@@ -33,8 +35,47 @@ const batchInsertLocation = async (userId, locations, organizationId) => {
     throw new NotFoundError('User not found');
   }
 
-  // Bulk insert location logs
-  const dataToInsert = locations.map(loc => ({
+  // Filter out invalid, zero or null coordinates
+  const validLocations = locations.filter(loc => {
+    const lat = loc.latitude;
+    const lng = loc.longitude;
+    return lat && lng && lat !== 0 && lng !== 0;
+  });
+
+  // Set the last location in Redis and emit socket immediately
+  if (validLocations.length > 0) {
+    const lastLoc = validLocations[validLocations.length - 1];
+    const redisKey = `user:${userId}:location`;
+    const redisPayload = {
+      lat: lastLoc.latitude,
+      lng: lastLoc.longitude,
+      latitude: lastLoc.latitude,
+      longitude: lastLoc.longitude,
+      speed: lastLoc.speed || null,
+      timestamp: new Date(lastLoc.recordedAt).getTime(),
+      recordedAt: lastLoc.recordedAt,
+      batteryLevel: lastLoc.batteryLevel || null,
+      accuracy: lastLoc.accuracy,
+      isMoving: lastLoc.isMoving,
+      userName: user.name,
+      role: user.role,
+      organizationId,
+      online: true
+    };
+
+    redis.set(redisKey, JSON.stringify(redisPayload), 'EX', 120).catch(err => {
+      logger.error('Error writing to Redis in batchInsertLocation:', err);
+    });
+
+    emitToOrgAdmins(organizationId, 'location:update', redisPayload);
+  }
+
+  if (validLocations.length === 0) {
+    return { inserted: 0 };
+  }
+
+  // Bulk insert location logs to PostgreSQL asynchronously using BullMQ
+  const dataToInsert = validLocations.map(loc => ({
     userId,
     latitude: loc.latitude,
     longitude: loc.longitude,
@@ -47,29 +88,24 @@ const batchInsertLocation = async (userId, locations, organizationId) => {
     recordedAt: new Date(loc.recordedAt)
   }));
 
-  const result = await prisma.locationLog.createMany({
-    data: dataToInsert
-  });
+  const jobs = dataToInsert.map(loc => ({
+    name: 'write',
+    data: loc
+  }));
 
-  // Emit last known location to admins room
-  if (locations.length > 0) {
-    const lastLoc = locations[locations.length - 1];
-    
-    emitToOrgAdmins(organizationId, 'location:update', {
-      userId,
-      userName: user.name,
-      role: user.role,
-      latitude: lastLoc.latitude,
-      longitude: lastLoc.longitude,
-      accuracy: lastLoc.accuracy,
-      speed: lastLoc.speed,
-      batteryLevel: lastLoc.batteryLevel,
-      isMoving: lastLoc.isMoving,
-      recordedAt: lastLoc.recordedAt
+  try {
+    await locationWriteQueue.addBulk(jobs);
+  } catch (err) {
+    logger.error('Failed to queue location logs to BullMQ queue:', err);
+    // Fallback: direct write if BullMQ queuing fails to prevent complete loss
+    prisma.locationLog.createMany({
+      data: dataToInsert
+    }).catch(dbErr => {
+      logger.error('Fallback locationLog write also failed:', dbErr);
     });
   }
 
-  return { inserted: result.count };
+  return { inserted: locations.length };
 };
 
 /**
@@ -205,8 +241,55 @@ const getLocationHistory = async (userId, startDateStr, endDateStr, organization
   };
 };
 
+/**
+ * Get live location of a single field staff (Redis first, fallback to DB)
+ */
+const getSingleLiveLocation = async (userId, organizationId) => {
+  const redisKey = `user:${userId}:location`;
+  try {
+    const cached = await redis.get(redisKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.organizationId === organizationId) {
+        return { ...parsed, online: true };
+      }
+    }
+  } catch (err) {
+    logger.error('Redis read error in getSingleLiveLocation:', err);
+  }
+
+  // Fallback to PostgreSQL
+  const lastLog = await prisma.locationLog.findFirst({
+    where: {
+      userId,
+      user: {
+        organizationId
+      }
+    },
+    orderBy: { recordedAt: 'desc' }
+  });
+
+  if (!lastLog) {
+    return { online: false, lastSeen: null };
+  }
+
+  return {
+    online: false,
+    lastSeen: lastLog.recordedAt,
+    latitude: lastLog.latitude,
+    longitude: lastLog.longitude,
+    lat: lastLog.latitude,
+    lng: lastLog.longitude,
+    batteryLevel: lastLog.batteryLevel,
+    speed: lastLog.speed,
+    accuracy: lastLog.accuracy,
+    isMoving: lastLog.isMoving
+  };
+};
+
 module.exports = {
   batchInsertLocation,
   getLiveLocations,
-  getLocationHistory
+  getLocationHistory,
+  getSingleLiveLocation
 };

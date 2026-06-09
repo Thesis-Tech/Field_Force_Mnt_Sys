@@ -36,7 +36,7 @@ const authenticate = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: { organization: true }
+      include: { organization: true, territory: true }
     });
 
     if (!user) {
@@ -55,7 +55,15 @@ const authenticate = async (req, res, next) => {
       role: user.role,
       organizationId: user.organizationId,
       territoryId: user.territoryId,
-      managerId: user.managerId
+      managerId: user.managerId,
+      employeeId: user.employeeId,
+      status: user.status,
+      baseSalary: user.baseSalary,
+      travelAllowanceRate: user.travelAllowanceRate,
+      profileImage: user.profileImage,
+      profileImageLockedAt: user.profileImageLockedAt,
+      organization: user.organization,
+      territory: user.territory
     };
 
     next();

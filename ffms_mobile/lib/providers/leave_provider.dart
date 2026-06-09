@@ -15,13 +15,20 @@ class LeaveProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // Fetch my leaves
-  Future<void> fetchMyLeaves() async {
+  Future<void> fetchMyLeaves({String? userId, String? orgId}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await ApiService.client.get('/leave/my');
+      final queryParams = <String, dynamic>{};
+      if (userId != null) queryParams['userId'] = userId;
+      if (orgId != null) queryParams['orgId'] = orgId;
+
+      final response = await ApiService.client.get(
+        '/leave/my',
+        queryParameters: queryParams,
+      );
       if (response.data['success'] == true) {
         final list = response.data['data']['leaves'] as List? ?? [];
         _leaves = list.map((item) => LeaveModel.fromJson(item as Map<String, dynamic>)).toList();

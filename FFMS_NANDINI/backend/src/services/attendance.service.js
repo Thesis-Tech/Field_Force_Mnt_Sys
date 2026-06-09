@@ -3,6 +3,8 @@ const cloudinary = require('../config/cloudinary');
 const { emitToOrgAdmins } = require('../config/socket');
 const { BadRequestError, NotFoundError } = require('../utils/errors');
 const logger = require('../config/logger');
+const { getLocalDate, getLocalHoursAndMinutes } = require('../utils/timezone');
+
 
 /**
  * Point-in-polygon (Ray casting algorithm)
@@ -73,9 +75,8 @@ const uploadSelfie = async (base64Str) => {
 const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizationId) => {
   const now = new Date();
   
-  // Date truncated to day
-  const todayStr = now.toISOString().split('T')[0];
-  const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+  // Date truncated to day in IST
+  const todayDate = getLocalDate(now);
 
   // 1. Count today's sessions for the user and validate session state
   const todaySessions = await prisma.attendance.findMany({
@@ -88,18 +89,19 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
     }
   });
 
-  if (todaySessions.length >= 10) {
-    throw new BadRequestError('Maximum 10 check-in/check-out sessions reached for today.');
+  const count = todaySessions.length;
+  if (count >= 2) {
+    throw new BadRequestError('Daily attendance limit reached');
   }
 
-  if (todaySessions.length > 0) {
-    const lastSession = todaySessions[todaySessions.length - 1];
-    if (!lastSession.checkOutTime) {
-      throw new BadRequestError(`You must check out from Session ${todaySessions.length} before checking in for Session ${todaySessions.length + 1}.`);
+  if (count === 1) {
+    const session1 = todaySessions[0];
+    if (session1.checkOutTime === null) {
+      throw new BadRequestError('Session 2 cannot begin until Session 1 is fully checked out.');
     }
   }
 
-  const sessionNumber = todaySessions.length + 1;
+  const sessionNumber = count + 1;
 
   // 1.5 Geofence check
   const userRecord = await prisma.user.findUnique({
@@ -131,8 +133,8 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
   const { startMinutes, lateThreshold } = getShiftConfig();
   
   // Get check-in time in minutes from midnight (local time)
-  const localCheckInTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Standard GMT+5:30 offset adjustment for India or local time
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = getLocalHoursAndMinutes(now);
+  const currentMinutes = hours * 60 + minutes;
   const isLate = currentMinutes > (startMinutes + lateThreshold);
 
   // 4. Create Attendance record
@@ -185,8 +187,7 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
  */
 const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
-  const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+  const todayDate = getLocalDate(now);
 
   // 1. Find today's active/open session
   const openSession = await prisma.attendance.findFirst({
@@ -203,7 +204,7 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   });
 
   if (!openSession) {
-    throw new BadRequestError('You must check in first before checking out');
+    throw new BadRequestError('No active session to check out from');
   }
 
   // 2. Compute working minutes for this session
@@ -212,33 +213,38 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
 
   // 3. Determine if early logout
   const { endMinutes } = getShiftConfig();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = getLocalHoursAndMinutes(now);
+  const currentMinutes = hours * 60 + minutes;
   const isEarlyLogout = currentMinutes < endMinutes;
 
   // 4. Determine Status based on cumulative working hours business rules
-  const pastSessions = await prisma.attendance.findMany({
-    where: {
-      userId,
-      date: todayDate,
-      id: { not: openSession.id }
-    }
-  });
-
-  const pastWorkingMinutes = pastSessions.reduce((sum, s) => sum + (s.workingMinutes || 0), 0);
-  const cumulativeWorkingMinutes = pastWorkingMinutes + workingMinutes;
+  const isSessionComplete = openSession.sessionNumber === 2 || currentMinutes >= endMinutes;
 
   let calculatedStatus = openSession.status;
-  if (cumulativeWorkingMinutes < 240) {
-    calculatedStatus = 'ABSENT';
-  } else if (cumulativeWorkingMinutes < 420) {
-    calculatedStatus = 'HALF_DAY';
-  } else {
-    // If working > 7 hours, maintain 'LATE' if any session check-in was late
-    const eitherLate = openSession.isLate || pastSessions.some(s => s.isLate);
-    calculatedStatus = eitherLate ? 'LATE' : 'PRESENT';
+  if (isSessionComplete) {
+    const pastSessions = await prisma.attendance.findMany({
+      where: {
+        userId,
+        date: todayDate,
+        id: { not: openSession.id }
+      }
+    });
+
+    const pastWorkingMinutes = pastSessions.reduce((sum, s) => sum + (s.workingMinutes || 0), 0);
+    const cumulativeWorkingMinutes = pastWorkingMinutes + workingMinutes;
+
+    if (cumulativeWorkingMinutes < 240) {
+      calculatedStatus = 'ABSENT';
+    } else if (cumulativeWorkingMinutes < 420) {
+      calculatedStatus = 'HALF_DAY';
+    } else {
+      // If working > 7 hours, maintain 'LATE' if any session check-in was late
+      const eitherLate = openSession.isLate || pastSessions.some(s => s.isLate);
+      calculatedStatus = eitherLate ? 'LATE' : 'PRESENT';
+    }
   }
 
-  // 5. Update record
+  // 5. Update record. (The status belongs on the day's summary, which is recorded on the latest session record)
   const updatedAttendance = await prisma.attendance.update({
     where: { id: openSession.id },
     data: {
@@ -248,26 +254,19 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
       workingMinutes,
       isEarlyLogout,
       status: calculatedStatus
+    },
+    include: {
+      user: {
+        select: { id: true, name: true, employeeId: true }
+      }
     }
   });
-
-  // Retroactively update all previous sessions' status as well
-  if (pastSessions.length > 0) {
-    await prisma.attendance.updateMany({
-      where: {
-        userId,
-        date: todayDate,
-        id: { not: openSession.id }
-      },
-      data: { status: calculatedStatus }
-    });
-  }
 
   // 6. Emit Socket event to managers
   emitToOrgAdmins(organizationId, 'attendance:checkout', {
     attendanceId: openSession.id,
     userId,
-    userName: openSession.user.name,
+    userName: updatedAttendance.user.name,
     checkOutTime: now,
     workingMinutes,
     isEarlyLogout,
@@ -279,9 +278,9 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
     emitToOrgAdmins(organizationId, 'attendance:alert', {
       type: 'EARLY_LOGOUT',
       userId,
-      userName: openSession.user.name,
+      userName: updatedAttendance.user.name,
       checkOutTime: now,
-      message: `${openSession.user.name} checked out early at ${now.toLocaleTimeString()}`
+      message: `${updatedAttendance.user.name} checked out early at ${now.toLocaleTimeString()}`
     });
   }
 
@@ -441,8 +440,7 @@ const getAttendanceSummary = async (startDate, endDate, organizationId) => {
  * Live today's attendance status for all field staff
  */
 const getTodayAttendance = async (organizationId) => {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayDate = new Date(`${todayStr}T00:00:00.000Z`);
+  const todayDate = getLocalDate();
 
   // Fetch all active field staff users
   const staffUsers = await prisma.user.findMany({

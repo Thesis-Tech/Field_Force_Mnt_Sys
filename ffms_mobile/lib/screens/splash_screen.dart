@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../core/theme/app_theme.dart';
+import '../core/utils/storage_helper.dart';
+import 'permissions_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,20 +20,48 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Small delay to show logo
+    // Small delay to show brand logo
     await Future.delayed(const Duration(seconds: 2));
     
     if (!mounted) return;
+
+    // Check SharedPreferences flag. On the first launch, this flag defaults to false,
+    // requiring the user to complete the permission onboarding screen.
+    // On subsequent launches, we read this flag and skip the permissions screen directly.
+    final bool hasGrantedAllPermissions = StorageHelper.hasPermissionsBeenGranted();
+
+    if (!hasGrantedAllPermissions) {
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      navigator.pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => PermissionsScreen(
+            onPermissionsGranted: () async {
+              final innerNavigator = Navigator.of(context);
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.checkAuthStatus();
+              if (authProvider.isAuthenticated) {
+                innerNavigator.pushReplacementNamed('/home');
+              } else {
+                innerNavigator.pushReplacementNamed('/login');
+              }
+            },
+          ),
+        ),
+      );
+      return;
+    }
     
+    final navigator = Navigator.of(context);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.checkAuthStatus();
     
     if (!mounted) return;
 
     if (authProvider.isAuthenticated) {
-      Navigator.pushReplacementNamed(context, '/home');
+      navigator.pushReplacementNamed('/home');
     } else {
-      Navigator.pushReplacementNamed(context, '/login');
+      navigator.pushReplacementNamed('/login');
     }
   }
 

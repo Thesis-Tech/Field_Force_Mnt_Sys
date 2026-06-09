@@ -1,14 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/auth_provider.dart';
+import '../utils/image_upload_util.dart';
+import '../providers/travel_provider.dart';
 import '../widgets/custom_button.dart';
 import '../core/theme/app_theme.dart';
 import 'expenses_screen.dart';
 import 'feedback_screen.dart';
 import 'permissions_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<TravelProvider>(context, listen: false).fetchMonthlySummary();
+      }
+    });
+  }
 
   Future<void> _handleLogout(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -18,9 +36,55 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _uploadPhoto(BuildContext context) async {
+    // Reusable image upload utility: checks camera permission, formats/sizes selfie under 1MB
+    final result = await ImageUploadUtil.pickAndCompressImage(
+      context,
+      cameraOnly: true,
+      preferredCameraDevice: CameraDevice.front,
+    );
+
+    if (result == null) return;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final base64Image = result.base64String;
+      
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.uploadProfileImage(base64Image);
+
+      if (context.mounted) {
+        Navigator.pop(context); // Pop loading spinner
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile photo uploaded and locked successfully!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(authProvider.errorMessage ?? 'Upload failed.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Pop loading spinner
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authUser = Provider.of<AuthProvider>(context).currentUser;
+    final travelProvider = Provider.of<TravelProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,18 +102,60 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundColor: AppColors.primaryContainer.withOpacity(0.1),
-                    child: Text(
-                      authUser?.name.substring(0, 1).toUpperCase() ?? 'E',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: AppColors.primaryContainer.withOpacity(0.1),
+                        backgroundImage: authUser?.profileImage != null && authUser!.profileImage!.isNotEmpty
+                            ? NetworkImage(authUser.profileImage!)
+                            : null,
+                        child: authUser?.profileImage != null && authUser!.profileImage!.isNotEmpty
+                            ? null
+                            : Text(
+                                authUser?.name.isNotEmpty == true ? authUser!.name.substring(0, 1).toUpperCase() : 'E',
+                                style: const TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                       ),
-                    ),
+                      if (authUser?.profileImage == null || authUser?.profileImageLockedAt == null)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppColors.primary,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                              onPressed: () => _uploadPhoto(context),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  if (authUser?.profileImage != null)
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.lock_outline, size: 12, color: AppColors.outline),
+                        SizedBox(width: 4),
+                        Text(
+                          'Profile photo locked for verification.',
+                          style: TextStyle(fontSize: 11, color: AppColors.outline, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  if (authUser?.profileImage == null)
+                    const Text(
+                      'Profile photo can only be uploaded once for security verification.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11, color: AppColors.outline, fontWeight: FontWeight.w500),
+                    ),
                   const SizedBox(height: 16),
                   Text(
                     authUser?.name ?? 'Employee Name',
@@ -101,6 +207,113 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
+            // Salary & Allowance Card
+            if (authUser != null) (() {
+              double accruedSalary = 0.0;
+              final present = travelProvider.monthlySummary?.present ?? 0;
+              final totalWorkingDays = travelProvider.monthlySummary?.totalWorkingDays ?? 0;
+              final baseSalary = authUser.baseSalary ?? 0.0;
+
+              if (baseSalary > 0 && totalWorkingDays > 0) {
+                accruedSalary = (present / totalWorkingDays) * baseSalary;
+              } else if (baseSalary > 0 && present > 0) {
+                accruedSalary = (present / 26.0) * baseSalary;
+              }
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.outlineVariant, width: 0.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Salary & Allowance Configuration',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Base Salary (Monthly)',
+                          style: TextStyle(color: AppColors.outline, fontSize: 13),
+                        ),
+                        Text(
+                          authUser.baseSalary != null ? '₹${authUser.baseSalary!.toStringAsFixed(2)}' : 'Not Configured',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(color: AppColors.outlineVariant, height: 1),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Travel Allowance Rate',
+                          style: TextStyle(color: AppColors.outline, fontSize: 13),
+                        ),
+                        Text(
+                          '₹${authUser.travelAllowanceRate?.toStringAsFixed(2) ?? '4.00'}/KM',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (authUser.baseSalary != null) ...[
+                      const SizedBox(height: 8),
+                      const Divider(color: AppColors.outlineVariant, height: 1),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Accrued Salary (This Month)',
+                                style: TextStyle(color: AppColors.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Based on $present worked days this month',
+                                style: const TextStyle(color: AppColors.outline, fontSize: 10),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '₹${accruedSalary.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            })(),
+            const SizedBox(height: 16),
+
             // Navigation shortcuts
             Container(
               color: AppColors.surface,
@@ -108,16 +321,16 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.time_to_leave, color: AppColors.primary),
-                    title: const Text('My Leave History', style: TextStyle(fontWeight: FontWeight.w600)),
+                    title: const Text('Leave Details', style: TextStyle(fontWeight: FontWeight.w600)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      Navigator.pushNamed(context, '/leave-status');
+                      Navigator.pushNamed(context, '/leave-details');
                     },
                   ),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
                     leading: const Icon(Icons.receipt_long, color: AppColors.primary),
-                    title: const Text('Expenses & Travel Allowance Claims', style: TextStyle(fontWeight: FontWeight.w600)),
+                    title: const Text('My Expense Claims', style: TextStyle(fontWeight: FontWeight.w600)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.push(

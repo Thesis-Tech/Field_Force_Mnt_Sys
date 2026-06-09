@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const prisma = require('../config/prisma');
 const redis = require('../config/redis');
+const cloudinary = require('../config/cloudinary');
 const { signAccessToken, signRefreshToken, hashToken } = require('../utils/jwt');
 const { refreshTokenSecret } = require('../config/jwt');
 const { sendOTPEmail } = require('../utils/email');
@@ -29,7 +30,7 @@ const generateOtp = () => {
 const login = async (email, password) => {
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { organization: true }
+    include: { organization: true, territory: true }
   });
 
   if (!user) {
@@ -110,7 +111,8 @@ const register = async (data) => {
           id: orgId
         }
       }
-    }
+    },
+    include: { organization: true, territory: true }
   });
 
   const { passwordHash: _, ...userWithoutPassword } = user;
@@ -300,6 +302,61 @@ const resetPassword = async (resetToken, newPassword) => {
   return true;
 };
 
+/**
+ * Update user's profile image (only allowed once)
+ */
+const updateProfileImage = async (userId, base64Image) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  // Check if profile photo already exists or is locked
+  if (user.profileImageLockedAt || user.profileImage) {
+    throw new BadRequestError('Profile photo is locked and can only be set once for security verification');
+  }
+
+  if (!base64Image) {
+    throw new BadRequestError('Base64 image is required');
+  }
+
+  // Upload to Cloudinary
+  const formatted = base64Image.startsWith('data:image')
+    ? base64Image
+    : `data:image/jpeg;base64,${base64Image}`;
+
+  let profileImageUrl;
+  try {
+    const res = await cloudinary.uploader.upload(formatted, {
+      folder: 'ffms/profiles',
+      resource_type: 'image',
+    });
+    profileImageUrl = res.secure_url;
+  } catch (err) {
+    logger.error('Failed to upload profile image:', err);
+    throw new BadRequestError('Failed to upload profile image to cloud storage');
+  }
+
+  // Save to database and lock
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      profileImage: profileImageUrl,
+      profileImageLockedAt: new Date()
+    },
+    include: {
+      organization: true,
+      territory: true
+    }
+  });
+
+  const { passwordHash: _, ...userWithoutPassword } = updatedUser;
+  return userWithoutPassword;
+};
+
 module.exports = {
   login,
   refresh,
@@ -307,5 +364,6 @@ module.exports = {
   forgotPassword,
   verifyOtp,
   resetPassword,
-  register
+  register,
+  updateProfileImage
 };

@@ -1,13 +1,15 @@
 require('dotenv').config();
+const logger = require('./config/logger');
 // Start background job workers
 require('./jobs/geofenceAlert.job');
+require('./jobs/locationWrite.job');
+logger.info('locationWrite worker started');
 const { initPayrollCron } = require('./jobs/payrollCron.job');
 
 const http = require('http');
 const app = require('./app');
 const { initSocket } = require('./config/socket');
 const prisma = require('./config/prisma');
-const logger = require('./config/logger');
 
 const PORT = process.env.PORT || 5000;
 

@@ -4,6 +4,9 @@ import '../models/task_model.dart';
 import '../widgets/status_badge.dart';
 import '../core/theme/app_theme.dart';
 
+/// Task card widget with unified label logic:
+/// - is_personal == true → show badge: Personal Task
+/// - Assigned by manager/admin → show: Assigned by [assigned_by_name]
 class TaskCard extends StatelessWidget {
   final TaskModel task;
   final VoidCallback onTap;
@@ -34,6 +37,11 @@ class TaskCard extends StatelessWidget {
     final String status = task.assignments.isNotEmpty
         ? task.assignments.first.status
         : task.status;
+
+    // Task label display logic:
+    // is_personal == true → badge: Personal Task
+    // Assigned by manager/admin → Assigned by [name]
+    final bool isLocalTask = task.id.startsWith('local_');
 
     return Card(
       child: InkWell(
@@ -71,7 +79,35 @@ class TaskCard extends StatelessWidget {
                         StatusBadge(status: status),
                       ],
                     ),
-                    const SizedBox(height: 12),
+
+                    // Personal Task badge or Assigned By label
+                    const SizedBox(height: 8),
+                    if (task.isPersonal || isLocalTask) ...[
+                      // Personal task badge display
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C3AED).withAlpha(25),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.person, size: 12, color: Color(0xFF7C3AED)),
+                            const SizedBox(width: 4),
+                            Text(
+                              isLocalTask ? 'Personal Task (Offline)' : 'Personal Task',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF7C3AED),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
                     if (task.projectName != null) ...[
                       Row(
                         children: [
@@ -112,6 +148,26 @@ class TaskCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    // Assigned By label — show only for non-personal tasks
+                    if (task.createdBy != null && !task.isPersonal && !isLocalTask) ...[
+                      const SizedBox(height: 8),
+                      const Divider(height: 1, color: AppColors.outlineVariant),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.person_pin_outlined, size: 14, color: AppColors.outline),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Assigned By: ${task.createdBy!.name} (${task.createdBy!.displayRole})',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.outline,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

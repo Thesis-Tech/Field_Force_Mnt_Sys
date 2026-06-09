@@ -199,6 +199,16 @@ const me = async (req, res, next) => {
   }
 };
 
+const updateProfileImage = async (req, res, next) => {
+  try {
+    const { base64Image } = req.body;
+    const updatedUser = await authService.updateProfileImage(req.user.id, base64Image);
+    return successResponse(res, { user: updatedUser });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   login,
   refresh,
@@ -207,5 +217,6 @@ module.exports = {
   verifyOtp,
   resetPassword,
   me,
-  register
+  register,
+  updateProfileImage
 };
