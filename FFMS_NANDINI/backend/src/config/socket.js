@@ -3,25 +3,34 @@ const jwt = require('jsonwebtoken');
 const { accessTokenSecret } = require('./jwt');
 const prisma = require('./prisma');
 const logger = require('./logger');
-const { isOriginAllowed } = require('./cors'); // ← shared CORS logic
-
 let io = null;
+
+// CORS origin checker for Socket.IO
+// Reads allowed origins from ALLOWED_ORIGINS env variable
+// Never hardcode URLs here — add to .env instead
+const _allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:3000'];
+
+const _checkOrigin = (origin, callback) => {
+  // Allow requests with no origin (mobile apps, Postman, server-to-server)
+  if (!origin) return callback(null, true);
+  // Check exact match
+  if (_allowedOrigins.includes(origin)) return callback(null, true);
+  // Allow all Vercel preview deployments for this project
+  if (origin.includes('vercel.app')) return callback(null, true);
+  // Allow localhost for local development
+  if (origin.includes('localhost')) return callback(null, true);
+  // Block everything else
+  return callback(new Error('CORS: origin not allowed — ' + origin));
+};
 
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      // Uses the exact same origin validator as Express CORS in app.js.
-      // Any origin allowed there is allowed here — no duplication, no drift.
-      origin: (origin, callback) => {
-        if (isOriginAllowed(origin)) {
-          callback(null, true);
-        } else {
-          logger.warn(`Socket.IO CORS blocked origin: ${origin}`);
-          callback(new Error('Socket: Not allowed by CORS'));
-        }
-      },
-      methods: ['GET', 'POST'],
+      origin: _checkOrigin,
       credentials: true,
+      methods: ['GET', 'POST']
     },
     // Prevent reconnect storms when the client drops (e.g. CORS error burst).
     // Client-side should also set reconnectionAttempts: 5.
