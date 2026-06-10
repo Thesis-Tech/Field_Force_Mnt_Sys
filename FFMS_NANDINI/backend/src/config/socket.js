@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { accessTokenSecret } = require('./jwt');
 const prisma = require('./prisma');
 const logger = require('./logger');
-const { isOriginAllowed } = require('../app'); // ← shared CORS logic
+const { isOriginAllowed } = require('./cors'); // ← shared CORS logic
 
 let io = null;
 
