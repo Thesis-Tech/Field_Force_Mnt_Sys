@@ -257,7 +257,7 @@ export default function MiniMap({ employee, isPastFeed }: MiniMapProps) {
         fontWeight: 500,
         fontFamily: "Inter, sans-serif"
       }}>
-        No live GPS data available
+        Location unavailable
       </div>
     );
   }

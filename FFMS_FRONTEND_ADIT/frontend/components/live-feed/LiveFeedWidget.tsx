@@ -60,6 +60,7 @@ export default function LiveFeedWidget({
   const [availableTerritories, setAvailableTerritories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasLoadedInit, setHasLoadedInit] = useState(false);
+  const [isSocketOffline, setIsSocketOffline] = useState(false);
   const [pastFeedEmployee, setPastFeedEmployee] = useState<Employee | null>(null);
   const [pastFeedLoading, setPastFeedLoading] = useState(false);
 
@@ -145,7 +146,9 @@ export default function LiveFeedWidget({
           location: {
             lat: liveLoc?.latitude || todayAtt?.checkInLatitude || (undefined as unknown as number),
             lng: liveLoc?.longitude || todayAtt?.checkInLongitude || (undefined as unknown as number),
-            address: liveLoc?.latitude ? `${liveLoc.latitude.toFixed(4)}, ${liveLoc.longitude.toFixed(4)}` : "No GPS signal"
+            address: typeof liveLoc?.latitude === 'number' && typeof liveLoc?.longitude === 'number'
+              ? `${liveLoc.latitude.toFixed(4)}, ${liveLoc.longitude.toFixed(4)}`
+              : "No GPS signal"
           },
           phone: user.phone || "",
           avatar: user.profileImage || "",
@@ -191,15 +194,26 @@ export default function LiveFeedWidget({
           ? process.env.NEXT_PUBLIC_API_URL.replace("/api/v1", "")
           : "http://localhost:5000";
 
+        // Reconnection limited to 5 attempts to prevent loop
+        // User sees friendly message instead of infinite retry spam
         const socket = io(socketUrl, {
           auth: { token },
-          reconnection: true
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 3000,
+          reconnectionDelayMax: 10000,
+          withCredentials: true
         });
 
         socketRef.current = socket;
 
         socket.on("connect", () => {
           console.log("LiveFeed socket connected:", socket.id);
+          setIsSocketOffline(false);
+        });
+
+        socket.on("reconnect_failed", () => {
+          setIsSocketOffline(true);
         });
 
         socket.on("location:update", (data: SocketLocationUpdate) => {
@@ -217,7 +231,9 @@ export default function LiveFeedWidget({
               location: {
                 lat: data.lat,
                 lng: data.lng,
-                address: `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`
+                address: typeof data.lat === 'number' && typeof data.lng === 'number'
+                  ? `${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`
+                  : "Location unavailable"
               }
             };
           }));
@@ -250,7 +266,7 @@ export default function LiveFeedWidget({
         });
 
         socket.on("connect_error", (err) => {
-          console.warn("LiveFeed socket connection error:", err.message);
+          console.warn("Socket connection failed:", err.message);
         });
       }
     }
@@ -300,7 +316,9 @@ export default function LiveFeedWidget({
             updatedEmp.location = {
               lat: firstLog.latitude,
               lng: firstLog.longitude,
-              address: `${firstLog.latitude.toFixed(4)}, ${firstLog.longitude.toFixed(4)}`
+              address: typeof firstLog.latitude === 'number' && typeof firstLog.longitude === 'number'
+                ? `${firstLog.latitude.toFixed(4)}, ${firstLog.longitude.toFixed(4)}`
+                : "Location unavailable"
             };
           }
         }
@@ -428,6 +446,24 @@ export default function LiveFeedWidget({
           </button>
         </div>
       </div>
+
+      {/* Socket Offline Banner */}
+      {isSocketOffline && (
+        <div style={{
+          padding: "10px 20px",
+          background: "#fffbeb",
+          borderBottom: "1px solid #fef3c7",
+          color: "#b45309",
+          fontSize: "13px",
+          fontWeight: 500,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#b45309" }} />
+          Live updates unavailable — showing last known data
+        </div>
+      )}
 
       {/* Secondary Header / Filters */}
       {showPastFeed ? (

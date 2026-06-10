@@ -26,9 +26,15 @@ export function SocketInitializer() {
       ? process.env.NEXT_PUBLIC_API_URL.replace("/api/v1", "")
       : "http://localhost:5000";
 
+    // Reconnection limited to 5 attempts to prevent loop
+    // User sees friendly message instead of infinite retry spam
     const newSocket = io(socketUrl, {
       auth: { token },
       reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
+      reconnectionDelayMax: 10000,
+      withCredentials: true
     });
 
     newSocket.on("connect", () => {

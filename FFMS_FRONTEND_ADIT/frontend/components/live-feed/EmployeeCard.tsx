@@ -179,7 +179,7 @@ export default function EmployeeCard({ employee, isPastFeed }: EmployeeCardProps
           {/* Speed */}
           <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#475569" }} title="Speed">
             <Compass size={14} color="#3b82f6" />
-            <span style={{ fontWeight: 600 }}>{employee.speed !== undefined ? `${employee.speed.toFixed(1)} km/h` : "0 km/h"}</span>
+            <span style={{ fontWeight: 600 }}>{typeof employee.speed === 'number' ? `${employee.speed.toFixed(1)} km/h` : "--"}</span>
           </div>
 
           {/* Accuracy */}
