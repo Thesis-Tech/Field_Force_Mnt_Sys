@@ -31,7 +31,7 @@ class ExpenseModel {
     return ExpenseModel(
       id: json['id'] as String,
       userId: json['userId'] as String,
-      title: json['title'] as String,
+      title: json['title'] as String? ?? json['description'] as String? ?? json['category'] as String,
       amount: (json['amount'] as num).toDouble(),
       category: json['category'] as String,
       date: DateTime.parse(json['date'] as String),

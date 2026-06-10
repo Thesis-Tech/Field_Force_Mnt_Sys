@@ -320,3 +320,35 @@ select.input { cursor: pointer; }
     padding: 20px;
   }
 }
+
+/* Print Utilities */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .modal-overlay {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+  }
+  .modal-box, .modal-box * {
+    visibility: visible;
+  }
+  .modal-box {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .no-print, .no-print * {
+    display: none !important;
+  }
+}

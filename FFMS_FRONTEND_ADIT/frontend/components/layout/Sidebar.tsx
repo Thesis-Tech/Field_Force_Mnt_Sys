@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -72,11 +74,11 @@ export default function Sidebar() {
   });
 
   const getOpenSections = (p: string) => ({
-    myTask: p === "/tasks" || p === "/attendance",
-    activities: p === "/geofencing" || p.startsWith("/activities"),
-    insights: p === "/map" || p === "/playback" || p.startsWith("/insights"),
-    reports: p.startsWith("/reports"),
-    settings: p.startsWith("/settings"),
+    myTask: p === `${basePath}/tasks` || p === `${basePath}/attendance`,
+    activities: p === `${basePath}/geofencing` || p === `${basePath}/map` || p === `${basePath}/playback` || p === `${basePath}/live-feed` || p.startsWith(`${basePath}/activities`),
+    insights: p === `${basePath}/map` || p === `${basePath}/playback` || p.startsWith(`${basePath}/insights`),
+    reports: p.startsWith(`${basePath}/reports`),
+    settings: p.startsWith(`${basePath}/settings`),
   });
 
   // Automatically keep correct accordion sections open based on active path
@@ -197,9 +199,9 @@ export default function Sidebar() {
           }}>
             <img 
               src="/logo.png" 
-              style={{ filter: "brightness(0) invert(1)" }} 
               alt="TR@NSForce" 
               style={{
+                filter: "brightness(0) invert(1)",
                 height: "100%",
                 width: isExpanded ? "auto" : "200px",
                 objectFit: "contain",
@@ -362,15 +364,15 @@ export default function Sidebar() {
         <div>
           <div
             onClick={() => toggleSection("activities")}
-            style={getLinkStyle(pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/activities`))}
+            style={getLinkStyle(pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname === `${basePath}/live-feed` || pathname.startsWith(`${basePath}/activities`))}
             className="sidebar-link"
             title="Activities"
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, justifyContent: isExpanded ? "flex-start" : "center" }}>
-              {renderIcon(Briefcase, pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/activities`))}
+              {renderIcon(Briefcase, pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname === `${basePath}/live-feed` || pathname.startsWith(`${basePath}/activities`))}
               <span style={{
                 fontSize: "13.5px",
-                fontWeight: (pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname.startsWith(`${basePath}/activities`)) ? 700 : 500,
+                fontWeight: (pathname === `${basePath}/geofencing` || pathname === `${basePath}/map` || pathname === `${basePath}/playback` || pathname === `${basePath}/live-feed` || pathname.startsWith(`${basePath}/activities`)) ? 700 : 500,
                 opacity: isExpanded ? 1 : 0,
                 width: isExpanded ? "auto" : 0,
                 overflow: "hidden",
@@ -426,9 +428,23 @@ export default function Sidebar() {
                   ➔ Map Insights (Playback)
                 </span>
               </Link>
+              <Link href={`${basePath}/live-feed`} style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === `${basePath}/live-feed` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
+                    fontWeight: pathname === `${basePath}/live-feed` ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Live Feed
+                </span>
+              </Link>
             </div>
           )}
         </div>
+
 
         {/* 5. Expenses */}
         <Link href={`${basePath}/expenses`} style={{ textDecoration: "none" }} title="Expenses">
@@ -728,6 +744,19 @@ export default function Sidebar() {
                   }}
                 >
                   ➔ Travel Policies
+                </span>
+              </Link>
+              <Link href={`${basePath}/settings/timing`} style={{ textDecoration: "none", color: "inherit" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    color: pathname === `${basePath}/settings/timing` ? "var(--accent-blue)" : "var(--sidebar-text-inactive)",
+                    fontWeight: pathname === `${basePath}/settings/timing` ? 700 : 400,
+                    display: "block",
+                    padding: "4px 8px",
+                  }}
+                >
+                  ➔ Timing & Shifts
                 </span>
               </Link>
               <Link href={`${basePath}/settings/security-access`} style={{ textDecoration: "none", color: "inherit" }}>

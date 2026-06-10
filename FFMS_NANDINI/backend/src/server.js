@@ -72,4 +72,4 @@ process.on('uncaughtException', (err) => {
   });
 });
 
-// Trigger nodemon restart
+// Trigger nodemon restart - Redis config updated

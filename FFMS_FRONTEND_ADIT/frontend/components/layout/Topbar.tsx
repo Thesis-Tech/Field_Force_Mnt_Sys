@@ -33,6 +33,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "/settings/user-management": { title: "User Management", subtitle: "Manage roles, permissions and user accounts" },
   "/settings/territory-setup": { title: "Territory Setup", subtitle: "Define and manage field territory boundaries" },
   "/settings/travel-policies": { title: "Travel Policies", subtitle: "Set allowance rules and travel reimbursement policies" },
+  "/settings/timing": { title: "Timing & Shifts", subtitle: "Configure global working shifts and employee timings" },
   "/settings/security-access": { title: "Security & Access", subtitle: "Authentication rules and access control configuration" },
 };
 
@@ -62,6 +63,7 @@ const searchablePages = [
   { label: "User Management", path: "/settings/user-management", keywords: ["user management", "roles", "permissions", "accounts"] },
   { label: "Territory Setup", path: "/settings/territory-setup", keywords: ["territory", "boundaries", "zones", "regions"] },
   { label: "Travel Policies", path: "/settings/travel-policies", keywords: ["travel policy", "allowance", "reimbursement rules"] },
+  { label: "Timing & Shifts", path: "/settings/timing", keywords: ["timing", "shift", "shifts", "hours", "late", "break", "work hours"] },
   { label: "Security & Access", path: "/settings/security-access", keywords: ["security", "access", "auth", "login", "permissions"] },
 ];
 

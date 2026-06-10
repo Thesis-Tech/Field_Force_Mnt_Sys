@@ -43,6 +43,7 @@ export default function FilterBar({
       gap: "12px"
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+        {/* Territory Filter */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <label style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Territory</label>
           <select style={SelectStyles} value={territory} onChange={(e) => setTerritory(e.target.value)}>
@@ -53,25 +54,28 @@ export default function FilterBar({
           </select>
         </div>
 
+        {/* Role Filter */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <label style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Role</label>
           <select style={SelectStyles} value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="All">All Roles</option>
-            <option value="Manager">Manager</option>
-            <option value="Employee">Employee</option>
+            <option value="MANAGER">Manager</option>
+            <option value="FIELD_STAFF">Field Staff</option>
           </select>
         </div>
 
+        {/* Status Filter */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <label style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Status</label>
           <select style={SelectStyles} value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
+            <option value="online">Active (Online)</option>
+            <option value="offline">Inactive (Offline)</option>
           </select>
         </div>
       </div>
 
+      {/* Grid Size Filter */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <label style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Grid View</label>
         <select style={SelectStyles} value={gridSize} onChange={(e) => setGridSize(Number(e.target.value))}>

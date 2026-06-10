@@ -17,6 +17,8 @@ export interface Employee {
   password?: string;
   territoryId?: string | null;
   managerId?: string | null;
+  shiftId?: string | null;
+  employmentType?: string;
 }
 
 interface EmployeeState {
@@ -38,6 +40,7 @@ function mapApiUserToEmployee(u: ApiUser): Employee {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+  const savedType = typeof window !== "undefined" ? localStorage.getItem(`employment_type_${u.id}`) : null;
   return {
     id: u.id,
     name: u.name,
@@ -52,6 +55,8 @@ function mapApiUserToEmployee(u: ApiUser): Employee {
     employeeId: u.employeeId,
     territoryId: u.territoryId,
     managerId: u.managerId,
+    shiftId: u.shiftId,
+    employmentType: savedType || "Full Time",
   };
 }
 

@@ -335,8 +335,8 @@ class LocationTaskHandler extends TaskHandler {
   }
 
   Future<void> _sendTelemetryPayload(Map<String, dynamic> payload) async {
-    // Read GPS tracking endpoint from dotenv config - not hardcoded
-    final gpsEndpoint = dotenv.env['GPS_TRACKING_ENDPOINT'] ?? '/geofence/ping';
+    // Read GPS tracking endpoint from storage/dotenv config - not hardcoded
+    final gpsEndpoint = StorageHelper.getGpsTrackingEndpoint() ?? dotenv.env['GPS_TRACKING_ENDPOINT'] ?? '/geofence/ping';
 
     try {
       final response = await ApiService.client.post(
@@ -360,7 +360,7 @@ class LocationTaskHandler extends TaskHandler {
     final queued = await OfflineTelemetryCache.getAllTelemetry();
     if (queued.isEmpty) return;
 
-    final gpsEndpoint = dotenv.env['GPS_TRACKING_ENDPOINT'] ?? '/geofence/ping';
+    final gpsEndpoint = StorageHelper.getGpsTrackingEndpoint() ?? dotenv.env['GPS_TRACKING_ENDPOINT'] ?? '/geofence/ping';
     List<Map<String, dynamic>> failedAgain = [];
 
     for (final payload in queued) {

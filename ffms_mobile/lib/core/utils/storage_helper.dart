@@ -141,6 +141,27 @@ class StorageHelper {
     await _prefs!.remove(_travelMeterStartKey);
   }
 
+  static const String _apiBaseUrlKey = 'api_base_url';
+  static const String _gpsTrackingEndpointKey = 'gps_tracking_endpoint';
+
+  static Future<void> saveApiBaseUrl(String url) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setString(_apiBaseUrlKey, url);
+  }
+
+  static String? getApiBaseUrl() {
+    return _prefs?.getString(_apiBaseUrlKey);
+  }
+
+  static Future<void> saveGpsTrackingEndpoint(String endpoint) async {
+    if (_prefs == null) await initialize();
+    await _prefs!.setString(_gpsTrackingEndpointKey, endpoint);
+  }
+
+  static String? getGpsTrackingEndpoint() {
+    return _prefs?.getString(_gpsTrackingEndpointKey);
+  }
+
   // Clear Storage
   static Future<void> clearAll() async {
     try {

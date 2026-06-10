@@ -14,10 +14,14 @@ const mapRoutes = require('./map.routes');
 const feedbackRoutes = require('./feedback.routes');
 const projectRoutes = require('./project.routes');
 const travelRoutes = require('./travel.routes');
+const advanceRoutes = require('./advance.routes');
+const shiftRoutes = require('./shift.routes');
 
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.use('/shifts', shiftRoutes);
+
 router.use('/users', userRoutes);
 router.use('/location', locationRoutes);
 router.use('/attendance', attendanceRoutes);
@@ -32,5 +36,6 @@ router.use('/map', mapRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/projects', projectRoutes);
 router.use('/travel', travelRoutes);
+router.use('/advance', advanceRoutes);
 
 module.exports = router;

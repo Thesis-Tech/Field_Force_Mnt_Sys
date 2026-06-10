@@ -28,7 +28,6 @@ export function SocketInitializer() {
 
     const newSocket = io(socketUrl, {
       auth: { token },
-      transports: ["websocket"],
       reconnection: true,
     });
 

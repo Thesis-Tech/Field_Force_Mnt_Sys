@@ -8,7 +8,7 @@ import {
   TrendingUp, TrendingDown, UserPlus, FolderPlus, BarChart3, FileText,
 } from "lucide-react";
 import LiveFeedWidget from "@/components/live-feed/LiveFeedWidget";
-import { Employee } from "@/types/live-feed";
+
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -94,37 +94,7 @@ export default function AdminDashboardPage() {
     };
   });
 
-  // Data formatting for charts
-  let liveEmployees: Employee[] = [];
-  let availableTerritories: string[] = [];
 
-  if (stats) {
-    if (stats.employeeDistribution) {
-      availableTerritories = stats.employeeDistribution
-        .map((t: any) => t.name)
-        .filter((name: string) => name !== "General Operations");
-    }
-
-    if (stats.liveFieldStaff) {
-      liveEmployees = stats.liveFieldStaff.map((staff: any) => ({
-        id: staff.userId,
-        name: staff.name,
-        role: staff.role === "FIELD_STAFF" ? "Field Staff" : staff.role,
-        territory: staff.territory?.name || "Unassigned",
-        status: "online",
-        lastActive: new Date(staff.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        batteryLevel: staff.battery || 100,
-        location: {
-          lat: staff.latitude,
-          lng: staff.longitude,
-          address: `${staff.latitude.toFixed(4)}, ${staff.longitude.toFixed(4)}`,
-        },
-        phone: staff.phone || "N/A",
-        avatar: "",
-        email: ""
-      }));
-    }
-  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "4px 4px 40px", maxWidth: 1600, margin: "0 auto", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -230,7 +200,7 @@ export default function AdminDashboardPage() {
 
       {/* ════ ROW 2 — Live Feed Widget ════ */}
       <div style={{ width: "100%" }}>
-        <LiveFeedWidget liveEmployees={liveEmployees} territories={availableTerritories} />
+        <LiveFeedWidget isStandalone={true} />
       </div>
 
       {/* ════ ROW 3 — Quick Actions ════ */}

@@ -119,6 +119,10 @@ const listUsers = async ({
       status: true,
       managerId: true,
       territoryId: true,
+      shiftId: true,
+      shift: {
+        select: { id: true, name: true, startTime: true, endTime: true, color: true }
+      },
       lastActiveAt: true,
       createdAt: true,
       updatedAt: true,
@@ -129,6 +133,7 @@ const listUsers = async ({
         select: { id: true, name: true }
       }
     }
+
   });
 
   let hasMore = false;
@@ -167,6 +172,7 @@ const getUserById = async (id, organizationId) => {
         select: { id: true, name: true, email: true, employeeId: true }
       },
       territory: true,
+      shift: true,
       subordinates: {
         select: { id: true, name: true, email: true, role: true, status: true }
       }
@@ -205,6 +211,9 @@ const updateUser = async (id, updateData, organizationId) => {
     include: {
       territory: {
         select: { id: true, name: true }
+      },
+      shift: {
+        select: { id: true, name: true, startTime: true, endTime: true, color: true }
       }
     }
   });

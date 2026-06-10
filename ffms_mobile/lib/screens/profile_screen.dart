@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../utils/image_upload_util.dart';
 import '../providers/travel_provider.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/user_avatar.dart';
 import '../core/theme/app_theme.dart';
 import 'expenses_screen.dart';
 import 'feedback_screen.dart';
@@ -104,22 +105,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Stack(
                     children: [
-                      CircleAvatar(
+                      UserAvatar(
                         radius: 48,
-                        backgroundColor: AppColors.primaryContainer.withOpacity(0.1),
-                        backgroundImage: authUser?.profileImage != null && authUser!.profileImage!.isNotEmpty
-                            ? NetworkImage(authUser.profileImage!)
-                            : null,
-                        child: authUser?.profileImage != null && authUser!.profileImage!.isNotEmpty
-                            ? null
-                            : Text(
-                                authUser?.name.isNotEmpty == true ? authUser!.name.substring(0, 1).toUpperCase() : 'E',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
+                        photoUrl: authUser?.profileImage,
+                        name: authUser?.name ?? 'Employee',
                       ),
                       if (authUser?.profileImage == null || authUser?.profileImageLockedAt == null)
                         Positioned(

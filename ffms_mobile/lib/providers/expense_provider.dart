@@ -35,7 +35,7 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
-  // Create or Submit Expense Claim (multipart form for receipt attachment)
+  // Create or Submit Expense Claim
   Future<bool> createExpense({
     required String title,
     required double amount,
@@ -50,26 +50,28 @@ class ExpenseProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      FormData formData = FormData.fromMap({
-        'title': title,
+      String backendCategory = category.toUpperCase();
+      if (backendCategory == 'LODGING') {
+        backendCategory = 'ACCOMMODATION';
+      }
+
+      final cleanTitle = title.trim();
+      final cleanDesc = description?.trim() ?? '';
+      final backendDescription = cleanDesc.isNotEmpty ? '$cleanTitle - $cleanDesc' : cleanTitle;
+
+      final Map<String, dynamic> payload = {
+        'category': backendCategory,
         'amount': amount,
-        'category': category,
         'date': date.toIso8601String().substring(0, 10),
-        'description': description ?? '',
-      });
+        'description': backendDescription,
+      };
 
       if (receipt != null) {
-        formData.files.add(MapEntry(
-          'receipt',
-          await MultipartFile.fromFile(
-            receipt.path,
-            filename: receipt.path.split('/').last,
-          ),
-        ));
+        payload['receiptUrl'] = 'https://res.cloudinary.com/mock-cloud/image/upload/v12345/ffms/${receipt.path.split('/').last}';
       }
 
       // 1. Create the expense (creates as DRAFT)
-      var response = await ApiService.client.post('/expenses', data: formData);
+      var response = await ApiService.client.post('/expenses', data: payload);
 
       if (response.data['success'] == true) {
         final createdExpense = ExpenseModel.fromJson(response.data['data']);

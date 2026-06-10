@@ -31,4 +31,10 @@ router.get('/my', travelController.getMyTravelHistory);
  */
 router.get('/attendance/monthly-summary', travelController.getMonthlyAttendanceSummary);
 
+/**
+ * GET /api/v1/travel/all
+ * Admins/managers get travel logs summary for an employee
+ */
+router.get('/all', authorize('ADMIN', 'MANAGER'), travelController.getAllTravelLogs);
+
 module.exports = router;

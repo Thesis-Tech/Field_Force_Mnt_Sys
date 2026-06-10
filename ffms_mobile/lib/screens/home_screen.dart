@@ -14,6 +14,7 @@ import '../providers/attendance_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/travel_provider.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/user_avatar.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/storage_helper.dart';
 import '../core/utils/constants.dart';
@@ -298,17 +299,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  CircleAvatar(
+                  // Profile photo shown in greeting — fetched from logged-in user session
+                  UserAvatar(
+                    photoUrl: authUser?.profileImage,
+                    name: authUser?.name ?? 'Employee',
                     radius: 24,
-                    backgroundColor: AppColors.primaryContainer.withOpacity(0.1),
-                    child: Text(
-                      authUser?.name.substring(0, 1).toUpperCase() ?? 'F',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                        fontSize: 18,
-                      ),
-                    ),
+                    onTap: () => Navigator.pushNamed(context, '/profile'),
                   ),
                 ],
               ),

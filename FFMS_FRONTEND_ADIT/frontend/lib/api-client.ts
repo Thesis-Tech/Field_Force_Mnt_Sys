@@ -55,12 +55,19 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let res = await fetch(url.toString(), {
-    method,
-    headers,
-    credentials: "include",
-    ...(body && method !== "GET" ? { body: JSON.stringify(body) } : {}),
-  });
+  console.log(`[api-client] Requesting: ${method} ${url.toString()}`, { headers });
+  let res;
+  try {
+    res = await fetch(url.toString(), {
+      method,
+      headers,
+      credentials: "include",
+      ...(body && method !== "GET" ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch (fetchErr: any) {
+    console.error(`[api-client] Fetch failed for ${method} ${url.toString()}:`, fetchErr);
+    throw fetchErr;
+  }
 
   let json: ApiResponse<T> = await res.json();
 
@@ -206,8 +213,11 @@ export interface ApiUser {
   managerId: string | null;
   territoryId: string | null;
   territory?: { id: string; name: string } | null;
+  shiftId?: string | null;
+  shift?: { id: string; name: string; startTime: string; endTime: string } | null;
   lastActiveAt: string | null;
   createdAt: string;
+  employmentType?: string;
 }
 
 export const usersApi = {
@@ -390,6 +400,36 @@ export const geofenceApi = {
     request("GET", "/geofence/alerts", undefined, query),
 };
 
+// ─── Travel ──────────────────────────────────────────
+export const travelApi = {
+  getUserMonthlyAllowance: (userId: string, year: number, month: number) =>
+    request<{ totalDistanceKm: number; allowanceRate: number; totalAllowanceAmount: number; logs: any[] }>(
+      "GET",
+      "/travel/all",
+      undefined,
+      { userId, year, month }
+    ),
+};
+
+// ─── Advance ─────────────────────────────────────────
+export const advanceApi = {
+  getAll: (query?: Record<string, string | number | undefined>) =>
+    request<any[]>("GET", "/advance/all", undefined, query),
+  approve: (id: string) =>
+    request("PUT", `/advance/${id}/approve`),
+  reject: (id: string) =>
+    request("PUT", `/advance/${id}/reject`),
+};
+
+// ─── Shift ───────────────────────────────────────────
+export const shiftApi = {
+  list: () => request<any[]>("GET", "/shifts"),
+  get: (id: string) => request<any>("GET", `/shifts/${id}`),
+  create: (data: Record<string, unknown>) => request<any>("POST", "/shifts", data),
+  update: (id: string, data: Record<string, unknown>) => request<any>("PATCH", `/shifts/${id}`, data),
+  delete: (id: string) => request("DELETE", `/shifts/${id}`),
+};
+
 // ─── Map Services ────────────────────────────────────
 export const mapApi = {
   reverseGeocode: (lat: number | string, lng: number | string) =>
@@ -398,3 +438,5 @@ export const mapApi = {
 
 export { ApiError };
 export default request;
+
+

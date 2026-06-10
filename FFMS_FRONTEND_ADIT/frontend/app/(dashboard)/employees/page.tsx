@@ -6,7 +6,7 @@ import { fetchEmployees, createEmployee, removeEmployee, updateEmployeeThunk, Em
 import { getStatusColor } from "@/lib/utils";
 import { Plus, Search, Trash2, Pencil, X, Coins, FileText, Calculator, Printer, Network, ChevronDown, ChevronRight, User } from "lucide-react";
 import Link from "next/link";
-import { geofenceApi, attendanceApi, tasksApi } from "@/lib/api-client";
+import { geofenceApi, attendanceApi, tasksApi, travelApi, advanceApi, expensesApi, shiftApi } from "@/lib/api-client";
 
 const ROLES = ["FIELD_STAFF", "MANAGER", "ADMIN"];
 const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi Mumbai","Nashik"];
@@ -14,12 +14,100 @@ const DEFAULT_TERRITORIES = ["Mumbai North","Mumbai South","Thane","Pune","Navi 
 
 function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, currentUser }: { emp: Partial<Employee> | null; onClose: () => void; onSave: (e: any) => void; territories: any[]; allEmployees: Employee[]; currentUser: any }) {
   const isEditing = Boolean(emp?.id);
+  
+  const [shifts, setShifts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadShifts = async () => {
+      try {
+        const res = await shiftApi.list();
+        if (res && res.success) {
+          setShifts(res.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to load shifts inside EmployeeModal:", err);
+      }
+    };
+    loadShifts();
+  }, []);
+
+  const [geofenceEnabled, setGeofenceEnabled] = useState<boolean>(() => {
+    if (emp?.id) {
+      const saved = typeof window !== "undefined" ? localStorage.getItem(`geofence_settings_${emp.id}`) : null;
+      if (saved) {
+        try {
+          return JSON.parse(saved).geofenceEnabled || false;
+        } catch (e) {}
+      }
+    }
+    return false;
+  });
+
+  const [geofenceCenterLat, setGeofenceCenterLat] = useState<string>(() => {
+    if (emp?.id) {
+      const saved = typeof window !== "undefined" ? localStorage.getItem(`geofence_settings_${emp.id}`) : null;
+      if (saved) {
+        try {
+          return String(JSON.parse(saved).geofenceCenterLat ?? "");
+        } catch (e) {}
+      }
+    }
+    return "";
+  });
+
+  const [geofenceCenterLng, setGeofenceCenterLng] = useState<string>(() => {
+    if (emp?.id) {
+      const saved = typeof window !== "undefined" ? localStorage.getItem(`geofence_settings_${emp.id}`) : null;
+      if (saved) {
+        try {
+          return String(JSON.parse(saved).geofenceCenterLng ?? "");
+        } catch (e) {}
+      }
+    }
+    return "";
+  });
+
+  const [geofenceRadius, setGeofenceRadius] = useState<string>(() => {
+    if (emp?.id) {
+      const saved = typeof window !== "undefined" ? localStorage.getItem(`geofence_settings_${emp.id}`) : null;
+      if (saved) {
+        try {
+          return String(JSON.parse(saved).geofenceRadius ?? "100");
+        } catch (e) {}
+      }
+    }
+    return "100";
+  });
+
+  const [employmentType, setEmploymentType] = useState<string>(emp?.employmentType || "Full Time");
+
+  const getTerritoryCenter = (territoryId: string): { lat: number; lng: number } | null => {
+    const territory = territories.find(t => t.id === territoryId);
+    if (!territory || !territory.polygon || !territory.polygon.coordinates || !territory.polygon.coordinates[0]) {
+      return null;
+    }
+    const coords = territory.polygon.coordinates[0];
+    if (coords.length === 0) return null;
+    let sumLat = 0;
+    let sumLng = 0;
+    coords.forEach((c: any) => {
+      if (Array.isArray(c) && c.length >= 2) {
+        sumLng += c[0];
+        sumLat += c[1];
+      }
+    });
+    return {
+      lat: sumLat / coords.length,
+      lng: sumLng / coords.length
+    };
+  };
+
   const [form, setForm] = useState<Partial<Employee> & { empPrefix?: string, empSuffix?: string }>(() => {
     if (emp) {
       let employeeId = emp.employeeId || "";
       let empPrefix = employeeId.replace(/[0-9]/g, '') || "EMP";
       let empSuffix = employeeId.replace(/[^0-9]/g, '');
-      return { ...emp, password: "", empPrefix, empSuffix, territoryId: emp.territoryId || null };
+      return { ...emp, password: "", empPrefix, empSuffix, territoryId: emp.territoryId || null, shiftId: emp.shiftId || null };
     }
     let defaultTerrId: string | null = null;
     if (currentUser?.role === "MANAGER" && currentUser.territoryId) {
@@ -28,7 +116,7 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
     if (!defaultTerrId && territories.length > 0) {
       defaultTerrId = territories[0].id;
     }
-    return { name:"",email:"",phone:"",role:"FIELD_STAFF",territory:"",territoryId:defaultTerrId,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null };
+    return { name:"",email:"",phone:"",role:"FIELD_STAFF",territory:"",territoryId:defaultTerrId,status:"active", password: "", empPrefix: "EMP", empSuffix: "", managerId: currentUser?.role === "MANAGER" ? currentUser.id : null, shiftId: null };
   });
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -114,7 +202,17 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
             <select 
               className="input" 
               value={form.territoryId || ""} 
-              onChange={e=>set("territoryId",e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                set("territoryId", val);
+                if (val) {
+                  const center = getTerritoryCenter(val);
+                  if (center) {
+                    setGeofenceCenterLat(center.lat.toFixed(6));
+                    setGeofenceCenterLng(center.lng.toFixed(6));
+                  }
+                }
+              }}
             >
               {territories.length > 0 ? (
                 <>
@@ -139,6 +237,35 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
             </select>
           </div>
           <div>
+            <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Employment Type</label>
+            <select className="input" value={employmentType} onChange={e=>setEmploymentType(e.target.value)}>
+              <option value="Full Time">Full Time</option>
+              <option value="Part Time">Part Time</option>
+              <option value="Intern">Intern</option>
+            </select>
+            {/* Employment type determines working hours and leave policy */}
+            <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)", padding: "10px", marginTop: "8px", fontSize: "12px", borderRadius: "0px" }}>
+              {employmentType === "Full Time" && (
+                <div style={{ color: "var(--text-secondary)" }}>
+                  <strong>⏱️ Expected:</strong> 9 hours/day <br/>
+                  <strong>📅 Leave Entitlement:</strong> Full leave policy (28 days)
+                </div>
+              )}
+              {employmentType === "Part Time" && (
+                <div style={{ color: "var(--text-secondary)" }}>
+                  <strong>⏱️ Expected:</strong> 4-5 hours/day <br/>
+                  <strong>📅 Leave Entitlement:</strong> 50% leave entitlement (14 days)
+                </div>
+              )}
+              {employmentType === "Intern" && (
+                <div style={{ color: "var(--text-secondary)" }}>
+                  <strong>⏱️ Expected:</strong> 6 hours/day <br/>
+                  <strong>📅 Leave Entitlement:</strong> No paid leave (0 days)
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
             <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Reports To (Manager)</label>
             <select 
               className="input" 
@@ -158,6 +285,84 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
               )}
             </select>
           </div>
+          <div>
+            <label style={{ fontSize:"12px",fontWeight:600,color:"var(--text-secondary)",display:"block",marginBottom:"6px" }}>Work Shift</label>
+            <select 
+              className="input" 
+              value={form.shiftId || ""} 
+              onChange={e=>set("shiftId", e.target.value || "")}
+            >
+              <option value="">-- Use Company Default --</option>
+              {shifts.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.startTime} - {s.endTime})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Geofence Configuration */}
+          <div style={{ border: "1px solid var(--border)", padding: "12px", display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>Enable Geofence for this Employee</span>
+              <input 
+                type="checkbox" 
+                checked={geofenceEnabled} 
+                onChange={e => {
+                  const checked = e.target.checked;
+                  setGeofenceEnabled(checked);
+                  if (checked && form.territoryId && !geofenceCenterLat && !geofenceCenterLng) {
+                    const center = getTerritoryCenter(form.territoryId);
+                    if (center) {
+                      setGeofenceCenterLat(center.lat.toFixed(6));
+                      setGeofenceCenterLng(center.lng.toFixed(6));
+                    }
+                  }
+                }} 
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+            </div>
+            {geofenceEnabled && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div>
+                    <label style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Center Latitude</label>
+                    <input 
+                      type="number" 
+                      step="any"
+                      placeholder="e.g. 19.0760" 
+                      className="input" 
+                      style={{ padding: "6px 10px", fontSize: "12px" }}
+                      value={geofenceCenterLat} 
+                      onChange={e => setGeofenceCenterLat(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Center Longitude</label>
+                    <input 
+                      type="number" 
+                      step="any"
+                      placeholder="e.g. 72.8777" 
+                      className="input" 
+                      style={{ padding: "6px 10px", fontSize: "12px" }}
+                      value={geofenceCenterLng} 
+                      onChange={e => setGeofenceCenterLng(e.target.value)} 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Radius (meters)</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 150" 
+                    className="input" 
+                    style={{ padding: "6px 10px", fontSize: "12px" }}
+                    value={geofenceRadius} 
+                    onChange={e => setGeofenceRadius(e.target.value)} 
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <button className="btn-primary" style={{ width:"100%",justifyContent:"center",marginTop:"6px" }}
             onClick={()=>{
               // Require password for new employees
@@ -176,10 +381,19 @@ function EmployeeModal({ emp, onClose, onSave, territories, allEmployees, curren
                 name: form.name||"", email: form.email||"", phone: form.phone||"",
                 role: form.role || "FIELD_STAFF",
                 territoryId: form.territoryId || null,
+                shiftId: form.shiftId || null,
                 status: form.status === "inactive" ? "INACTIVE" : "ACTIVE",
                 avatar: avatarStr,
                 employeeId: empId,
                 managerId: form.managerId || null,
+                employmentType,
+                // Geofence is per-employee — not a global setting
+                geofenceSettings: {
+                  geofenceEnabled,
+                  geofenceCenterLat: geofenceCenterLat ? parseFloat(geofenceCenterLat) : null,
+                  geofenceCenterLng: geofenceCenterLng ? parseFloat(geofenceCenterLng) : null,
+                  geofenceRadius: geofenceRadius ? parseInt(geofenceRadius, 10) : 100
+                }
               };
               // Only include password when the user explicitly typed one
               if (form.password?.trim()) {
@@ -441,6 +655,82 @@ export default function EmployeesPage() {
   const payslipEmp = employees.find((e: Employee) => e.id === payslipEmpId);
   const payslipCalc = payslipEmp ? calculateSalary(payslipEmp.id, payslipEmp.role) : null;
 
+  // Salary slip configuration and fetched metrics
+  const [visibleSections, setVisibleSections] = useState({
+    basicSalary: true,
+    travelAllowance: true,
+    expenseReimbursements: true,
+    advanceDeductions: true,
+  });
+
+  const [payslipDataFetched, setPayslipDataFetched] = useState<{
+    travelAllowance: number;
+    expenses: number;
+    advances: number;
+    loading: boolean;
+  }>({
+    travelAllowance: 0,
+    expenses: 0,
+    advances: 0,
+    loading: false,
+  });
+
+  useEffect(() => {
+    if (!payslipEmpId) return;
+
+    const fetchPayslipMetrics = async () => {
+      setPayslipDataFetched({
+        travelAllowance: 0,
+        expenses: 0,
+        advances: 0,
+        loading: true,
+      });
+      try {
+        // // Salary slip pulls from attendance, travel, expense, and advance APIs
+        const [travelRes, expensesRes, advancesRes] = await Promise.all([
+          travelApi.getUserMonthlyAllowance(payslipEmpId, 2026, 5),
+          expensesApi.getAll({ userId: payslipEmpId, status: "APPROVED" }),
+          advanceApi.getAll({ userId: payslipEmpId, status: "APPROVED" }),
+        ]);
+
+        const travelAllowance = (travelRes as any)?.data?.totalAllowanceAmount ?? 0;
+
+        const expensesList = (expensesRes as any)?.data || expensesRes || [];
+        const expenses = Array.isArray(expensesList) ? expensesList.reduce((sum, exp: any) => {
+          const expDate = new Date(exp.date);
+          if (expDate.getFullYear() === 2026 && expDate.getMonth() === 4) { // May
+            return sum + (exp.amount || 0);
+          }
+          return sum;
+        }, 0) : 0;
+
+        const advancesList = (advancesRes as any)?.data || advancesRes || [];
+        const advances = Array.isArray(advancesList) ? advancesList.reduce((sum, adv: any) => {
+          return sum + (adv.amount || 0);
+        }, 0) : 0;
+
+        setPayslipDataFetched({
+          travelAllowance,
+          expenses,
+          advances,
+          loading: false,
+        });
+      } catch (err) {
+        console.error("Failed to fetch payslip metrics:", err);
+        setPayslipDataFetched(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchPayslipMetrics();
+  }, [payslipEmpId]);
+
+  const travelVal = visibleSections.travelAllowance ? payslipDataFetched.travelAllowance : 0;
+  const expenseVal = visibleSections.expenseReimbursements ? payslipDataFetched.expenses : 0;
+  const advanceVal = visibleSections.advanceDeductions ? payslipDataFetched.advances : 0;
+  const finalNetPay = payslipCalc
+    ? Math.max(0, (visibleSections.basicSalary ? payslipCalc.netPay : 0) + travelVal + expenseVal - advanceVal)
+    : 0;
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -685,7 +975,10 @@ export default function EmployeesPage() {
                           </div>
                           <div>
                             <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: depth === 0 ? 700 : 500 }}>{emp.name}</div>
-                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{emp.employeeId || "No ID"} • {emp.role === "FIELD_STAFF" ? "Field Staff" : emp.role === "MANAGER" ? "Manager" : emp.role === "ADMIN" ? "Admin" : emp.role}</div>
+                            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span>{emp.employeeId || "No ID"} • {emp.role === "FIELD_STAFF" ? "Field Staff" : emp.role === "MANAGER" ? "Manager" : emp.role === "ADMIN" ? "Admin" : emp.role}</span>
+                              <span className="badge badge-purple" style={{ fontSize: "9px", padding: "1px 4px", textTransform: "uppercase" }}>{emp.employmentType || "Full Time"}</span>
+                            </div>
                           </div>
                         </td>
                         <td style={{ padding: "16px 12px", fontSize: "13px", color: "var(--text-secondary)" }}>{emp.territory || "Head Office"}</td>
@@ -932,6 +1225,15 @@ export default function EmployeesPage() {
               if (emp.password) {
                 updateData.password = emp.password;
               }
+              // Geofence is per-employee — not a global setting
+              // TODO: Backend API needed — endpoint not yet available
+              if (emp.geofenceSettings) {
+                localStorage.setItem(`geofence_settings_${modal.emp.id}`, JSON.stringify(emp.geofenceSettings));
+              }
+              if (emp.employmentType) {
+                localStorage.setItem(`employment_type_${modal.emp.id}`, emp.employmentType);
+              }
+
               dispatch(updateEmployeeThunk({
                 id: modal.emp.id,
                 data: updateData,
@@ -957,7 +1259,15 @@ export default function EmployeesPage() {
                 managerId: emp.managerId,
               }))
                 .unwrap()
-                .then(() => {
+                .then((newEmp: any) => {
+                  // Geofence is per-employee — not a global setting
+                  // TODO: Backend API needed — endpoint not yet available
+                  if (emp.geofenceSettings && newEmp?.id) {
+                    localStorage.setItem(`geofence_settings_${newEmp.id}`, JSON.stringify(emp.geofenceSettings));
+                  }
+                  if (emp.employmentType && newEmp?.id) {
+                    localStorage.setItem(`employment_type_${newEmp.id}`, emp.employmentType);
+                  }
                   dispatch(fetchEmployees());
                   setModal({open:false,emp:null});
                 })
@@ -988,6 +1298,36 @@ export default function EmployeesPage() {
         <div className="modal-overlay" onClick={() => setPayslipEmpId(null)}>
           <div className="modal-box" style={{ maxWidth: "660px", padding: "30px", borderRadius: "0px", background: "#ffffff", border: "1.5px solid var(--accent-blue)", position: "relative" }} onClick={e => e.stopPropagation()}>
             
+            {/* Configurable Sections - admin toggle panel */}
+            <div className="no-print" style={{ background: "var(--bg-hover)", border: "1px solid var(--border)", padding: "14px", marginBottom: "20px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                Configurable Sections (Show/Hide)
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", fontSize: "12px", fontWeight: 600 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={visibleSections.basicSalary} disabled style={{ cursor: "not-allowed" }} />
+                  Basic Salary (Fixed)
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={visibleSections.travelAllowance} onChange={(e) => setVisibleSections(prev => ({ ...prev, travelAllowance: e.target.checked }))} />
+                  Travel Allowance
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={visibleSections.expenseReimbursements} onChange={(e) => setVisibleSections(prev => ({ ...prev, expenseReimbursements: e.target.checked }))} />
+                  Expense Reimbursements
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={visibleSections.advanceDeductions} onChange={(e) => setVisibleSections(prev => ({ ...prev, advanceDeductions: e.target.checked }))} />
+                  Advance Deductions
+                </label>
+              </div>
+              {payslipDataFetched.loading && (
+                <div style={{ fontSize: "11px", color: "var(--accent-blue)", marginTop: "6px", fontWeight: 700 }}>
+                  Fetching live travel, expense & advance logs...
+                </div>
+              )}
+            </div>
+
             {/* Payslip Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid var(--accent-blue)", paddingBottom: "16px", marginBottom: "20px" }}>
               <div>
@@ -1021,25 +1361,41 @@ export default function EmployeesPage() {
               <div>
                 <div style={{ fontSize: "13px", fontWeight: 800, color: "var(--accent-green)", borderBottom: "1.5px solid var(--border)", paddingBottom: "6px", marginBottom: "10px" }}>EARNINGS</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Basic Fixed Salary</span>
-                    <span style={{ fontWeight: 700 }}>₹{payslipCalc.base.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Task Completion Incentives</span>
-                    <span style={{ fontWeight: 700 }}>₹{payslipCalc.taskIncentive.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Performance Incentive Bonus</span>
-                    <span style={{ fontWeight: 700 }}>₹{payslipCalc.bonus.toLocaleString()}</span>
-                  </div>
+                  {visibleSections.basicSalary && (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Basic Fixed Salary</span>
+                        <span style={{ fontWeight: 700 }}>₹{payslipCalc.base.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Task Completion Incentives</span>
+                        <span style={{ fontWeight: 700 }}>₹{payslipCalc.taskIncentive.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Performance Incentive Bonus</span>
+                        <span style={{ fontWeight: 700 }}>₹{payslipCalc.bonus.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                  {visibleSections.travelAllowance && (
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "var(--accent-blue)" }}>
+                      <span>Travel Allowance (logs)</span>
+                      <span style={{ fontWeight: 700 }}>₹{payslipDataFetched.travelAllowance.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {visibleSections.expenseReimbursements && (
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "var(--accent-green)" }}>
+                      <span>Expense Claims</span>
+                      <span style={{ fontWeight: 700 }}>₹{payslipDataFetched.expenses.toLocaleString()}</span>
+                    </div>
+                  )}
                   
                   {/* Space filler */}
-                  <div style={{ height: "30px" }} />
+                  <div style={{ height: "10px" }} />
                   
                   <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1.5px solid var(--border)", paddingTop: "8px", fontSize: "13px", fontWeight: 800, color: "var(--text-primary)" }}>
                     <span>Gross Earnings</span>
-                    <span>₹{payslipCalc.gross.toLocaleString()}</span>
+                    <span>₹{((visibleSections.basicSalary ? payslipCalc.gross : 0) + travelVal + expenseVal).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -1048,25 +1404,35 @@ export default function EmployeesPage() {
               <div>
                 <div style={{ fontSize: "13px", fontWeight: 800, color: "var(--accent-red)", borderBottom: "1.5px solid var(--border)", paddingBottom: "6px", marginBottom: "10px" }}>DEDUCTIONS</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Loss of Pay (LOP Leaves: {payslipCalc.leaves})</span>
-                    <span style={{ fontWeight: 700 }}>₹{payslipCalc.lop.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Provident Fund (PF - 12%)</span>
-                    <span style={{ fontWeight: 700 }}>₹{payslipCalc.pf.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>Professional Tax (PT)</span>
-                    <span style={{ fontWeight: 700 }}>₹{payslipCalc.pt.toLocaleString()}</span>
-                  </div>
+                  {visibleSections.basicSalary && (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Loss of Pay (LOP Leaves: {payslipCalc.leaves})</span>
+                        <span style={{ fontWeight: 700 }}>₹{payslipCalc.lop.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Provident Fund (PF - 12%)</span>
+                        <span style={{ fontWeight: 700 }}>₹{payslipCalc.pf.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Professional Tax (PT)</span>
+                        <span style={{ fontWeight: 700 }}>₹{payslipCalc.pt.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                  {visibleSections.advanceDeductions && (
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "var(--accent-red)" }}>
+                      <span>Salary Advance Deduction</span>
+                      <span style={{ fontWeight: 700 }}>- ₹{payslipDataFetched.advances.toLocaleString()}</span>
+                    </div>
+                  )}
                   
                   {/* Space filler */}
-                  <div style={{ height: "30px" }} />
+                  <div style={{ height: "10px" }} />
 
                   <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1.5px solid var(--border)", paddingTop: "8px", fontSize: "13px", fontWeight: 800, color: "var(--text-primary)" }}>
                     <span>Total Deductions</span>
-                    <span>₹{payslipCalc.totalDeductions.toLocaleString()}</span>
+                    <span>₹{((visibleSections.basicSalary ? payslipCalc.totalDeductions : 0) + advanceVal).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -1077,11 +1443,11 @@ export default function EmployeesPage() {
             <div style={{ background: "var(--bg-hover)", border: "1px solid var(--border)", padding: "16px", marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-secondary)" }}>NET TAKE-HOME PAY</span>
-                <span style={{ fontSize: "20px", fontWeight: 900, color: "var(--accent-green)" }}>₹{payslipCalc.netPay.toLocaleString()}</span>
+                <span style={{ fontSize: "20px", fontWeight: 900, color: "var(--accent-green)" }}>₹{finalNetPay.toLocaleString()}</span>
               </div>
               <div style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: 700, fontStyle: "italic" }}>
                 <span style={{ fontWeight: 800, color: "var(--text-muted)" }}>In Words: </span>
-                {numberToWords(payslipCalc.netPay)}
+                {numberToWords(finalNetPay)}
               </div>
             </div>
 
@@ -1090,6 +1456,7 @@ export default function EmployeesPage() {
               <div>
                 <div>● This is an electronically generated payroll record.</div>
                 <div>● Generated securely by Admin Portal of FieldTrack.</div>
+                {/* Salary slip pulls from attendance, travel, expense, and advance APIs */}
               </div>
               <div style={{ textAlign: "center", borderTop: "1px solid var(--text-secondary)", width: "140px", paddingTop: "4px" }}>
                 Authorized HR Signatory
@@ -1097,7 +1464,7 @@ export default function EmployeesPage() {
             </div>
 
             {/* Footer Buttons */}
-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+            <div className="no-print" style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button className="btn-secondary" onClick={() => setPayslipEmpId(null)} style={{ padding: "8px 18px", borderRadius: "0px" }}>
                 Close
               </button>

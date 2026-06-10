@@ -2,16 +2,32 @@
 
 import React, { useState } from "react";
 import { X, Search } from "lucide-react";
+import { Employee } from "@/types/live-feed";
 
 interface PastFeedFilterProps {
   onClose: () => void;
-  employees: any[];
+  employees: Employee[];
   selectedEmpId: string;
   setSelectedEmpId: (id: string) => void;
+  onSearch: (employeeId: string, dateStr: string) => void;
 }
 
-export default function PastFeedFilter({ onClose, employees, selectedEmpId, setSelectedEmpId }: PastFeedFilterProps) {
-  const [dateStr, setDateStr] = useState("");
+export default function PastFeedFilter({
+  onClose,
+  employees,
+  selectedEmpId,
+  setSelectedEmpId,
+  onSearch
+}: PastFeedFilterProps) {
+  const [dateStr, setDateStr] = useState(() => {
+    // Default to today's date in local YYYY-MM-DD format
+    return new Date().toISOString().split("T")[0];
+  });
+
+  const handleSearch = () => {
+    if (!selectedEmpId) return;
+    onSearch(selectedEmpId, dateStr);
+  };
 
   return (
     <div style={{
@@ -23,6 +39,7 @@ export default function PastFeedFilter({ onClose, employees, selectedEmpId, setS
       gap: "16px"
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+        {/* Select Employee */}
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <label style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 500 }}>Select Employee</label>
           <select 
@@ -35,16 +52,18 @@ export default function PastFeedFilter({ onClose, employees, selectedEmpId, setS
               borderRadius: "6px",
               color: "var(--text-primary)",
               fontSize: "14px",
-              minWidth: "160px",
+              minWidth: "180px",
               outline: "none",
             }}
           >
+            <option value="">Choose an employee...</option>
             {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.name} ({emp.role})</option>
+              <option key={emp.id} value={emp.id}>{emp.name} ({emp.role === "MANAGER" ? "Manager" : "Field Staff"})</option>
             ))}
           </select>
         </div>
 
+        {/* Select Date */}
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <label style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 500 }}>Select Date</label>
           <input 
@@ -63,26 +82,33 @@ export default function PastFeedFilter({ onClose, employees, selectedEmpId, setS
           />
         </div>
 
+        {/* Search button */}
         <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "2px", height: "100%" }}>
-          <button style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            background: "var(--accent-blue)",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer"
-          }}>
+          <button 
+            onClick={handleSearch}
+            disabled={!selectedEmpId}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 16px",
+              background: selectedEmpId ? "var(--accent-blue)" : "#94a3b8",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: selectedEmpId ? "pointer" : "not-allowed",
+              transition: "background 0.2s ease"
+            }}
+          >
             <Search size={16} />
             View Audit Trail
           </button>
         </div>
       </div>
 
+      {/* Close button */}
       <button 
         onClick={onClose}
         style={{

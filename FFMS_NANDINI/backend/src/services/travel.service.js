@@ -210,9 +210,46 @@ const getMonthlySummary = async (userId) => {
   return { present, absent, leave, totalWorkingDays, month: month + 1, year };
 };
 
+const getUserMonthlyTravelAllowance = async (userId, year, month) => {
+  const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
+  const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+  const logs = await prisma.travelLog.findMany({
+    where: {
+      userId,
+      date: {
+        gte: startOfMonth,
+        lte: endOfMonth,
+      },
+    },
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { travelAllowanceRate: true },
+  });
+  const rate = user?.travelAllowanceRate ?? DEFAULT_TRAVEL_RATE;
+
+  let totalDistanceKm = 0;
+  let totalAllowanceAmount = 0;
+
+  for (const log of logs) {
+    totalDistanceKm += log.totalDistanceKm || 0;
+    totalAllowanceAmount += log.allowanceAmount ?? ((log.totalDistanceKm || 0) * rate);
+  }
+
+  return {
+    totalDistanceKm,
+    allowanceRate: rate,
+    totalAllowanceAmount,
+    logs,
+  };
+};
+
 module.exports = {
   getTodayTravelLog,
   upsertTravelLog,
   getTravelHistory,
   getMonthlySummary,
+  getUserMonthlyTravelAllowance,
 };

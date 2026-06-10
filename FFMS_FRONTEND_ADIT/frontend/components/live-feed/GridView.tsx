@@ -14,8 +14,8 @@ export default function GridView({ employees, gridSize, isPastFeed }: GridViewPr
   // Compute grid template columns based on gridSize
   let columns = 4;
   if (gridSize === 4) columns = 2;
-  else if (gridSize === 8) columns = 4;
-  else if (gridSize === 12) columns = 4;
+  else if (gridSize === 8) columns = 2;
+  else if (gridSize === 12) columns = 3;
   else if (gridSize === 16) columns = 4;
 
   if (isPastFeed) {

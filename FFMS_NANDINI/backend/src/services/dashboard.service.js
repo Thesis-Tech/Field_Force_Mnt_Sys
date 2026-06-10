@@ -23,6 +23,9 @@ const getAdminDashboard = async (organizationId, role, userId) => {
   }
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
+  sevenDaysAgo.setUTCHours(0, 0, 0, 0);
 
   const [
     totalCheckedIn,
@@ -43,7 +46,10 @@ const getAdminDashboard = async (organizationId, role, userId) => {
     staffAssignments,
     totalAttendancesCount,
     territories,
-    managers
+    managers,
+    attendancesLastWeek,
+    completedTasksLastWeek,
+    visitReportsLastWeek
   ] = await Promise.all([
     prisma.attendance.count({ where: { user: { organizationId }, date: todayDate } }),
     prisma.attendance.count({ where: { user: { organizationId }, date: todayDate, isLate: true } }),
@@ -65,7 +71,11 @@ const getAdminDashboard = async (organizationId, role, userId) => {
       select: {
         id: true, name: true, employeeId: true,
         taskAssignments: { where: { status: 'COMPLETED', task: taskFilter }, select: { rating: true } },
-        visitReports: { select: { id: true } }
+        _count: {
+          select: {
+            visitReports: true
+          }
+        }
       }
     }),
     prisma.attendance.count({ where: { user: { organizationId }, date: { gte: thirtyDaysAgo } } }),
@@ -81,39 +91,64 @@ const getAdminDashboard = async (organizationId, role, userId) => {
       select: {
         id: true, name: true, email: true, phone: true, createdAt: true, status: true, department: true,
         subordinates: { select: { id: true, name: true, email: true, phone: true, status: true, taskAssignments: { where: { status: 'COMPLETED' }, select: { id: true, rating: true } } } },
-        projectsManaged: { select: { id: true } }
+        _count: {
+          select: {
+            projectsManaged: true
+          }
+        }
       }
+    }),
+    prisma.attendance.findMany({
+      where: { user: { organizationId }, date: { gte: sevenDaysAgo } },
+      select: { date: true }
+    }),
+    prisma.task.findMany({
+      where: { organizationId, status: 'COMPLETED', updatedAt: { gte: sevenDaysAgo }, ...taskFilter },
+      select: { updatedAt: true }
+    }),
+    prisma.visitReport.findMany({
+      where: { user: { organizationId }, createdAt: { gte: sevenDaysAgo } },
+      select: { createdAt: true }
     })
   ]);
 
   const totalAbsent = Math.max(0, totalFieldStaff - totalCheckedIn);
 
-  // 4. weeklyActivity (last 7 days)
-  const weeklyActivityPromises = [];
+  // 4. weeklyActivity (last 7 days - grouped in memory)
+  const weeklyActivity = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     const localNow = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
     localNow.setUTCDate(localNow.getUTCDate() - i);
     const dStr = localNow.toISOString().split('T')[0];
-    const dateQuery = new Date(`${dStr}T00:00:00.000Z`);
-    const dateQueryEnd = new Date(`${dStr}T23:59:59.999Z`);
 
-    weeklyActivityPromises.push(
-      Promise.all([
-        prisma.attendance.count({ where: { user: { organizationId }, date: dateQuery } }),
-        prisma.task.count({ where: { organizationId, status: 'COMPLETED', updatedAt: { gte: dateQuery, lte: dateQueryEnd }, ...taskFilter } }),
-        prisma.visitReport.count({ where: { user: { organizationId }, createdAt: { gte: dateQuery, lte: dateQueryEnd } } })
-      ]).then(([checkIns, tasksCompleted, visits]) => ({
-        date: dStr, checkIns, tasksCompleted, visits
-      }))
-    );
+    const checkIns = attendancesLastWeek.filter(att => {
+      const attStr = new Date(att.date.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+      return attStr === dStr;
+    }).length;
+
+    const tasksCompletedCount = completedTasksLastWeek.filter(task => {
+      const taskStr = new Date(task.updatedAt.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+      return taskStr === dStr;
+    }).length;
+
+    const visits = visitReportsLastWeek.filter(visit => {
+      const visitStr = new Date(visit.createdAt.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+      return visitStr === dStr;
+    }).length;
+
+    weeklyActivity.push({
+      date: dStr,
+      checkIns,
+      tasksCompleted: tasksCompletedCount,
+      visits
+    });
   }
-  const weeklyActivity = await Promise.all(weeklyActivityPromises);
 
   const topPerformers = staffAssignments
     .map(staff => {
       const completedCount = staff.taskAssignments.length;
-      const visitsCount = staff.visitReports.length;
+      const visitsCount = staff._count.visitReports;
       const ratings = staff.taskAssignments.map(a => a.rating).filter(r => r !== null);
       const avgRating = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
 
@@ -148,7 +183,7 @@ const getAdminDashboard = async (organizationId, role, userId) => {
     const avgRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
     const score = Math.round(avgRating * 20);
     const teamSize = mgr.subordinates.length;
-    const assignedProjects = mgr.projectsManaged.length;
+    const assignedProjects = mgr._count.projectsManaged;
 
     return {
       id: mgr.id,

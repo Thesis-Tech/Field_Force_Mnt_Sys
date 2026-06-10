@@ -22,10 +22,21 @@ class ApiService {
     try {
       await dotenv.load(fileName: '.env');
     } catch (e) {
-      // Fallback if dotenv file fails to load
+      // Fallback if dotenv file fails to load (common in background isolates)
     }
 
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:5000/api/v1';
+    String? envBaseUrl = dotenv.env['API_BASE_URL'];
+    if (envBaseUrl != null) {
+      await StorageHelper.saveApiBaseUrl(envBaseUrl);
+    } else {
+      envBaseUrl = StorageHelper.getApiBaseUrl();
+    }
+    final String baseUrl = envBaseUrl ?? 'http://localhost:5000/api/v1';
+
+    final gpsEndpoint = dotenv.env['GPS_TRACKING_ENDPOINT'];
+    if (gpsEndpoint != null) {
+      await StorageHelper.saveGpsTrackingEndpoint(gpsEndpoint);
+    }
 
     _dio = Dio(
       BaseOptions(

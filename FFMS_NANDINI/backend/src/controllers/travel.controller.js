@@ -69,9 +69,27 @@ const getMonthlyAttendanceSummary = async (req, res, next) => {
   }
 };
 
+const getAllTravelLogs = async (req, res, next) => {
+  try {
+    const { userId, year, month } = req.query;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: { message: 'userId is required' } });
+    }
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+
+    const data = await travelService.getUserMonthlyTravelAllowance(userId, currentYear, currentMonth);
+    return successResponse(res, data);
+  } catch (err) {
+    logger.error('getAllTravelLogs error:', err);
+    next(err);
+  }
+};
+
 module.exports = {
   getMyTodayTravel,
   upsertMyTravelLog,
   getMyTravelHistory,
   getMonthlyAttendanceSummary,
+  getAllTravelLogs,
 };

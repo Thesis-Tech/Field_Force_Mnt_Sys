@@ -157,6 +157,8 @@ const getLiveLocations = async (organizationId) => {
         longitude: lastLog.longitude,
         battery: lastLog.batteryLevel,
         isMoving: lastLog.isMoving,
+        speed: lastLog.speed,
+        accuracy: lastLog.accuracy,
         recordedAt: lastLog.recordedAt,
         territory: staff.territory
       };

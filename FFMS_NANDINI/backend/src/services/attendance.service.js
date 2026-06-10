@@ -24,8 +24,18 @@ const isPointInPolygon = (lat, lng, polygon) => {
   return inside;
 };
 
-// Retrieve shift configuration from env
-const getShiftConfig = () => {
+// Retrieve shift configuration from database or env fallback
+const getShiftConfig = (shift) => {
+  if (shift) {
+    const [startHours, startMinutes] = shift.startTime.split(':').map(Number);
+    const [endHours, endMinutes] = shift.endTime.split(':').map(Number);
+    return {
+      startMinutes: startHours * 60 + startMinutes,
+      endMinutes: endHours * 60 + endMinutes,
+      lateThreshold: shift.gracePeriod
+    };
+  }
+
   const shiftStart = process.env.DEFAULT_SHIFT_START || '09:00';
   const shiftEnd = process.env.DEFAULT_SHIFT_END || '18:00';
   const lateThreshold = parseInt(process.env.LATE_THRESHOLD_MINUTES || '15');
@@ -103,10 +113,14 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
 
   const sessionNumber = count + 1;
 
-  // 1.5 Geofence check
+  // 1.5 Geofence check & shift config
   const userRecord = await prisma.user.findUnique({
     where: { id: userId },
-    select: { territoryId: true }
+    select: { 
+      territoryId: true,
+      shiftId: true,
+      shift: true
+    }
   });
 
   if (userRecord && userRecord.territoryId) {
@@ -130,7 +144,7 @@ const checkIn = async (userId, { latitude, longitude, selfieBase64 }, organizati
   }
 
   // 3. Determine if late
-  const { startMinutes, lateThreshold } = getShiftConfig();
+  const { startMinutes, lateThreshold } = getShiftConfig(userRecord?.shift);
   
   // Get check-in time in minutes from midnight (local time)
   const { hours, minutes } = getLocalHoursAndMinutes(now);
@@ -198,7 +212,7 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
     },
     include: {
       user: {
-        select: { name: true }
+        select: { name: true, shiftId: true, shift: true }
       }
     }
   });
@@ -212,7 +226,7 @@ const checkOut = async (userId, { latitude, longitude }, organizationId) => {
   const workingMinutes = Math.floor((now - checkInTime) / 60000);
 
   // 3. Determine if early logout
-  const { endMinutes } = getShiftConfig();
+  const { endMinutes } = getShiftConfig(openSession.user?.shift);
   const { hours, minutes } = getLocalHoursAndMinutes(now);
   const currentMinutes = hours * 60 + minutes;
   const isEarlyLogout = currentMinutes < endMinutes;

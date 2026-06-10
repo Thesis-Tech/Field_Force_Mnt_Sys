@@ -18,7 +18,6 @@ export interface Manager {
   avatar: string;
   phone: string;
   joinedDate: string;
-  joinedDate: string;
   performanceScore: number;
   team?: {
     id: string;

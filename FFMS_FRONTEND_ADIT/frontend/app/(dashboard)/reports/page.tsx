@@ -269,35 +269,91 @@ export default function ReportsPage() {
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>Working Hours</th>
+                <th>Expected Hours</th>
+                <th>Performance Target</th>
+                <th>Leave Entitlement</th>
                 <th>Assigned Territory</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {filteredAttendance.length > 0 ? (
-                filteredAttendance.map((log: any) => (
-                  <tr key={log.id}>
-                    <td style={{ fontWeight: 600 }}>{log.name}</td>
-                    <td>{log.checkIn}</td>
-                    <td>{log.checkOut}</td>
-                    <td style={{ fontFamily: "var(--font-jetbrains), monospace" }}>{log.hours}</td>
-                    <td>{log.location}</td>
-                    <td>
-                      <span className={`badge ${
-                        log.status === "present" 
-                          ? "badge-green" 
-                          : log.status === "late" 
-                          ? "badge-orange" 
-                          : "badge-red"
-                      }`}>
-                        {log.status.toUpperCase()}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                filteredAttendance.map((log: any) => {
+                  const emp = employees.find(e => e.id === log.employeeId || e.name === log.name);
+                  const empType = emp?.employmentType || "Full Time";
+                  
+                  let expectedHoursVal = 9.0;
+                  let leaveEntitlement = "Full (28 days)";
+                  if (empType === "Part Time") {
+                    expectedHoursVal = 4.5;
+                    leaveEntitlement = "50% (14 days)";
+                  } else if (empType === "Intern") {
+                    expectedHoursVal = 6.0;
+                    leaveEntitlement = "None (0 days)";
+                  }
+
+                  const parseHours = (hoursStr: string): number => {
+                    if (!hoursStr || hoursStr === "Active" || hoursStr === "--") return 0;
+                    const match = hoursStr.match(/(\d+)h\s*(\d*)m?/);
+                    if (match) {
+                      const hrs = parseInt(match[1]) || 0;
+                      const mins = parseInt(match[2]) || 0;
+                      return hrs + (mins / 60);
+                    }
+                    return 0;
+                  };
+                  const actualHoursVal = parseHours(log.hours);
+
+                  // Duration tracking used for leave allotment calculation
+                  let targetStatusText = "Met Target";
+                  let targetBadgeColor = "badge-green";
+                  if (actualHoursVal === 0) {
+                    targetStatusText = "No Hours";
+                    targetBadgeColor = "badge-red";
+                  } else if (actualHoursVal < expectedHoursVal) {
+                    if (actualHoursVal >= expectedHoursVal * 0.8) {
+                      targetStatusText = "Slightly Under";
+                      targetBadgeColor = "badge-orange";
+                    } else {
+                      targetStatusText = "Significantly Under";
+                      targetBadgeColor = "badge-red";
+                    }
+                  }
+
+                  return (
+                    <tr key={log.id}>
+                      <td style={{ fontWeight: 600 }}>
+                        <div>{log.name}</div>
+                        <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 500 }}>{empType}</div>
+                      </td>
+                      <td>{log.checkIn}</td>
+                      <td>{log.checkOut}</td>
+                      <td style={{ fontFamily: "var(--font-jetbrains), monospace" }}>{log.hours}</td>
+                      <td>{expectedHoursVal} hrs</td>
+                      <td>
+                        <span className={`badge ${targetBadgeColor}`}>
+                          {targetStatusText}
+                        </span>
+                      </td>
+                      <td>{leaveEntitlement}</td>
+                      <td>{log.location}</td>
+                      <td>
+                        <span className={`badge ${
+                          log.status === "present" 
+                            ? "badge-green" 
+                            : log.status === "late" 
+                            ? "badge-orange" 
+                            : "badge-red"
+                        }`}>
+                          {log.status.toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>
+                  <td colSpan={9} style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>
                     <AlertCircle size={20} style={{ margin: "0 auto 8px" }} />
                     No attendance records found matching your filters.
                   </td>

@@ -1,3 +1,14 @@
+export interface HistoryLog {
+  id: string;
+  userId: string;
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  speed?: number;
+  recordedAt: string;
+  batteryLevel?: number;
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -14,4 +25,13 @@ export interface Employee {
   phone: string;
   avatar: string;
   email: string;
+  inTime?: string;
+  outTime?: string;
+  tasksToday?: number;
+  speed?: number;
+  accuracy?: number;
+  isMoving?: boolean;
+  historyLogs?: HistoryLog[];
 }
+
+
