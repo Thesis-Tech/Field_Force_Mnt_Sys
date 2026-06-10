@@ -5,24 +5,15 @@ const prisma = require('./prisma');
 const logger = require('./logger');
 let io = null;
 
-// CORS origin checker for Socket.IO
-// Reads allowed origins from ALLOWED_ORIGINS env variable
-// Never hardcode URLs here — add to .env instead
-const _allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000'];
-
 const _checkOrigin = (origin, callback) => {
-  // Allow requests with no origin (mobile apps, Postman, server-to-server)
   if (!origin) return callback(null, true);
-  // Check exact match
-  if (_allowedOrigins.includes(origin)) return callback(null, true);
-  // Allow all Vercel preview deployments for this project
+  const allowed = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:3000'];
+  if (allowed.includes(origin)) return callback(null, true);
   if (origin.includes('vercel.app')) return callback(null, true);
-  // Allow localhost for local development
   if (origin.includes('localhost')) return callback(null, true);
-  // Block everything else
-  return callback(new Error('CORS: origin not allowed — ' + origin));
+  return callback(new Error('CORS blocked: ' + origin));
 };
 
 const initSocket = (server) => {
