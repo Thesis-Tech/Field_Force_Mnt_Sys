@@ -32,7 +32,10 @@ const getLiveLocations = async (req, res, next) => {
       const live = await locationService.getSingleLiveLocation(userId, req.user.organizationId);
       return successResponse(res, live);
     }
-    const liveLocations = await locationService.getLiveLocations(req.user.organizationId);
+    const liveLocations = await locationService.getLiveLocations(
+      req.user.organizationId,
+      req.user.role === 'MANAGER' ? req.user.id : null
+    );
     return successResponse(res, liveLocations);
   } catch (err) {
     next(err);

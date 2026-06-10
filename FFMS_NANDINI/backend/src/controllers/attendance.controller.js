@@ -90,7 +90,7 @@ const getAttendanceSummary = async (req, res, next) => {
       throw new BadRequestError('startDate and endDate query parameters are required');
     }
 
-    const summary = await attendanceService.getAttendanceSummary(startDate, endDate, req.user.organizationId);
+    const summary = await attendanceService.getAttendanceSummary(startDate, endDate, req.user.organizationId, req.user);
     return successResponse(res, summary);
   } catch (err) {
     next(err);
@@ -102,7 +102,7 @@ const getAttendanceSummary = async (req, res, next) => {
  */
 const getTodayAttendance = async (req, res, next) => {
   try {
-    const liveToday = await attendanceService.getTodayAttendance(req.user.organizationId);
+    const liveToday = await attendanceService.getTodayAttendance(req.user.organizationId, req.user);
     return successResponse(res, liveToday);
   } catch (err) {
     next(err);

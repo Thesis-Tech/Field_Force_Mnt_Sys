@@ -38,7 +38,7 @@ export default function MapPage() {
               ...emp,
               lat: live.latitude,
               lng: live.longitude,
-              status: "active",
+              status: live.isOnline ? "active" : "inactive",
             };
           }
           return {

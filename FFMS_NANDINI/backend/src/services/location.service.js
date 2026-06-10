@@ -4,6 +4,7 @@ const { NotFoundError } = require('../utils/errors');
 const logger = require('../config/logger');
 const redis = require('../config/redis');
 const { locationWriteQueue } = require('../jobs/locationWrite.job');
+const { getLocalDate } = require('../utils/timezone');
 
 /**
  * Calculate distance between two coordinates using the Haversine formula
@@ -111,61 +112,151 @@ const batchInsertLocation = async (userId, locations, organizationId) => {
 /**
  * Get live status of all field staff locations in last 2 hours
  */
-const getLiveLocations = async (organizationId) => {
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-
-  // Fetch all users in organization with their last location log after twoHoursAgo
+const getLiveLocations = async (organizationId, managerId = null) => {
+  // 1. Fetch all active field staff users
   const fieldStaff = await prisma.user.findMany({
     where: {
       organizationId,
       role: 'FIELD_STAFF',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      ...(managerId && { managerId })
     },
     select: {
       id: true,
       name: true,
       role: true,
       status: true,
+      lastActiveAt: true,
       territory: {
         select: {
           id: true,
           name: true,
           polygon: true
         }
-      },
-      locationLogs: {
-        where: {
-          recordedAt: { gte: twoHoursAgo }
-        },
-        orderBy: { recordedAt: 'desc' },
-        take: 1
       }
     }
   });
 
-  // Map to structure containing the last log
-  const liveLocations = fieldStaff
-    .map(staff => {
+  if (fieldStaff.length === 0) return [];
+
+  // 2. Fetch cached locations from Redis in parallel/pipeline
+  const redisKeys = fieldStaff.map(staff => `user:${staff.id}:location`);
+  let cachedLocations = [];
+  try {
+    cachedLocations = await redis.mget(redisKeys);
+  } catch (err) {
+    logger.error('Redis mget error in getLiveLocations:', err);
+  }
+
+  // 3. Identify users who don't have cached location in Redis
+  const usersNeedDbFallback = [];
+  const liveLocationsMap = new Map();
+
+  fieldStaff.forEach((staff, index) => {
+    const cached = cachedLocations[index];
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        liveLocationsMap.set(staff.id, {
+          userId: staff.id,
+          name: staff.name,
+          role: staff.role,
+          latitude: parsed.latitude || parsed.lat,
+          longitude: parsed.longitude || parsed.lng,
+          battery: parsed.batteryLevel,
+          isMoving: parsed.isMoving,
+          speed: parsed.speed,
+          accuracy: parsed.accuracy,
+          recordedAt: parsed.recordedAt || new Date(parsed.timestamp),
+          territory: staff.territory,
+          isOnline: true
+        });
+      } catch (e) {
+        usersNeedDbFallback.push(staff.id);
+      }
+    } else {
+      usersNeedDbFallback.push(staff.id);
+    }
+  });
+
+  // 4. For users not cached in Redis, query database for their latest location log
+  if (usersNeedDbFallback.length > 0) {
+    const dbStaff = await prisma.user.findMany({
+      where: {
+        id: { in: usersNeedDbFallback }
+      },
+      select: {
+        id: true,
+        locationLogs: {
+          orderBy: { recordedAt: 'desc' },
+          take: 1
+        },
+        attendances: {
+          where: {
+            date: getLocalDate()
+          },
+          orderBy: { sessionNumber: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+
+    dbStaff.forEach(staff => {
       const lastLog = staff.locationLogs[0] || null;
-      if (!lastLog) return null;
+      const todayAttendance = staff.attendances[0] || null;
+      const staffInfo = fieldStaff.find(s => s.id === staff.id);
 
-      return {
-        userId: staff.id,
-        name: staff.name,
-        role: staff.role,
-        latitude: lastLog.latitude,
-        longitude: lastLog.longitude,
-        battery: lastLog.batteryLevel,
-        isMoving: lastLog.isMoving,
-        speed: lastLog.speed,
-        accuracy: lastLog.accuracy,
-        recordedAt: lastLog.recordedAt,
-        territory: staff.territory
-      };
-    })
-    .filter(Boolean); // Remove null logs
+      let latitude = null;
+      let longitude = null;
+      let recordedAt = null;
+      let battery = null;
+      let isMoving = false;
+      let speed = null;
+      let accuracy = null;
 
-  return liveLocations;
+      if (lastLog) {
+        latitude = lastLog.latitude;
+        longitude = lastLog.longitude;
+        recordedAt = lastLog.recordedAt;
+        battery = lastLog.batteryLevel;
+        isMoving = lastLog.isMoving;
+        speed = lastLog.speed;
+        accuracy = lastLog.accuracy;
+      } else if (todayAttendance && todayAttendance.checkInLatitude && todayAttendance.checkInLongitude) {
+        latitude = todayAttendance.checkInLatitude;
+        longitude = todayAttendance.checkInLongitude;
+        recordedAt = todayAttendance.checkInTime || todayAttendance.createdAt;
+      }
+
+      // Online if location logged in last 2 hours OR checked in today OR logged in in last 12 hours
+      const isOnline = 
+        (lastLog && new Date(lastLog.recordedAt) >= twoHoursAgo) ||
+        (staffInfo.lastActiveAt && new Date(staffInfo.lastActiveAt) >= twelveHoursAgo) ||
+        !!todayAttendance;
+
+      if (latitude && longitude && latitude !== 0 && longitude !== 0) {
+        liveLocationsMap.set(staff.id, {
+          userId: staff.id,
+          name: staffInfo.name,
+          role: staffInfo.role,
+          latitude,
+          longitude,
+          battery,
+          isMoving,
+          speed,
+          accuracy,
+          recordedAt,
+          territory: staffInfo.territory,
+          isOnline
+        });
+      }
+    });
+  }
+
+  return Array.from(liveLocationsMap.values());
 };
 
 /**

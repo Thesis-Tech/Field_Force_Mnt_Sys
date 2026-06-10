@@ -16,7 +16,7 @@ const getAll = async (req, res, next) => {
     const { page, limit } = req.query
     const data = await notificationService.getAllNotifications(req.user.organizationId, {
       page: +page || 1, limit: +limit || 50
-    })
+    }, req.user)
     return successResponse(res, data)
   } catch (err) { next(err) }
 }

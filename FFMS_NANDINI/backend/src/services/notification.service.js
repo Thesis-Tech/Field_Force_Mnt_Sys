@@ -44,10 +44,18 @@ const getMyNotifications = async (userId, { page = 1, limit = 20 } = {}) => {
 }
 
 // ─── Get all notifications (Admin) ─────────────────────────────────
-const getAllNotifications = async (organizationId, { page = 1, limit = 50 } = {}) => {
+const getAllNotifications = async (organizationId, { page = 1, limit = 50 } = {}, requestingUser = null) => {
   const where = {
     user: { organizationId }
   }
+
+  if (requestingUser && requestingUser.role === 'MANAGER') {
+    where.OR = [
+      { userId: requestingUser.id },
+      { user: { managerId: requestingUser.id } }
+    ]
+  }
+
   const [notifications, total] = await Promise.all([
     prisma.notification.findMany({
       where,

@@ -327,7 +327,8 @@ const listAttendance = async ({
 
   const where = {
     user: {
-      organizationId
+      organizationId,
+      ...(requestingUser.role === 'MANAGER' && { managerId: requestingUser.id })
     },
     ...(targetUserId && { userId: targetUserId }),
     ...(status && { status }),
@@ -364,34 +365,46 @@ const listAttendance = async ({
   // Calculate stats for target user (if querying a single user)
   let statsSummary = null;
   if (targetUserId) {
-    const summaryAggregates = await prisma.attendance.aggregate({
-      where: { userId: targetUserId },
-      _count: { id: true },
-      _sum: { workingMinutes: true }
-    });
+    let hasAccess = true;
+    if (requestingUser.role === 'MANAGER') {
+      const isSubordinate = await prisma.user.findFirst({
+        where: { id: targetUserId, managerId: requestingUser.id }
+      });
+      if (!isSubordinate) {
+        hasAccess = false;
+      }
+    }
 
-    const totalDays = summaryAggregates._count.id;
-    const totalMinutes = summaryAggregates._sum.workingMinutes || 0;
+    if (hasAccess) {
+      const summaryAggregates = await prisma.attendance.aggregate({
+        where: { userId: targetUserId },
+        _count: { id: true },
+        _sum: { workingMinutes: true }
+      });
 
-    const presentDays = await prisma.attendance.count({
-      where: { userId: targetUserId, status: { in: ['PRESENT', 'LATE'] } }
-    });
+      const totalDays = summaryAggregates._count.id;
+      const totalMinutes = summaryAggregates._sum.workingMinutes || 0;
 
-    const lateDays = await prisma.attendance.count({
-      where: { userId: targetUserId, isLate: true }
-    });
+      const presentDays = await prisma.attendance.count({
+        where: { userId: targetUserId, status: { in: ['PRESENT', 'LATE'] } }
+      });
 
-    const earlyLogouts = await prisma.attendance.count({
-      where: { userId: targetUserId, isEarlyLogout: true }
-    });
+      const lateDays = await prisma.attendance.count({
+        where: { userId: targetUserId, isLate: true }
+      });
 
-    statsSummary = {
-      totalRecords: totalDays,
-      presentDays,
-      lateDays,
-      earlyLogouts,
-      avgWorkingHours: totalDays > 0 ? parseFloat(((totalMinutes / 60) / totalDays).toFixed(2)) : 0
-    };
+      const earlyLogouts = await prisma.attendance.count({
+        where: { userId: targetUserId, isEarlyLogout: true }
+      });
+
+      statsSummary = {
+        totalRecords: totalDays,
+        presentDays,
+        lateDays,
+        earlyLogouts,
+        avgWorkingHours: totalDays > 0 ? parseFloat(((totalMinutes / 60) / totalDays).toFixed(2)) : 0
+      };
+    }
   }
 
   return {
@@ -409,10 +422,11 @@ const listAttendance = async ({
 /**
  * Get attendance stats per date range
  */
-const getAttendanceSummary = async (startDate, endDate, organizationId) => {
+const getAttendanceSummary = async (startDate, endDate, organizationId, requestingUser = null) => {
   const where = {
     user: {
-      organizationId
+      organizationId,
+      ...(requestingUser && requestingUser.role === 'MANAGER' && { managerId: requestingUser.id })
     },
     date: {
       gte: new Date(`${startDate}T00:00:00.000Z`),
@@ -453,7 +467,7 @@ const getAttendanceSummary = async (startDate, endDate, organizationId) => {
 /**
  * Live today's attendance status for all field staff
  */
-const getTodayAttendance = async (organizationId) => {
+const getTodayAttendance = async (organizationId, requestingUser = null) => {
   const todayDate = getLocalDate();
 
   // Fetch all active field staff users
@@ -461,7 +475,8 @@ const getTodayAttendance = async (organizationId) => {
     where: {
       organizationId,
       role: 'FIELD_STAFF',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      ...(requestingUser && requestingUser.role === 'MANAGER' && { managerId: requestingUser.id })
     },
     select: {
       id: true,

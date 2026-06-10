@@ -51,9 +51,9 @@ const getAdminDashboard = async (organizationId, role, userId) => {
     completedTasksLastWeek,
     visitReportsLastWeek
   ] = await Promise.all([
-    prisma.attendance.count({ where: { user: { organizationId }, date: todayDate } }),
-    prisma.attendance.count({ where: { user: { organizationId }, date: todayDate, isLate: true } }),
-    prisma.user.count({ where: { organizationId, role: 'FIELD_STAFF', status: 'ACTIVE' } }),
+    prisma.attendance.count({ where: { user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) }, date: todayDate } }),
+    prisma.attendance.count({ where: { user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) }, date: todayDate, isLate: true } }),
+    prisma.user.count({ where: { organizationId, role: 'FIELD_STAFF', status: 'ACTIVE', ...(role === 'MANAGER' && { managerId: userId }) } }),
     prisma.task.count({ where: { organizationId, status: 'COMPLETED', updatedAt: { gte: todayDate }, ...taskFilter } }),
     prisma.task.count({ where: { organizationId, status: { in: ['PENDING', 'IN_PROGRESS'] }, dueDate: { lt: new Date() }, ...taskFilter } }),
     prisma.task.count({ where: { organizationId, status: 'PENDING', ...taskFilter } }),
@@ -61,13 +61,13 @@ const getAdminDashboard = async (organizationId, role, userId) => {
     prisma.task.count({ where: { organizationId, status: 'COMPLETED', ...taskFilter } }),
     prisma.task.count({ where: { organizationId, status: 'CANCELLED', ...taskFilter } }),
     prisma.task.count({ where: { organizationId, status: { in: ['PENDING', 'IN_PROGRESS'] }, dueDate: { lt: new Date() }, ...taskFilter } }),
-    getLiveLocations(organizationId),
-    prisma.user.count({ where: { organizationId, role: 'MANAGER', status: 'ACTIVE' } }),
-    prisma.project.count({ where: { organizationId, status: 'ACTIVE' } }),
-    prisma.leave.count({ where: { status: 'PENDING', user: { organizationId } } }),
-    prisma.expense.count({ where: { status: 'SUBMITTED', user: { organizationId } } }),
+    getLiveLocations(organizationId, role === 'MANAGER' ? userId : null),
+    prisma.user.count({ where: { organizationId, role: 'MANAGER', status: 'ACTIVE', ...(role === 'MANAGER' && { id: userId }) } }),
+    prisma.project.count({ where: { organizationId, status: 'ACTIVE', ...(role === 'MANAGER' && { managerId: userId }) } }),
+    prisma.leave.count({ where: { status: 'PENDING', user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) } } }),
+    prisma.expense.count({ where: { status: 'SUBMITTED', user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) } } }),
     prisma.user.findMany({
-      where: { organizationId, role: 'FIELD_STAFF', status: 'ACTIVE' },
+      where: { organizationId, role: 'FIELD_STAFF', status: 'ACTIVE', ...(role === 'MANAGER' && { managerId: userId }) },
       select: {
         id: true, name: true, employeeId: true,
         taskAssignments: { where: { status: 'COMPLETED', task: taskFilter }, select: { rating: true } },
@@ -78,16 +78,16 @@ const getAdminDashboard = async (organizationId, role, userId) => {
         }
       }
     }),
-    prisma.attendance.count({ where: { user: { organizationId }, date: { gte: thirtyDaysAgo } } }),
+    prisma.attendance.count({ where: { user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) }, date: { gte: thirtyDaysAgo } } }),
     prisma.territory.findMany({
       where: { organizationId },
       select: {
         id: true, name: true,
-        users: { where: { role: 'FIELD_STAFF', status: 'ACTIVE' }, select: { id: true } }
+        users: { where: { role: 'FIELD_STAFF', status: 'ACTIVE', ...(role === 'MANAGER' && { managerId: userId }) }, select: { id: true } }
       }
     }),
     prisma.user.findMany({
-      where: { organizationId, role: 'MANAGER' },
+      where: { organizationId, role: 'MANAGER', ...(role === 'MANAGER' && { id: userId }) },
       select: {
         id: true, name: true, email: true, phone: true, createdAt: true, status: true, department: true,
         subordinates: { select: { id: true, name: true, email: true, phone: true, status: true, taskAssignments: { where: { status: 'COMPLETED' }, select: { id: true, rating: true } } } },
@@ -99,7 +99,7 @@ const getAdminDashboard = async (organizationId, role, userId) => {
       }
     }),
     prisma.attendance.findMany({
-      where: { user: { organizationId }, date: { gte: sevenDaysAgo } },
+      where: { user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) }, date: { gte: sevenDaysAgo } },
       select: { date: true }
     }),
     prisma.task.findMany({
@@ -107,7 +107,7 @@ const getAdminDashboard = async (organizationId, role, userId) => {
       select: { updatedAt: true }
     }),
     prisma.visitReport.findMany({
-      where: { user: { organizationId }, createdAt: { gte: sevenDaysAgo } },
+      where: { user: { organizationId, ...(role === 'MANAGER' && { managerId: userId }) }, createdAt: { gte: sevenDaysAgo } },
       select: { createdAt: true }
     })
   ]);

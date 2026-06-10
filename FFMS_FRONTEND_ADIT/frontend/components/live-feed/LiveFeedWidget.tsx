@@ -129,7 +129,7 @@ export default function LiveFeedWidget({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const userTasks = tasks.filter((task: any) => task.assignments?.some((a: any) => a.userId === user.id));
 
-        const isOnline = !!liveLoc;
+        const isOnline = liveLoc ? liveLoc.isOnline : false;
 
         return {
           id: user.id,
